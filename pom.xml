@@ -3,6 +3,15 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
+	<prerequisites>
+		<maven>2.0.9</maven>
+	</prerequisites>
+
+	<organization>
+		<name>Selerity Corp</name>
+		<url>http://www.seleritycorp.com</url>
+	</organization>
+
 	<groupId>com.seleritycorp</groupId>
 	<artifactId>SyncClient</artifactId>
 	<packaging>jar</packaging>
@@ -10,11 +19,6 @@
 	<version>1.0.0</version>
 	<description>Client code for SeleritySyncAPI</description>
 
-	<parent>
-		<groupId>com.selerityfinancial</groupId>
-		<artifactId>selerity</artifactId>
-		<version>1.0.0</version>
-	</parent>
 
 	<dependencies>
 		<dependency>
@@ -23,5 +27,76 @@
 			<version>1.4</version>
 			<scope>compile</scope>
 		</dependency>
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.14</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-logging</groupId>
+			<artifactId>commons-logging</artifactId>
+			<version>1.1.1</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-logging</groupId>
+			<artifactId>commons-logging-api</artifactId>
+			<version>1.1</version>
+		</dependency>
+
+		<!-- Testing -->
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.5</version>
+			<scope>test</scope>
+		</dependency>
+
+
 	</dependencies>
+
+
+	<build>
+		<defaultGoal>install</defaultGoal>
+		<pluginManagement>
+			<plugins>
+
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<configuration>
+						<useFile>true</useFile>
+						<forkMode>once</forkMode>
+						<childDelegation>false</childDelegation>
+						<argLine>-Xmx512M</argLine>
+						<!--<redirectTestOutputToFile>true</redirectTestOutputToFile>-->
+						<workingDirectory>${basedir}</workingDirectory>
+						<systemProperties>
+							<property>
+								<name>log4j.configuration</name>
+								<value>log4j-tests.properties</value>
+							</property>
+						</systemProperties>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<configuration>
+						<source>1.5</source>
+						<target>1.5</target>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+	</build>
+
+
+
+
+
+
+
+
+
+
 </project>
