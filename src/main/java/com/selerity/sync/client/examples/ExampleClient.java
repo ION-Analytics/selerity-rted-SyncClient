@@ -104,7 +104,7 @@ public class ExampleClient {
 			
 			// now look up the 'Selerity Corporate Earnings' set:
 			String earningsContentSetID = null;
-			String earningsContentSetName = "Selerity Corporate Earnings";
+			String earningsContentSetName = "Selerity Corporate";
 			Request earningsContentSetRequest = new Request("ContentSetHandler.getContentSetByName");
 			earningsContentSetRequest.setMethodParameter("name", earningsContentSetName);
 			JsonElement contentSetElement = dispatcher.dispatch(earningsContentSetRequest, session);

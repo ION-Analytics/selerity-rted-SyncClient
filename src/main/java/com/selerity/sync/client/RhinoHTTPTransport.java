@@ -22,8 +22,8 @@ import org.apache.commons.logging.LogFactory;
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be 
  * removed from the software by any user thereof. 
  * 
- *  The transport used by Selerity's 'Rhino' server implementation exposed via HTTP (running in a Glassfish container).  Rhino expects 
- *  requests to be URL encoded (for now) and does not (currently) support compression.  
+ * The transport used by Selerity's 'Rhino' server implementation exposed via HTTP (running in a Glassfish container).  Rhino 
+ * supports both URL encoding or the application/x-json content type.  It does not (currently) support compression.  
  * 
  * @author andrewbrook
  *
