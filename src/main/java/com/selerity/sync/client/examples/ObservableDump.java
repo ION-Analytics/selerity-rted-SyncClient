@@ -133,7 +133,7 @@ public class ObservableDump {
 			ObservableDump dumper = new ObservableDump(host, port, user, password);
 
 			// dump out a bunch of events
-			dumper.dumpEvents(outputFileName, startTime, endTime);
+			dumper.dumpEventsWithOffsets(outputFileName, startTime, endTime);
 			
 			log.debug("all done");
 
@@ -245,6 +245,148 @@ public class ObservableDump {
 		long elapsedDump = System.currentTimeMillis() - startDump;
 		double elapsedDumpSeconds = ((double)elapsedDump) / 1000.0;
 		log.debug("dumped " + observableCount + " observables for " + eventCount + " events in " + elapsedDumpSeconds + " seconds");		
+	}
+	
+	
+	public void dumpEventsWithOffsets(String outputFileName, String startTime, String endTime) throws DispatchException, IOException{
+		long startDump = System.currentTimeMillis();
+		
+		// open the file
+		BufferedWriter out = new BufferedWriter(new FileWriter(outputFileName));
+		out.write("eventName,earliestStart,expectedStart,expectedEnd,latestEnd,primaryEntity,primaryCategory,"
+				+ "measureName,MeasureCode,period,periodRelativity,dataType,legacyObsSpecID,"
+				+ "eventSeriesID,eventID,observableID,timeseriesID,obsSpecID,"
+				+ "MeasurementOffset,ObservationStatusOffset,EnvironmentLevelOffset,AlgorithmIDOffset\n");
+
+		// get the content sets for this user
+		List<String> contentSetUUIDs = getEntitledEventContentSetUUIDs();
+
+		int eventCount = 0;
+		int observableCount = 0;
+		
+		// loop through the content sets
+		for (String contentSetUUID : contentSetUUIDs){
+			
+			// now look up events for each content set
+			List<JsonObject> events = getEventsForContentSet(contentSetUUID, startTime, endTime, EVENT_LOOKUP_LIMIT);
+			log.debug("found " + events.size() + " events");
+			
+			eventCount += events.size();
+			
+			// loop through each event
+			for (JsonObject event : events){
+				// some variables for the event
+				String eventID = event.get("eventId").getAsString();
+				String eventSeriesID = MiscUtils.getString(event, "eventSeriesId", "");
+				String eventName = MiscUtils.getString(event,"name","");
+				String earliestStart = MiscUtils.getString(event,"earliestExpectedStart","");
+				String expectedStart = MiscUtils.getString(event,"expectedStart","");
+				String expectedEnd = MiscUtils.getString(event,"expectedEnd","");
+				String latestEnd = MiscUtils.getString(event,"latestExpectedEnd","");
+				String primaryEntity = getPrimaryEntityForEvent(event);
+				String primaryCategory = getPrimaryCategoryForEvent(event);
+				
+				// get the observables 
+				JsonArray observables = getObservablesForEvent(eventID);
+				
+				observableCount += observables.size();
+				
+				// loop through the observables
+				for (int i = 0; i < observables.size(); i++){
+					JsonObject observable = observables.get(i).getAsJsonObject();
+					String observableID = observable.get("observableId").getAsString();
+					String measureCode = observable.get("measure").getAsString();
+					String measureTagID = getMeasureTagID(measureCode);
+					String measureName = getSynonym(measureTagID, null);
+
+					String period = observable.get("period").getAsString();
+					String timeseriesID = MiscUtils.getString(observable, "timeSeriesId", null);
+					String dataType = observable.get("observationFieldDatatype").getAsJsonObject().get("name").getAsString();
+					
+					// look up the spec 
+					JsonObject obsSpec = getObservationSpecForObservable(observableID, contentSetUUID);
+					String obsSpecID = "";
+					String legacyObsSpecID = "";
+					
+					String measurementOffset = "";
+					String observationStatusOffset = "";
+					String environmentLevelOffset = "";
+					String algorithmIDOffset = "";
+					
+					if (obsSpec != null){
+						// get the ID's
+						obsSpecID = obsSpec.get("observationSpecId").getAsString();
+						legacyObsSpecID = obsSpec.get("legacyId").getAsString();
+						
+						// get some field offsets rom the spec
+						measurementOffset = getFieldOffset(obsSpec, "Measurement");
+						observationStatusOffset = getFieldOffset(obsSpec, "ObservationStatus");
+						environmentLevelOffset = getFieldOffset(obsSpec, "EnvironmentLevel");
+						algorithmIDOffset = getFieldOffset(obsSpec, "AlgorithmID");
+					}
+					
+					
+					
+					// look up the period relativity for the timeseries
+					String periodRelativity = "";
+					if (timeseriesID != null){
+						JsonObject timeseries = getTimeSeriesForObservable(timeseriesID);
+						periodRelativity = timeseries.get("periodRelativity").getAsString();
+					}
+					
+					// now write the line
+					out.write("\"" + eventName + "\","
+							+ earliestStart + ","
+							+ expectedStart + ","
+							+ expectedEnd + ","
+							+ latestEnd + ","
+							+ "\"" + primaryEntity + "\","
+							+ "\"" + primaryCategory + "\","
+							+ "\"" + measureName + "\","
+							+ measureCode + ","
+							+ period + ","
+							+ periodRelativity + ","
+							+ dataType + ","
+							+ legacyObsSpecID + ","
+							+ eventSeriesID + ","
+							+ eventID + ","
+							+ observableID + ","
+							+ (timeseriesID == null ? "" : timeseriesID) + ","
+							+ obsSpecID + "," 
+							+ measurementOffset + ","
+							+ observationStatusOffset + ","  
+							+ environmentLevelOffset + ","  
+							+ algorithmIDOffset + "\n");
+				}
+				
+			}
+		}
+		
+		// all done
+		out.close();
+		
+		// print out some simple stats
+		long elapsedDump = System.currentTimeMillis() - startDump;
+		double elapsedDumpSeconds = ((double)elapsedDump) / 1000.0;
+		log.debug("dumped " + observableCount + " observables for " + eventCount + " events in " + elapsedDumpSeconds + " seconds");		
+	}
+	
+	/** Returns the offset of the first field with the given name.  Returns a zero-length string if not present.
+	 * 
+	 * @param obsSpec
+	 * @param targetFieldName
+	 * @return
+	 */
+	protected String getFieldOffset(JsonObject obsSpec, String targetFieldName){
+		JsonArray fields = obsSpec.get("fields").getAsJsonArray();
+		for (int f = 0; f < fields.size(); f++){
+			JsonObject field = fields.get(f).getAsJsonObject();
+			String fieldName = field.get("name").getAsString();
+			if (targetFieldName.equals(fieldName)){
+				return MiscUtils.getString(field, "offset", "");
+			}	
+		}
+		return "";
 	}
 
 	protected JsonArray getObservablesForEvent(String eventID) throws DispatchException{
