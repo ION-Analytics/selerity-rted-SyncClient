@@ -119,8 +119,12 @@ public class SpecDump {
 			// initialize the dumper
 			SpecDump dumper = new SpecDump(host, port, user, password);
 			
+			// dump specs for a single event
+			String CREDIT_ACTION_EVENT_UUID = "519e7ab4-1da3-11e0-b922-001517bbdc12";
+			dumper.dumpSpecsForEvent(outputFileName, CREDIT_ACTION_EVENT_UUID);  
+			
 			// dump the specs
-			dumper.dumpSpecs(outputFileName, startTime, endTime, SPEC_LOOKUP_BATCH_SIZE_LIMIT);
+			//dumper.dumpSpecs(outputFileName, startTime, endTime, SPEC_LOOKUP_BATCH_SIZE_LIMIT);
 			
 			log.debug("all done");
 
@@ -145,6 +149,65 @@ public class SpecDump {
 				"SpecDump", "extension", user, password);
 	}
 	
+	protected void dumpSpec(BufferedWriter out, JsonObject obsSpec, String entityID, String measureCode, String period) throws IOException{
+		
+		// ID
+		long legacySpecID = obsSpec.get("legacyId").getAsLong();
+		out.write("ID," + legacySpecID + "\n");
+		
+		// Length
+		long length = obsSpec.get("messageLength").getAsLong();
+		out.write("Length," + length + "\n");
+		
+		// field count
+		JsonArray fields = obsSpec.get("fields").getAsJsonArray();  
+		int fieldCount = fields.size() + 3;                         // Note - the 3 static fields need to be included!
+		out.write("FieldCount," + fieldCount + "\n");
+		
+		// Active
+		boolean active = obsSpec.get("isCurrent").getAsBoolean();
+		out.write("Active," + active + "\n");
+		
+		// LastUpdateTime
+		String lastUpdateTime = obsSpec.get("lastUpdate").getAsString();
+		out.write("LastUpdateTime," + lastUpdateTime + "\n");
+		
+		// Static fields
+		
+		// Measure
+		out.write("Static,Measure,STRING," + measureCode + "\n");
+		
+		// Entity
+		out.write("Static,EntityID,STRING," + entityID + "\n");
+		
+		// Period
+		out.write("Static,Period,STRING," + period + "\n");
+	
+		
+		// Active Fields
+		for (int f = 0; f < fields.size(); f++){
+			JsonObject field = fields.get(f).getAsJsonObject();
+			String fieldName = field.get("name").getAsString();
+			JsonObject dataType = field.get("datatype").getAsJsonObject();
+			String dataTypeName = dataType.get("name").getAsString();
+			int fieldOffset = field.get("offset").getAsInt();
+			JsonElement fieldLengthElement = field.get("length");
+			if ((fieldLengthElement == null) || (fieldLengthElement.isJsonNull())){
+				// fixed length field
+				out.write("Dynamic," + fieldName + "," + dataTypeName + "," + fieldOffset + "\n");
+			}
+			else{
+				// dynamic length field
+				int fieldLength = field.get("length").getAsInt();
+				out.write("Dynamic," + fieldName + "," + dataTypeName + "," + fieldOffset + "," + fieldLength + "\n");
+			}
+					
+		}
+		
+		// done with this spec, add a blank separator line
+		out.write("\n");
+	}
+	
 	protected void dumpSpecs(String outputFileName, Long startWindow, Long endWindow, int limit) throws IOException, DispatchException, ParseException{
 		// log the start time so that we can compute elapsed time later
 		long startDump = System.currentTimeMillis();
@@ -153,7 +216,6 @@ public class SpecDump {
 		BufferedWriter out = new BufferedWriter(new FileWriter(outputFileName));	
 		
 		int obsSpecCount = 0;
-		int dumpCount = 0;
 		
 		// get the content sets for this user
 		JsonArray contentSets = getEntitledContentSetUUIDs();
@@ -193,68 +255,15 @@ public class SpecDump {
 					
 					// check if this observable is in the time range given
 					if (overlapsTimeRange(eventID, startWindow, endWindow)){
+
+						// Static fields
+						String measureCode = observable.get("measure").getAsString();
+						String entityID = getPrimaryEntityForEventID(eventID);
+						String period = observable.get("period").getAsString();
 						
 						// dump out the spec
-						dumpCount++;
-						
-						// ID
-						long legacySpecID = obsSpec.get("legacyId").getAsLong();
-						out.write("ID," + legacySpecID + "\n");
-						
-						// Length
-						long length = obsSpec.get("messageLength").getAsLong();
-						out.write("Length," + length + "\n");
-						
-						// field count
-						JsonArray fields = obsSpec.get("fields").getAsJsonArray();  
-						int fieldCount = fields.size() + 3;                         // Note - the 3 static fields need to be included!
-						out.write("FieldCount," + fieldCount + "\n");
-						
-						// Active
-						boolean active = obsSpec.get("isCurrent").getAsBoolean();
-						out.write("Active," + active + "\n");
-						
-						// LastUpdateTime
-						String lastUpdateTime = obsSpec.get("lastUpdate").getAsString();
-						out.write("LastUpdateTime," + lastUpdateTime + "\n");
-						
-						// Static fields
-						
-						// Measure
-						String measureCode = observable.get("measure").getAsString();
-						out.write("Static,Measure,STRING," + measureCode + "\n");
-						
-						// Entity
-						String entityID = eventEntities.get(eventID); // #TODO - fix hack; depends on this being set during the time overlap call!
-						out.write("Static,EntityID,STRING," + entityID + "\n");
-						
-						// Period
-						String period = observable.get("period").getAsString();
-						out.write("Static,Period,STRING," + period + "\n");
-					
-						
-						// Active Fields
-						for (int f = 0; f < fields.size(); f++){
-							JsonObject field = fields.get(f).getAsJsonObject();
-							String fieldName = field.get("name").getAsString();
-							JsonObject dataType = field.get("datatype").getAsJsonObject();
-							String dataTypeName = dataType.get("name").getAsString();
-							int fieldOffset = field.get("offset").getAsInt();
-							JsonElement fieldLengthElement = field.get("length");
-							if ((fieldLengthElement == null) || (fieldLengthElement.isJsonNull())){
-								// fixed length field
-								out.write("Dynamic," + fieldName + "," + dataTypeName + "," + fieldOffset + "\n");
-							}
-							else{
-								// dynamic length field
-								int fieldLength = field.get("length").getAsInt();
-								out.write("Dynamic," + fieldName + "," + dataTypeName + "," + fieldOffset + "," + fieldLength + "\n");
-							}
-									
-						}
-						
-						// done with this spec, add a blank separator line
-						out.write("\n");
+						dumpSpec(out, obsSpec, entityID, measureCode, period);
+
 						out.flush();
 						
 					}
@@ -268,7 +277,71 @@ public class SpecDump {
 		// print out some simple stats
 		long elapsedDump = System.currentTimeMillis() - startDump;
 		double elapsedDumpSeconds = ((double)elapsedDump) / 1000.0;
-		log.debug("dumped " + dumpCount + " observation specs out of "+ obsSpecCount + " total observables to which I am entitled in " + elapsedDumpSeconds + " seconds");		
+		log.debug("dumped " + obsSpecCount + " observation specs in " + elapsedDumpSeconds + " seconds");		
+	}
+	
+	protected void dumpSpecsForEvent(String outputFileName, String eventUUID) throws DispatchException, IOException{
+		// log the start time so that we can compute elapsed time later
+		long startDump = System.currentTimeMillis();
+		
+		// open the file
+		BufferedWriter out = new BufferedWriter(new FileWriter(outputFileName));	
+		
+		// look up the event
+		Request eventRequest = new Request("EventHandler.findById");
+		eventRequest.setMethodParameter("eventId", eventUUID);
+		eventRequest.setMethodParameter("timeZoneId", "UTC");
+		
+		JsonObject event = dispatcher.dispatch(eventRequest, session).getAsJsonObject();
+		if ((event == null) || (event.isJsonNull())){
+			log.info("couldn't find event");
+			return;
+		}
+
+		int obsSpecCount = 0;
+		
+		Request observablesRequest = new Request("ObservableHandler.getObservablesForEvent");
+		observablesRequest.setMethodParameter("eventId", eventUUID);
+		JsonArray observables = dispatcher.dispatch(observablesRequest, session).getAsJsonArray();
+		
+		if ((observables == null) || (observables.isJsonNull())){
+			log.info("couldn't find any observables");
+			return;
+		}
+		
+		for (int i = 0; i < observables.size(); i++){
+			JsonObject observable = observables.get(i).getAsJsonObject();
+			String observableID = observable.get("observableId").getAsString();
+			String measureCode = observable.get("measure").getAsString();
+			String period = observable.get("period").getAsString();
+			String eventID = observable.get("eventId").getAsString();
+			String entityID = getPrimaryEntityForEventID(eventID);
+			
+			// get the specs for this observable (normally only one)
+			Request specsRequest = new Request("ObservationSpecHandler.getCurrentObservationSpecForObservable");
+			specsRequest.setMethodParameter("observableId", observableID);
+			JsonArray specs = dispatcher.dispatch(specsRequest, session).getAsJsonArray();
+			
+			if ((specs == null) || (specs.isJsonNull()) || (specs.size() < 1)){
+				log.info("couldn't find any specs for observable " + observableID);
+			}
+			else{
+				for (int j = 0; j < specs.size(); j++){
+					JsonObject spec = specs.get(j).getAsJsonObject();
+					dumpSpec(out, spec, entityID, measureCode, period);
+					obsSpecCount++;
+				}
+			}
+			
+		}
+		
+		// all done
+		out.close();
+		
+		// print out some simple stats
+		long elapsedDump = System.currentTimeMillis() - startDump;
+		double elapsedDumpSeconds = ((double)elapsedDump) / 1000.0;
+		log.debug("dumped " + obsSpecCount + " observation specs in " + elapsedDumpSeconds + " seconds");		
 		
 	}
 	
@@ -292,7 +365,6 @@ public class SpecDump {
 			
 			// also set the event entity
 			eventEntity = getPrimaryEntityForEvent(event);
-			eventEntities.put(eventID, eventEntity);
 		}
 		return (startWindow < eventEndTime) && (endWindow > eventStartTime);
 	}
@@ -326,7 +398,25 @@ public class SpecDump {
 		return contentSetUUIDs;
 	}
 	
+	protected String getPrimaryEntityForEventID(String eventID) throws DispatchException{
+		String entityID = eventEntities.get(eventID);
+		if (entityID != null){
+			return entityID;
+		}
+		Request eventRequest = new Request("EventHandler.findById");
+		eventRequest.setMethodParameter("eventId", eventID);
+		eventRequest.setMethodParameter("timeZoneId", "UTC");
+				
+		JsonObject event = dispatcher.dispatch(eventRequest, session).getAsJsonObject(); 
+		return getPrimaryEntityForEvent(event);
+	}
+	
 	protected String getPrimaryEntityForEvent(JsonObject event){
+		String eventID = event.get("eventId").getAsString();
+		String entityID = eventEntities.get(eventID);
+		if (entityID != null){
+			return entityID;
+		}
 		double maxScore = Double.MIN_VALUE;
 		String maxValue = null;
 		JsonArray tags = event.get("tagSummaries").getAsJsonArray();
@@ -341,6 +431,9 @@ public class SpecDump {
 				}
 			}
 		}
+		
+		eventEntities.put(eventID, maxValue);
+		
 		return maxValue;		
 	}
 	
