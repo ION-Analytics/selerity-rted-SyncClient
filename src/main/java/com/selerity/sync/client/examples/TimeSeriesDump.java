@@ -16,7 +16,7 @@ import com.selerity.sync.client.Session;
 import com.selerity.sync.client.Transport;
 
 /** 
- * © Copyrights Selerity, Inc. 2009-2010. All rights reserved. This source code is confidential 
+ * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code is confidential 
  * and proprietary information of Selerity Inc. and may be used only by a recipient designated by 
  * and for the purposes permitted by Selerity Inc. in writing.  Reproduction of, dissemination of, 
  * modifications to or creation of derivative works from this source code, whether in source or 

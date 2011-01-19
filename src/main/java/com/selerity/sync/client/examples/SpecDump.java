@@ -29,7 +29,7 @@ import com.selerity.sync.client.Session;
 import com.selerity.sync.client.Transport;
 
 /**
- * © Copyrights Selerity, Inc. 2009-2010. All rights reserved. This source code
+ * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code
  * is confidential and proprietary information of Selerity Inc. and may be used
  * only by a recipient designated by and for the purposes permitted by Selerity
  * Inc. in writing. Reproduction of, dissemination of, modifications to or
@@ -57,6 +57,8 @@ public class SpecDump {
 	private static final String SELERITY_ECONOMICS_CONTENT_SET_UUID = "c3bf8537-cb61-4eb0-f514-8eae8961d49a";
 	private static final String SELERITY_ENERGY_CONTENT_SET_UUID = "c4bf8547-bb70-52dc-bf01-38662f3e19fd";
 	
+	//private static final String CREDIT_ACTION_EVENT_UUID = "519e7ab4-1da3-11e0-b922-001517bbdc12";
+	
 	public static Set<String> getSelerityContentSetUUIDs(){
 		Set<String> s = new HashSet<String>();
 		s.add(SELERITY_CORPORATE_CONTENT_SET_UUID);
@@ -79,7 +81,9 @@ public class SpecDump {
 		try {
 
 			if (args.length < 5) {
+				// can be run in two modes - one with a time range and the other for a single event
 				System.err.println("arguments: host port user password outputFileName {startTime} {endTime}");
+				System.err.println("arguments: host port user password outputFileName eventUUID");
 				System.exit(1);
 			}
 
@@ -94,16 +98,25 @@ public class SpecDump {
 			String password = args[3];
 			String outputFileName = args[4];
 			
-			// see if start time has been set
-			String startTimeStr = "1970-01-01T00:00:00.000000000";  // rough approximation for "beginning of time"
+			// see if start time has been set or if instead it's a single event UUID
+			String eventUUID = null;
+
+			long startTime = 0;  // rough approximation for "beginning of time" (nothing important happened before Jan 1, 1970, right?)
 			if (args.length > 5){
-				startTimeStr = args[5];
-				log.debug("set startTime to " + startTimeStr);
+				try{
+					String startTimeStr = args[5];
+					startTime = MiscUtils.parseNanoTime(startTimeStr);
+					log.debug("set startTime to " + startTimeStr);
+				}
+				catch (Exception ex){
+					log.debug("assuming \"" + args[5] + "\" is an event UUID");
+					eventUUID = args[5];
+				}
 			}
 			else{
 				log.debug("no startTime set");
 			}
-			long startTime = MiscUtils.parseNanoTime(startTimeStr);
+			
 			
 			// see if end time has been set
 			String endTimeStr = "2200-01-01T00:00:00.000000000";  // rough approximation for "end of time"
@@ -119,12 +132,14 @@ public class SpecDump {
 			// initialize the dumper
 			SpecDump dumper = new SpecDump(host, port, user, password);
 			
-			// dump specs for a single event
-			String CREDIT_ACTION_EVENT_UUID = "519e7ab4-1da3-11e0-b922-001517bbdc12";
-			dumper.dumpSpecsForEvent(outputFileName, CREDIT_ACTION_EVENT_UUID);  
-			
-			// dump the specs
-			//dumper.dumpSpecs(outputFileName, startTime, endTime, SPEC_LOOKUP_BATCH_SIZE_LIMIT);
+			if (eventUUID != null){
+				// dump specs for a single event
+				dumper.dumpSpecsForEvent(outputFileName, eventUUID);
+			}
+			else{
+				// dump the specs based on the optional time range
+				dumper.dumpSpecs(outputFileName, startTime, endTime, SPEC_LOOKUP_BATCH_SIZE_LIMIT);
+			}
 			
 			log.debug("all done");
 
@@ -240,7 +255,7 @@ public class SpecDump {
 				int batchCount = obsSpecs.size();
 				
 				obsSpecCount += batchCount;
-				offset += batchCount;
+				offset += limit;
 				
 				// process all of the specs in this batch
 				for (int i = 0; i < batchCount; i++){
