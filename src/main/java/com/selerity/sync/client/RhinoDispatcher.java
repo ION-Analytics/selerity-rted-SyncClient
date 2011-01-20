@@ -48,6 +48,10 @@ public class RhinoDispatcher implements Dispatcher{
 		this.transport = transport;
 	}
 
+	/** Dispatch the request, returning the result (and throwing an error if one occurs).  Uses the explicit session
+	 *  parameters given.
+	 * 
+	 */
 	public synchronized JsonElement dispatch(Request request, String user, String token, String client, String mode) throws DispatchException{
 		
 		// construct the request string
@@ -99,6 +103,9 @@ public class RhinoDispatcher implements Dispatcher{
 		}
 	}
 	
+	/** Dispatch the request, returning the result (and throwing an error if one occurs).  Uses the cached session parameters.
+	 * 
+	 */
 	public JsonElement dispatch(Request request, Session session) throws DispatchException{
 		return dispatch(request, session.getHeaderParameter(RhinoSession.USER), 
 				session.getHeaderParameter(RhinoSession.TOKEN), 
@@ -106,6 +113,10 @@ public class RhinoDispatcher implements Dispatcher{
 				session.getHeaderParameter(RhinoSession.MODE));
 	}
 	
+	/** Dispatch the array of requests as a boxcar, returning the corresponding array of responses.  Uses the explicit session
+	 *  parameters given.
+	 * 
+	 */
 	public Response[] boxcarDispatch(Request[] requests, String user, String token, String client, String mode) throws DispatchException {
 		// keep track of which request is which
 		Map<String,Integer> requestIndex = new HashMap<String,Integer>();
@@ -195,6 +206,9 @@ public class RhinoDispatcher implements Dispatcher{
 		return responses;
 	}
 	
+	/** Dispatch the array of requests as a boxcar.  Uses the cached session parameters.
+	 * 
+	 */
 	public Response[] boxcarDispatch(Request[] requests, Session session) throws DispatchException {
 		return boxcarDispatch(requests, session.getHeaderParameter(RhinoSession.USER), 
 				session.getHeaderParameter(RhinoSession.TOKEN), 
@@ -202,6 +216,11 @@ public class RhinoDispatcher implements Dispatcher{
 				session.getHeaderParameter(RhinoSession.MODE));
 	}
 	
+	/** Convert a JsonObject into a DispatchException
+	 * 
+	 * @param responseMap
+	 * @return
+	 */
 	protected DispatchException getException(JsonObject responseMap){
 		JsonElement errorElement = responseMap.get("error");
 		if ((errorElement == null) || (errorElement.isJsonNull())){
@@ -214,7 +233,16 @@ public class RhinoDispatcher implements Dispatcher{
 		return new DispatchException(code, message, data);
 	}
 	
-	
+	/** Convert the request into a string and append it to the string buffer.
+	 * 
+	 * @param buf
+	 * @param request
+	 * @param id
+	 * @param user
+	 * @param token
+	 * @param client
+	 * @param mode
+	 */
 	protected void appendRequestString(StringBuffer buf, Request request, String id, String user, String token, String client, String mode){
 		buf.append("{"
 	    	+"\"method\":" + MiscUtils.stringEncode(request.getMethod()) + ","
@@ -224,9 +252,11 @@ public class RhinoDispatcher implements Dispatcher{
 	    	+"\"header\":{"
 	    	+"\"user\":" + MiscUtils.stringEncode(user) + ","
 	    	+"\"token\":" + MiscUtils.stringEncode(token) + ","
-	    	+"\"client\":" + MiscUtils.stringEncode(client) + ","
-	    	+"\"mode\":" + MiscUtils.stringEncode(mode) + ""
-	    	+"},"
+	    	+"\"client\":" + MiscUtils.stringEncode(client));
+		if (mode != null){
+			buf.append(",\"mode\":" + MiscUtils.stringEncode(mode));
+		}
+		buf.append("},"
 	    	+"\"id\":\"" + id + "\""
     		+"}");
 	}

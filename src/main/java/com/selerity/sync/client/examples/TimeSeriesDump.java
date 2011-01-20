@@ -2,18 +2,15 @@ package com.selerity.sync.client.examples;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
+import java.net.MalformedURLException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.google.gson.JsonObject;
-import com.selerity.sync.client.Dispatcher;
+import com.selerity.sync.client.AbstractSyncClient;
+import com.selerity.sync.client.DispatchException;
 import com.selerity.sync.client.Request;
-import com.selerity.sync.client.RhinoDispatcher;
-import com.selerity.sync.client.RhinoHTTPTransport;
-import com.selerity.sync.client.RhinoSessionFactory;
-import com.selerity.sync.client.Session;
-import com.selerity.sync.client.Transport;
 
 /** 
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code is confidential 
@@ -32,9 +29,13 @@ import com.selerity.sync.client.Transport;
  *
  */
 
-public class TimeSeriesDump {
+public class TimeSeriesDump extends AbstractSyncClient{
 
-private static final Log log = LogFactory.getLog(TimeSeriesDump.class);	
+	private static final Log log = LogFactory.getLog(TimeSeriesDump.class);	
+	
+	public TimeSeriesDump(String host, int port, String clientAppName) throws MalformedURLException, DispatchException{
+		super(host, port, clientAppName);
+	}
 	
 	
 	/** 
@@ -67,18 +68,13 @@ private static final Log log = LogFactory.getLog(TimeSeriesDump.class);
 			String timeZoneID = "UTC";
 			
 			// initialized the transport and method dispatcher
-			String rhinoURL = "http://" + host + ":" + port + "/rhino-1.0-SNAPSHOT/rpc.do";
-			Transport transport = new RhinoHTTPTransport(rhinoURL, false);
-			Dispatcher dispatcher = new RhinoDispatcher(transport);
-
-			// log in, setting the 'client identification' field and enabling the 'extensions mode'
-			Session session = new RhinoSessionFactory().getInstance(dispatcher,
-					"TimeSeriesDump", "extension", user, password);
+			TimeSeriesDump dumper = new TimeSeriesDump(host, port, "TimeSeriesDump");
+			dumper.startSession(user, password);
 			
 			// look up the time series
 			Request timeseriesRequest = new Request("TimeSeriesHandler.findById");
 			timeseriesRequest.setMethodParameter("id", timeSeriesUUID);
-			JsonObject timeseries = dispatcher.dispatch(timeseriesRequest, session).getAsJsonObject();		
+			JsonObject timeseries = dumper.dispatch(timeseriesRequest).getAsJsonObject();		
 			log.debug("got timeseries: " + timeseries);
 			
 			String timeseriesName = timeseries.get("name").getAsString();
@@ -87,7 +83,7 @@ private static final Log log = LogFactory.getLog(TimeSeriesDump.class);
 			// look up next observable in the series
 			Request nextObservableRequest = new Request("ObservableHandler.getNextObservableInTimeSeries");
 			nextObservableRequest.setMethodParameter("timeSeriesId", timeSeriesUUID);
-			JsonObject nextObservable = dispatcher.dispatch(nextObservableRequest, session).getAsJsonObject();		
+			JsonObject nextObservable = dumper.dispatch(nextObservableRequest).getAsJsonObject();		
 			log.debug("got next observable: " + nextObservable);
 			
 			// if there is no next observable then give up
@@ -108,7 +104,7 @@ private static final Log log = LogFactory.getLog(TimeSeriesDump.class);
 			Request obsSpecRequest = new Request("ObservationSpecHandler.getCurrentObservationSpecForObservable");
 			obsSpecRequest.setMethodParameter("observableId", observableID);
 			obsSpecRequest.setMethodParameter("contentSetId", contentSetUUID);
-			JsonObject obsSpec = dispatcher.dispatch(obsSpecRequest, session).getAsJsonObject();		
+			JsonObject obsSpec = dumper.dispatch(obsSpecRequest).getAsJsonObject();		
 			log.debug("obsSpec = " + obsSpec);
 			
 			// if there is no obs spec then quit
@@ -126,7 +122,7 @@ private static final Log log = LogFactory.getLog(TimeSeriesDump.class);
 			eventRequest.setMethodParameter("eventId", eventID);
 			eventRequest.setMethodParameter("timeZoneId", timeZoneID);
 			eventRequest.setMethodParameter("contentSetId", contentSetUUID);
-			JsonObject event = dispatcher.dispatch(eventRequest, session).getAsJsonObject();		
+			JsonObject event = dumper.dispatch(eventRequest).getAsJsonObject();		
 			log.debug("event = " + event);
 			
 			// get the expected start time of the event
@@ -138,6 +134,9 @@ private static final Log log = LogFactory.getLog(TimeSeriesDump.class);
 			out.write("expectedStartTime (" + timeZoneID + "),measure,period,legacyObsSpecID\n");
 			out.write(expectedStart + "," + measure + "," + period + "," + legacyObsSpecID + "\n");
 			out.close();
+			
+			// and close the session
+			dumper.closeSession();
 			
 		}
 		catch (Exception ex) {

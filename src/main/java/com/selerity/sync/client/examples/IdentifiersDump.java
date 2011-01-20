@@ -35,7 +35,7 @@ import com.selerity.sync.client.DispatchException;
  * 
  */
 
-public class IdentifiersDump {
+public class IdentifiersDump{
 	
 	protected class Tag {
 		protected String name;
@@ -60,8 +60,9 @@ public class IdentifiersDump {
 	
 	protected final TagDump tagDump;
 	
-	public IdentifiersDump(String host, int port, String user, String password) throws MalformedURLException, DispatchException{
-		tagDump = new TagDump(host, port, user, password);
+	public IdentifiersDump(String host, int port, String user, String password, String clientAppName) throws MalformedURLException, DispatchException{
+		tagDump = new TagDump(host, port, clientAppName);
+		tagDump.startSession(user, password);
 	}
 	
 	/** Given a map of values->families->synonyms, need to generate a map of selerity synonyms to other synonyms
@@ -77,6 +78,9 @@ public class IdentifiersDump {
 		
 		SortedMap<String,SortedMap<String, String>> tagSynonymMap = tagDump.getTagSynonymMap("entity", PAGINATION_LIMIT);
 		SortedMap<String,SortedMap<String, String>> seleritySynonymsMap = buildSeleritySynonymMap(tagSynonymMap);
+		
+		// write the header
+		out.write("\"type\",\"value\",\"exchange\",\"entity_id\"\n");
 		
 		for (String selerityID : seleritySynonymsMap.keySet()){
 			entityCount++;
@@ -170,7 +174,7 @@ public class IdentifiersDump {
 			String outputFileName = args[4];
 			
 			// initialize the dumper
-			IdentifiersDump dumper = new IdentifiersDump(host, port, user, password);
+			IdentifiersDump dumper = new IdentifiersDump(host, port, user, password, "IdentifiersDump");
 
 			// open the file
 			BufferedWriter out = new BufferedWriter(new FileWriter(outputFileName));

@@ -4,11 +4,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -16,16 +12,10 @@ import org.apache.commons.logging.LogFactory;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
+import com.selerity.sync.client.AbstractSyncClient;
 import com.selerity.sync.client.DispatchException;
-import com.selerity.sync.client.Dispatcher;
 import com.selerity.sync.client.MiscUtils;
 import com.selerity.sync.client.Request;
-import com.selerity.sync.client.RhinoDispatcher;
-import com.selerity.sync.client.RhinoHTTPTransport;
-import com.selerity.sync.client.RhinoSessionFactory;
-import com.selerity.sync.client.Session;
-import com.selerity.sync.client.Transport;
 
 /**
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code
@@ -46,44 +36,31 @@ import com.selerity.sync.client.Transport;
  * 
  */
 
-public class ObservableDump {
+public class ObservableDump  extends AbstractSyncClient{
 
 	private static final Log log = LogFactory.getLog(ObservableDump.class);
 
 	private static final String UTC = "UTC";
 	private static final int EVENT_LOOKUP_LIMIT = 50;
-	
-	private static final String SELERITY_CORPORATE_CONTENT_SET_UUID = "c2bf8528-9a84-1fa7-1d19-d298c5e02b06";
-	private static final String SELERITY_ECONOMICS_CONTENT_SET_UUID = "c3bf8537-cb61-4eb0-f514-8eae8961d49a";
-	private static final String SELERITY_ENERGY_CONTENT_SET_UUID = "c4bf8547-bb70-52dc-bf01-38662f3e19fd";
-	
-	public static Set<String> getSelerityContentSetUUIDs(){
-		Set<String> s = new HashSet<String>();
-		s.add(SELERITY_CORPORATE_CONTENT_SET_UUID);
-		s.add(SELERITY_ECONOMICS_CONTENT_SET_UUID);
-		s.add(SELERITY_ENERGY_CONTENT_SET_UUID);
-		return Collections.unmodifiableSet(s);
-	}
-	
-	private static final Set<String> SELERITY_CONTENT_SET_UUIDS = getSelerityContentSetUUIDs();
-	
-	protected final Session session;
-	protected final Dispatcher dispatcher;
-	
-	
-	public ObservableDump(String host, int port, String user, String password) throws MalformedURLException, DispatchException{
-		// initialized the transport and method dispatcher
-		String rhinoURL = "http://" + host + ":" + port + "/rhino-1.0-SNAPSHOT/rpc.do";
-		Transport transport = new RhinoHTTPTransport(rhinoURL, false);
-		dispatcher = new RhinoDispatcher(transport);
 
-		// log in, setting the 'client identification' field and enabling
-		// the 'extensions mode'
-		session = new RhinoSessionFactory().getInstance(dispatcher,
-				"ObservableDump", "extension", user, password);
+	
+	protected EventDump eventDump;
+	
+	
+	public ObservableDump(String host, int port, String clientAppName) throws MalformedURLException, DispatchException{
+		super(host, port, clientAppName);
+		eventDump = new EventDump(host, port, clientAppName);
 	}
 	
+	public void startSession(String user, String password) throws DispatchException{
+		super.startSession(user, password);
+		eventDump.startSession(user, password);
+	}
 	
+	public void closeSession() throws DispatchException{
+		super.closeSession();
+		eventDump.closeSession();
+	} 
 	
 	
 	/**
@@ -130,13 +107,16 @@ public class ObservableDump {
 			}
 			
 			// initialize the dumper
-			ObservableDump dumper = new ObservableDump(host, port, user, password);
+			ObservableDump dumper = new ObservableDump(host, port, "ObservableDump");
+			dumper.startSession(user, password);
 
 			// dump out a bunch of events
 			dumper.dumpEventsWithOffsets(outputFileName, startTime, endTime);
 			
+			// close session
+			dumper.closeSession();
+			
 			log.debug("all done");
-
 		}
 		catch (Exception ex) {
 			log.error("caught exception " + ex, ex);
@@ -153,7 +133,7 @@ public class ObservableDump {
 				+ "eventSeriesID,eventID,observableID,timeseriesID,obsSpecID\n");
 		
 		// get the content sets for this user
-		List<String> contentSetUUIDs = getEntitledEventContentSetUUIDs();
+		List<String> contentSetUUIDs = eventDump.getEntitledEventContentSetUUIDs();
 
 		int eventCount = 0;
 		int observableCount = 0;
@@ -162,7 +142,7 @@ public class ObservableDump {
 		for (String contentSetUUID : contentSetUUIDs){
 			
 			// now look up events for each content set
-			List<JsonObject> events = getEventsForContentSet(contentSetUUID, startTime, endTime, EVENT_LOOKUP_LIMIT);
+			List<JsonObject> events = eventDump.getEventsForContentSet(contentSetUUID, startTime, endTime, EVENT_LOOKUP_LIMIT, UTC);
 			log.debug("found " + events.size() + " events");
 			
 			eventCount += events.size();
@@ -177,8 +157,8 @@ public class ObservableDump {
 				String expectedStart = MiscUtils.getString(event,"expectedStart","");
 				String expectedEnd = MiscUtils.getString(event,"expectedEnd","");
 				String latestEnd = MiscUtils.getString(event,"latestExpectedEnd","");
-				String primaryEntity = getPrimaryEntityForEvent(event);
-				String primaryCategory = getPrimaryCategoryForEvent(event);
+				String primaryEntity = eventDump.getPrimaryEntityForEvent(event);
+				String primaryCategory = eventDump.getPrimaryCategoryForEvent(event);
 				
 				// get the observables 
 				JsonArray observables = getObservablesForEvent(eventID);
@@ -259,7 +239,7 @@ public class ObservableDump {
 				+ "MeasurementOffset,ObservationStatusOffset,EnvironmentLevelOffset,AlgorithmIDOffset\n");
 
 		// get the content sets for this user
-		List<String> contentSetUUIDs = getEntitledEventContentSetUUIDs();
+		List<String> contentSetUUIDs = eventDump.getEntitledEventContentSetUUIDs();
 
 		int eventCount = 0;
 		int observableCount = 0;
@@ -268,7 +248,7 @@ public class ObservableDump {
 		for (String contentSetUUID : contentSetUUIDs){
 			
 			// now look up events for each content set
-			List<JsonObject> events = getEventsForContentSet(contentSetUUID, startTime, endTime, EVENT_LOOKUP_LIMIT);
+			List<JsonObject> events = eventDump.getEventsForContentSet(contentSetUUID, startTime, endTime, EVENT_LOOKUP_LIMIT, UTC);
 			log.debug("found " + events.size() + " events");
 			
 			eventCount += events.size();
@@ -283,8 +263,8 @@ public class ObservableDump {
 				String expectedStart = MiscUtils.getString(event,"expectedStart","");
 				String expectedEnd = MiscUtils.getString(event,"expectedEnd","");
 				String latestEnd = MiscUtils.getString(event,"latestExpectedEnd","");
-				String primaryEntity = getPrimaryEntityForEvent(event);
-				String primaryCategory = getPrimaryCategoryForEvent(event);
+				String primaryEntity = eventDump.getPrimaryEntityForEvent(event);
+				String primaryCategory = eventDump.getPrimaryCategoryForEvent(event);
 				
 				// get the observables 
 				JsonArray observables = getObservablesForEvent(eventID);
@@ -393,14 +373,14 @@ public class ObservableDump {
 		Request observableRequest = new Request("ObservableHandler.getObservablesForEvent");
 		observableRequest.setMethodParameter("eventId", eventID);
 		
-		return dispatcher.dispatch(observableRequest, session).getAsJsonArray();
+		return dispatch(observableRequest).getAsJsonArray();
 	}
 	
 	protected JsonObject getObservationSpecForObservable(String observableUUID, String contentSetUUID) throws DispatchException{
 		Request obsSpecRequest = new Request("ObservationSpecHandler.getCurrentObservationSpecForObservable");
 		obsSpecRequest.setMethodParameter("observableId", observableUUID);
 		obsSpecRequest.setMethodParameter("contentSetId", contentSetUUID);
-		JsonElement spec = dispatcher.dispatch(obsSpecRequest, session);
+		JsonElement spec = dispatch(obsSpecRequest);
 		if ((spec == null) || (spec.isJsonNull())){
 			return null;
 		}
@@ -410,169 +390,23 @@ public class ObservableDump {
 	protected JsonObject getTimeSeriesForObservable(String observableUUID) throws DispatchException{
 		Request timeseriesRequest = new Request("TimeSeriesHandler.findById");
 		timeseriesRequest.setMethodParameter("id", observableUUID);
-		return dispatcher.dispatch(timeseriesRequest, session).getAsJsonObject();
+		return dispatch(timeseriesRequest).getAsJsonObject();
 	}
 	
 	protected JsonObject getDataTypeForObservable(String observableUUID) throws DispatchException {
 		Request timeseriesRequest = new Request("TimeSeriesHandler.findById");
 		timeseriesRequest.setMethodParameter("id", observableUUID);
-		return dispatcher.dispatch(timeseriesRequest, session).getAsJsonObject();
+		return dispatch(timeseriesRequest).getAsJsonObject();
 	}
 	
 	
-	/** Returns a list of content set UUID's to which the user is entitled and which refer to
-	 *  non-trivial Selerity event content sets.
-	 * 
-	 * @return
-	 * @throws DispatchException
-	 */
-	protected List<String> getEntitledEventContentSetUUIDs() throws DispatchException{
-		// look up all of the content sets to which this user is entitled
-		Request contentSetRequest = new Request("ContentSetHandler.getContentSets");
-		JsonArray contentSetResponse = dispatcher.dispatch(contentSetRequest, session).getAsJsonArray(); 
-		log.debug("contentSetResponse = " + contentSetResponse);
-		
-		List<String> contentSetUUIDs = new ArrayList<String>();
-		
-		// print out the content sets
-		for (int i = 0; i < contentSetResponse.size(); i++){
-			JsonObject contentSet = contentSetResponse.get(i).getAsJsonObject();
-			String contentSetName = contentSet.get("name").getAsString();
-			String contentSetUUID = contentSet.get("contentSetId").getAsString();
-			log.debug("content set[" + i + "] = " + contentSetName + " (" + contentSetUUID + ")");
-			if (SELERITY_CONTENT_SET_UUIDS.contains(contentSetUUID)){  // filter out the non-selerity content sets
-				contentSetUUIDs.add(contentSetUUID);
-			}
-		}
-		
-		return contentSetUUIDs;
-	}
 	
-	/** Returns all events for the given content set within the given start and end time.  The events will be queried in chunks set by the limit.
-	 * 
-	 * @param contentSetUUID
-	 * @param startTime
-	 * @param endTime
-	 * @param limit
-	 * @return
-	 * @throws DispatchException
-	 */
-	protected List<JsonObject> getEventsForContentSet(String contentSetUUID, String startTime, String endTime, int limit) throws DispatchException{
-	
-		List<JsonObject> events = new ArrayList<JsonObject>();
-		int offset = 0;
-		
-		while (true){
-			List<JsonObject> eventsChunk = getEventsForContentSet(contentSetUUID, startTime, endTime, offset, limit);
-			events.addAll(eventsChunk);
-			if (eventsChunk.size() < limit){
-				// we must have reached the end of the set
-				return events;
-			}
-			// otherwise, increment the offset and keep going
-			offset += eventsChunk.size();
-		}
-		
-	}
-	
-	/** Queries a chunk of events based on the given offset and limit.
-	 * 
-	 * @param contentSetUUID
-	 * @param startTime
-	 * @param endTime
-	 * @param offset
-	 * @param limit
-	 * @return
-	 * @throws DispatchException
-	 */
-	protected List<JsonObject> getEventsForContentSet(String contentSetUUID, String startTime, String endTime, int offset, int limit) throws DispatchException{
-		
-		List<JsonObject> events = new ArrayList<JsonObject>();
-		
-		Request earningsEventsRequest = new Request("EventHandler.search");
-		
-		// a search string that should match all events
-		String searchString = "AND()";
-		earningsEventsRequest.setMethodParameter("searchString", searchString);
-		
-		// set some options for the search
-		JsonObject searchOptions = new JsonObject();
-		
-		// filter just on this content set
-		JsonArray contentSetIds = new JsonArray();
-		contentSetIds.add(new JsonPrimitive(contentSetUUID));
-		searchOptions.add("contentSetIds", contentSetIds);
-		
-		// limit to events which fall into this time range (expressed in UTC)
-		searchOptions.addProperty("timeIntervalStart", startTime); 
-		searchOptions.addProperty("timeIntervalEnd", endTime); 
-		searchOptions.addProperty("timeIntervalTimeZoneId", UTC); 
-		
-		// offset and limit are used to page through large sets of results.
-		searchOptions.addProperty("offset", offset); 
-		searchOptions.addProperty("limit", limit); 
-		
-		// sort by expected start date/time
-		searchOptions.addProperty("sortOrder", "BY_EXP_START_DATE");
-
-		// apply the search options
-		earningsEventsRequest.setMethodParameter("searchOption", searchOptions);
-		
-		// dispatch the search
-		JsonArray eventResponse = dispatcher.dispatch(earningsEventsRequest, session).getAsJsonArray(); 
-		
-		// print out the array of events and record them in an array for future use
-		for (int i = 0; i < eventResponse.size(); i++){
-			JsonObject event = eventResponse.get(i).getAsJsonObject();
-			events.add(event);
-			log.debug("event[" + i + "] = " + event);
-		}
-		
-		return events;
-	}
-
-	
-	protected String getPrimaryEntityForEvent(JsonObject event){
-		double maxScore = Double.MIN_VALUE;
-		String maxValue = null;
-		JsonArray tags = event.get("tagSummaries").getAsJsonArray();
-		for (int i = 0; i < tags.size(); i++){
-			JsonObject tag = tags.get(i).getAsJsonObject();
-			String name = tag.get("name").getAsString();
-			if (name.equalsIgnoreCase("Entity")){
-				double score = tag.get("relevanceScore").getAsDouble();
-				if (score > maxScore){
-					maxScore = score;
-					maxValue = tag.get("value").getAsString();
-				}
-			}
-		}
-		return maxValue;		
-	}
-	
-	protected String getPrimaryCategoryForEvent(JsonObject event){
-		double maxScore = Double.MIN_VALUE;
-		String maxValue = null;
-		JsonArray tags = event.get("tagSummaries").getAsJsonArray();
-		for (int i = 0; i < tags.size(); i++){
-			JsonObject tag = tags.get(i).getAsJsonObject();
-			String name = tag.get("name").getAsString();
-			if (name.equalsIgnoreCase("Category")){
-				double score = tag.get("relevanceScore").getAsDouble();
-				if (score > maxScore){
-					maxScore = score;
-					maxValue = tag.get("value").getAsString();
-				}
-			}
-		}
-		return maxValue;		
-	}
 	
 	protected String getMeasureTagID(String measureCode) throws DispatchException{
 		Request tagLookupRequest = new Request("TagHandler.getTagByNameValue");
 		tagLookupRequest.setMethodParameter("tagName", "Measure");
 		tagLookupRequest.setMethodParameter("tagValue", measureCode);
-		JsonObject tag = dispatcher.dispatch(tagLookupRequest, session).getAsJsonObject();
+		JsonObject tag = dispatch(tagLookupRequest).getAsJsonObject();
 		log.debug("got tag for measureCode " + measureCode + " is: " + tag);
 		if ((tag == null) || (tag.isJsonNull())){
 			return null;
@@ -584,7 +418,7 @@ public class ObservableDump {
 		Request synonymRequest = new Request("SynonymHandler.findByTagIdAndFamily");
 		synonymRequest.setMethodParameter("tagId", tagID);
 		synonymRequest.setMethodParameter("familyName", familyName);
-		JsonObject synonym = dispatcher.dispatch(synonymRequest, session).getAsJsonObject();
+		JsonObject synonym = dispatch(synonymRequest).getAsJsonObject();
 		log.debug("got synonym for " + tagID + " for family " + familyName + " is: " + synonym);
 		if ((synonym == null) || (synonym.isJsonNull())){
 			return null;

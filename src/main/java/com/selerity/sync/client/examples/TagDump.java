@@ -12,15 +12,10 @@ import org.apache.commons.logging.LogFactory;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.selerity.sync.client.AbstractSyncClient;
 import com.selerity.sync.client.DispatchException;
-import com.selerity.sync.client.Dispatcher;
 import com.selerity.sync.client.MiscUtils;
 import com.selerity.sync.client.Request;
-import com.selerity.sync.client.RhinoDispatcher;
-import com.selerity.sync.client.RhinoHTTPTransport;
-import com.selerity.sync.client.RhinoSessionFactory;
-import com.selerity.sync.client.Session;
-import com.selerity.sync.client.Transport;
 
 /**
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code
@@ -41,24 +36,12 @@ import com.selerity.sync.client.Transport;
  */
 
 
-public class TagDump {
+public class TagDump extends AbstractSyncClient{
 	
-	private static final Log log = LogFactory.getLog(TagDump.class);
+	private static final Log log = LogFactory.getLog(TagDump.class);	
 	
-	protected final Session session;
-	protected final Dispatcher dispatcher;
-	
-	
-	public TagDump(String host, int port, String user, String password) throws MalformedURLException, DispatchException{
-		// initialized the transport and method dispatcher
-		String rhinoURL = "http://" + host + ":" + port + "/rhino-1.0-SNAPSHOT/rpc.do";
-		Transport transport = new RhinoHTTPTransport(rhinoURL, false);
-		dispatcher = new RhinoDispatcher(transport);
-
-		// log in, setting the 'client identification' field and enabling
-		// the 'extensions mode'
-		session = new RhinoSessionFactory().getInstance(dispatcher,
-				"ObservableDump", "extension", user, password);
+	public TagDump(String host, int port, String clientAppName) throws MalformedURLException, DispatchException{
+		super(host, port, clientAppName);
 	}
 	
 	
@@ -87,9 +70,13 @@ public class TagDump {
 
 			
 			// initialize the dumper
-			TagDump dumper = new TagDump(host, port, user, password);
+			TagDump dumper = new TagDump(host, port, "TagDump");
+			dumper.startSession(user, password);
 
 			dumper.dumpAllTags(outputFileName, 500);
+			
+			// be nice
+			dumper.closeSession();
 			
 			log.debug("all done");
 
@@ -99,7 +86,13 @@ public class TagDump {
 		}
 	}
 	
-	
+	/** Dumps out all tags, including their synonyms, to the given file.
+	 * 
+	 * @param outputFileName
+	 * @param requestLimit
+	 * @throws IOException
+	 * @throws DispatchException
+	 */
 	public void dumpAllTags(String outputFileName, int requestLimit) throws IOException, DispatchException{
 		long startDump = System.currentTimeMillis();
 		
@@ -109,7 +102,7 @@ public class TagDump {
 		
 		// look up the tag name
 		Request tagNameRequest = new Request("TagHandler.getTagNames");
-		JsonArray tagNames = dispatcher.dispatch(tagNameRequest, session).getAsJsonArray();
+		JsonArray tagNames = dispatch(tagNameRequest).getAsJsonArray();
 		
 		int tagCount = 0;
 		
@@ -141,6 +134,14 @@ public class TagDump {
 	}
 		
 		
+	/** Creates a map from canonical value -> family name -> synonym
+	 * 
+	 * @param tagName
+	 * @param requestLimit
+	 * @return
+	 * @throws IOException
+	 * @throws DispatchException
+	 */
 	public SortedMap<String,SortedMap<String, String>> getTagSynonymMap(String tagName, int requestLimit) throws IOException, DispatchException{
 
 		SortedMap<String,SortedMap<String, String>> tagSynonymMap = new TreeMap<String,SortedMap<String, String>>();
@@ -159,7 +160,7 @@ public class TagDump {
 			synonymsRequest.setMethodParameter("paginationOption", paginationOption);
 			
 			// dispatch the request
-			JsonArray synonyms = dispatcher.dispatch(synonymsRequest, session).getAsJsonArray();
+			JsonArray synonyms = dispatch(synonymsRequest).getAsJsonArray();
 			
 			// update the offset and the number found
 			numFound = synonyms.size();
@@ -173,7 +174,7 @@ public class TagDump {
 				String synonymString = MiscUtils.getString(synonym, "synonym", null);
 				String valueString = MiscUtils.getString(synonym, "value", null);
 				String familyString = MiscUtils.getString(synonym, "family", null);
-				log.info("found " + tagName + " = " + valueString + " -> " + synonymString + " (" + familyString + ")");
+				log.debug("found " + tagName + " = " + valueString + " -> " + synonymString + " (" + familyString + ")");
 				SortedMap<String, String> synonymMap = tagSynonymMap.get(valueString);
 				if (synonymMap == null){
 					synonymMap = new TreeMap<String, String>();

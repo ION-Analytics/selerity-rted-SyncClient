@@ -10,14 +10,9 @@ import org.apache.commons.logging.LogFactory;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.selerity.sync.client.AbstractSyncClient;
 import com.selerity.sync.client.DispatchException;
-import com.selerity.sync.client.Dispatcher;
 import com.selerity.sync.client.Request;
-import com.selerity.sync.client.RhinoDispatcher;
-import com.selerity.sync.client.RhinoHTTPTransport;
-import com.selerity.sync.client.RhinoSessionFactory;
-import com.selerity.sync.client.Session;
-import com.selerity.sync.client.Transport;
 
 /**
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code
@@ -36,26 +31,15 @@ import com.selerity.sync.client.Transport;
  * 
  */
 
-public class EntitlementTest {
+public class EntitlementTest extends AbstractSyncClient{
 
-	private static final Log log = LogFactory.getLog(ObservableDump.class);
+	private static final Log log = LogFactory.getLog(EntitlementTest.class);
 
 	private static final int SPEC_LOOKUP_LIMIT = 500;
-	
-	protected final Session session;
-	protected final Dispatcher dispatcher;
-	
-	
-	public EntitlementTest(String host, int port, String user, String password) throws MalformedURLException, DispatchException{
-		// initialized the transport and method dispatcher
-		String rhinoURL = "http://" + host + ":" + port + "/rhino-1.0-SNAPSHOT/rpc.do";
-		Transport transport = new RhinoHTTPTransport(rhinoURL, false);
-		dispatcher = new RhinoDispatcher(transport);
 
-		// log in, setting the 'client identification' field and enabling
-		// the 'extensions mode'
-		session = new RhinoSessionFactory().getInstance(dispatcher,
-				"ObservableDump", "extension", user, password);
+	
+	public EntitlementTest(String host, int port, String clientAppName) throws MalformedURLException, DispatchException{
+		super(host, port, clientAppName);
 	}
 	
 	
@@ -83,11 +67,10 @@ public class EntitlementTest {
 			String user = args[2];
 			String password = args[3];
 			
-			
-			
 			// initialize the dumper
-			EntitlementTest tester = new EntitlementTest(host, port, user, password);
-
+			EntitlementTest tester = new EntitlementTest(host, port, "EntitlementTest");
+			tester.startSession(user, password);
+			
 			// dump out a bunch of events
 			Set<Long> specIDs = tester.getAllObsSpecIDs(SPEC_LOOKUP_LIMIT);
 			
@@ -114,7 +97,7 @@ public class EntitlementTest {
 		
 		// get the content sets for this user
 		Request contentSetRequest = new Request("ContentSetHandler.getContentSets");
-		JsonArray contentSetResponse = dispatcher.dispatch(contentSetRequest, session).getAsJsonArray(); 
+		JsonArray contentSetResponse = dispatch(contentSetRequest).getAsJsonArray(); 
 		log.debug("contentSetResponse = " + contentSetResponse);
 		
 		// print out the content sets
@@ -161,7 +144,7 @@ public class EntitlementTest {
 			
 			specRequest.setMethodParameter("paginationOption", paginationOption);
 			
-			JsonArray specs = dispatcher.dispatch(specRequest, session).getAsJsonArray();
+			JsonArray specs = dispatch(specRequest).getAsJsonArray();
 			numRetreived = specs.size();
 			offset += limit;
 			log.debug("got " + specs.size() + " specs");

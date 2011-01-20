@@ -18,15 +18,10 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import com.selerity.sync.client.AbstractSyncClient;
 import com.selerity.sync.client.DispatchException;
-import com.selerity.sync.client.Dispatcher;
 import com.selerity.sync.client.MiscUtils;
 import com.selerity.sync.client.Request;
-import com.selerity.sync.client.RhinoDispatcher;
-import com.selerity.sync.client.RhinoHTTPTransport;
-import com.selerity.sync.client.RhinoSessionFactory;
-import com.selerity.sync.client.Session;
-import com.selerity.sync.client.Transport;
 
 /**
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code
@@ -46,12 +41,9 @@ import com.selerity.sync.client.Transport;
  * 
  */
 
-public class SpecDump {
+public class SpecDump extends AbstractSyncClient{
 	
 	private static final Log log = LogFactory.getLog(SpecDump.class);
-
-	protected final Session session;
-	protected final Dispatcher dispatcher;
 	
 	private static final String SELERITY_CORPORATE_CONTENT_SET_UUID = "c2bf8528-9a84-1fa7-1d19-d298c5e02b06";
 	private static final String SELERITY_ECONOMICS_CONTENT_SET_UUID = "c3bf8537-cb61-4eb0-f514-8eae8961d49a";
@@ -130,7 +122,8 @@ public class SpecDump {
 			long endTime = MiscUtils.parseNanoTime(endTimeStr);
 			
 			// initialize the dumper
-			SpecDump dumper = new SpecDump(host, port, user, password);
+			SpecDump dumper = new SpecDump(host, port, "SpecDump");
+			dumper.startSession(user, password);
 			
 			if (eventUUID != null){
 				// dump specs for a single event
@@ -140,6 +133,9 @@ public class SpecDump {
 				// dump the specs based on the optional time range
 				dumper.dumpSpecs(outputFileName, startTime, endTime, SPEC_LOOKUP_BATCH_SIZE_LIMIT);
 			}
+			
+			// clean up nicely
+			dumper.closeSession();
 			
 			log.debug("all done");
 
@@ -152,16 +148,8 @@ public class SpecDump {
 	
 	
 	
-	public SpecDump(String host, int port, String user, String password) throws MalformedURLException, DispatchException{
-		// initialized the transport and method dispatcher
-		String rhinoURL = "http://" + host + ":" + port + "/rhino-1.0-SNAPSHOT/rpc.do";
-		Transport transport = new RhinoHTTPTransport(rhinoURL, false);
-		dispatcher = new RhinoDispatcher(transport);
-
-		// log in, setting the 'client identification' field and enabling
-		// the 'extensions mode'
-		session = new RhinoSessionFactory().getInstance(dispatcher,
-				"SpecDump", "extension", user, password);
+	public SpecDump(String host, int port, String clientAppName) throws MalformedURLException, DispatchException{
+		super(host, port, clientAppName);
 	}
 	
 	protected void dumpSpec(BufferedWriter out, JsonObject obsSpec, String entityID, String measureCode, String period) throws IOException{
@@ -247,7 +235,7 @@ public class SpecDump {
 			paginationOption.addProperty("limit", limit);
 			obsSpecRequest.setMethodParameter("paginationOption", paginationOption);
 			
-			JsonArray obsSpecs = dispatcher.dispatch(obsSpecRequest, session).getAsJsonArray();
+			JsonArray obsSpecs = dispatch(obsSpecRequest).getAsJsonArray();
 			if ((obsSpecs == null) || (obsSpecs.isJsonNull()) || (obsSpecs.size() < 1)){
 				finished = true;
 			}
@@ -265,7 +253,7 @@ public class SpecDump {
 					// look up the observable that corresponds to this spec
 					Request observableRequest = new Request("ObservableHandler.findById");
 					observableRequest.setMethodParameter("observableId", observableID);
-					JsonObject observable = dispatcher.dispatch(observableRequest, session).getAsJsonObject();
+					JsonObject observable = dispatch(observableRequest).getAsJsonObject();
 					String eventID = observable.get("eventId").getAsString();
 					
 					// check if this observable is in the time range given
@@ -307,7 +295,7 @@ public class SpecDump {
 		eventRequest.setMethodParameter("eventId", eventUUID);
 		eventRequest.setMethodParameter("timeZoneId", "UTC");
 		
-		JsonObject event = dispatcher.dispatch(eventRequest, session).getAsJsonObject();
+		JsonObject event = dispatch(eventRequest).getAsJsonObject();
 		if ((event == null) || (event.isJsonNull())){
 			log.info("couldn't find event");
 			return;
@@ -317,7 +305,7 @@ public class SpecDump {
 		
 		Request observablesRequest = new Request("ObservableHandler.getObservablesForEvent");
 		observablesRequest.setMethodParameter("eventId", eventUUID);
-		JsonArray observables = dispatcher.dispatch(observablesRequest, session).getAsJsonArray();
+		JsonArray observables = dispatch(observablesRequest).getAsJsonArray();
 		
 		if ((observables == null) || (observables.isJsonNull())){
 			log.info("couldn't find any observables");
@@ -335,7 +323,7 @@ public class SpecDump {
 			// get the specs for this observable (normally only one)
 			Request specsRequest = new Request("ObservationSpecHandler.getCurrentObservationSpecForObservable");
 			specsRequest.setMethodParameter("observableId", observableID);
-			JsonArray specs = dispatcher.dispatch(specsRequest, session).getAsJsonArray();
+			JsonArray specs = dispatch(specsRequest).getAsJsonArray();
 			
 			if ((specs == null) || (specs.isJsonNull()) || (specs.size() < 1)){
 				log.info("couldn't find any specs for observable " + observableID);
@@ -370,7 +358,7 @@ public class SpecDump {
 			eventRequest.setMethodParameter("eventId", eventID);
 			eventRequest.setMethodParameter("timeZoneId", "UTC");
 					
-			JsonObject event = dispatcher.dispatch(eventRequest, session).getAsJsonObject(); 
+			JsonObject event = dispatch(eventRequest).getAsJsonObject(); 
 			String earliestStart = event.get("earliestExpectedStart").getAsString();
 			String latestEnd = event.get("latestExpectedEnd").getAsString();
 			eventStartTime = MiscUtils.parseNanoTime(earliestStart);
@@ -394,7 +382,7 @@ public class SpecDump {
 	protected JsonArray getEntitledContentSetUUIDs() throws DispatchException{
 		// look up all of the content sets to which this user is entitled
 		Request contentSetRequest = new Request("ContentSetHandler.getContentSets");
-		JsonArray contentSetResponse = dispatcher.dispatch(contentSetRequest, session).getAsJsonArray(); 
+		JsonArray contentSetResponse = dispatch(contentSetRequest).getAsJsonArray(); 
 		log.debug("contentSetResponse = " + contentSetResponse);
 		
 		JsonArray contentSetUUIDs = new JsonArray();
@@ -422,7 +410,7 @@ public class SpecDump {
 		eventRequest.setMethodParameter("eventId", eventID);
 		eventRequest.setMethodParameter("timeZoneId", "UTC");
 				
-		JsonObject event = dispatcher.dispatch(eventRequest, session).getAsJsonObject(); 
+		JsonObject event = dispatch(eventRequest).getAsJsonObject(); 
 		return getPrimaryEntityForEvent(event);
 	}
 	

@@ -3,7 +3,9 @@ package com.selerity.sync.client;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Set;
+import java.util.TimeZone;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -28,11 +30,23 @@ public class MiscUtils {
 	
 	// used for parsing/formatting in the Selerity Time Format.
 	protected static DateFormat ISO8601_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+	protected static DateFormat ISO8601_FORMAT_WITH_MILLIS = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
 	protected static final int NANOS_PER_SECOND_POWER = 9;
+	
+	protected static final TimeZone UTC = TimeZone.getTimeZone("GMT");
+	
+	static{
+		ISO8601_FORMAT.setTimeZone(UTC);
+		ISO8601_FORMAT_WITH_MILLIS.setTimeZone(UTC);
+	}
 	
 	// useful for converting between the time scale used in java.util.Date (and unix in general)
 	// and the Selerity Time Format's numeric version.
 	public static final long NANOS_PER_MILLISECOND = 1000000L;
+	
+	public static final long NANOS_PER_SECOND = 1000000000L;
+	
+	public static final long NANOS_PER_DAY = 86400000000000L;
 
 	public static String getString(JsonObject obj, String key, String defaultValueStr){
 		JsonElement value = obj.get(key);
@@ -124,6 +138,50 @@ public class MiscUtils {
 		}
 	}
 	
+	/** Returns the current time in nanoseconds since January 1, 1970, UTC.  Precision is
+	 *  limited to the nearest millisecond.
+	 * 
+	 * @return
+	 */
+	public static long getNanoTime() {
+		return System.currentTimeMillis() * NANOS_PER_MILLISECOND;
+	}
+	
+	/** Converts a timestamp in nanoseconds since midnight January 1, 1970 UTC)
+	 *  into the Selerity Time Format.  Truncates any values more precise than
+	 *  milliseconds.
+	 * 
+	 * @param nanos
+	 * @return
+	 */
+	public static String formatNanoTime(long nanos) {
+		long millis = nanos / NANOS_PER_MILLISECOND;
+		long nanoRemainder = (nanos - (millis * NANOS_PER_MILLISECOND));
+		Date date = new Date(millis);
+		String s = null;
+		synchronized(ISO8601_FORMAT_WITH_MILLIS){
+			s = ISO8601_FORMAT_WITH_MILLIS.format(date);
+		}
+		return s + leftPadNumber(nanoRemainder, 6);
+	}
+	
+	/** Prepends some zeroes to the string parsing of a long.
+	 * 
+	 * @param number
+	 * @param length
+	 * @return
+	 */
+	protected static String leftPadNumber(long number, int length){
+		String s = Long.toString(number);
+		StringBuffer buf = new StringBuffer();
+		int padLen = length - s.length();
+		for (int i = 0; i < padLen; i++){
+			buf.append('0');
+		}
+		buf.append(s);
+		return buf.toString();
+	}
+	
 	/** Parses a number which may have some number of omitted trailing zeroes.
 	 * 
 	 *  Example: 123 as power 5 should be 12300.
@@ -132,7 +190,7 @@ public class MiscUtils {
 	 * @param power
 	 * @return
 	 */
-	private static long parseNumber(String s, int power){
+	protected static long parseNumber(String s, int power){
 		Long l = Long.parseLong(s);
 		int extraZeroes = power - s.length();
 		for (int i = 0; i < extraZeroes; i++){

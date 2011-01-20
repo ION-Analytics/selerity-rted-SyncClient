@@ -14,7 +14,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import com.selerity.sync.client.DispatchException; 
+import com.selerity.sync.client.DispatchException;
 import com.selerity.sync.client.Dispatcher;
 import com.selerity.sync.client.MiscUtils;
 import com.selerity.sync.client.Request;
@@ -40,6 +40,9 @@ import com.selerity.sync.client.Transport;
  * 
  * A simple demonstration of an application which uses the Selerity API to retrieve some 
  * event-related information and write it out to a CSV file for import into Excel.
+ * 
+ * Note that this example does *not* use the AbstractSyncClient skeleton.  Instead it
+ * sets up and managed its transport, dispatcher and session itself.
  * 
  *
  */
@@ -261,7 +264,9 @@ public class ExampleClient {
 			// close the CSV output file
 			csvFileWriter.close();
 			
-			
+			// close the session
+			Request logoutRequest = new Request("AuthenticationHandler.invalidate");
+			dispatcher.dispatch(logoutRequest, session);
 
 		}
 		catch (Exception ex) {

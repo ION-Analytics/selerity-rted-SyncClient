@@ -32,11 +32,21 @@ public class RhinoSessionFactory{
 	public static final String SYNC_USER_PROPERTY_NAME = "com.selerity.sync.user"; 
 	public static final String SYNC_PASSWORD_PROPERTY_NAME = "com.selerity.sync.password";
 	
+	/** Gets an instance with the provided user and password.
+	 * 
+	 * @param dispatcher
+	 * @param client
+	 * @param mode
+	 * @param user
+	 * @param password
+	 * @return
+	 * @throws DispatchException
+	 */
 	public Session getInstance(Dispatcher dispatcher, String client, String mode, String user, String password) throws DispatchException{
 		Request authRequest = new Request("AuthenticationHandler.authenticate");
 		authRequest.setMethodParameter("user", user);
 		authRequest.setMethodParameter("password", password);
-		String token = gson.fromJson(dispatcher.dispatch(authRequest, user, null, client, null), String.class);
+		String token = gson.fromJson(dispatcher.dispatch(authRequest, user, null, client, mode), String.class);
 		log.debug("got token " + token + " for user " + user);
 		return new RhinoSession(user, client, token, mode);
 	}

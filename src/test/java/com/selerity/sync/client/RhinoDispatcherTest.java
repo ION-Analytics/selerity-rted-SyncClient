@@ -40,11 +40,24 @@ public class RhinoDispatcherTest {
 		
 		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
 			+ "\"params\":{},"
+			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\"},"
+			+ "\"id\":\"0\"}";
+		
+		
+		assertDispatchRequest(request, expectedRequestJson, null);
+	}
+	
+	@Test
+	public void testSingleRequestNoParamsExtensionsMode() throws DispatchException{
+		Request request = new Request("myHandler.fooMethod");
+		
+		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+			+ "\"params\":{},"
 			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
 			+ "\"id\":\"0\"}";
 		
 		
-		assertDispatchRequest(request, expectedRequestJson);
+		assertDispatchRequest(request, expectedRequestJson, "extension");
 	}
 	
 	@Test
@@ -58,7 +71,7 @@ public class RhinoDispatcherTest {
 			+ "\"id\":\"0\"}";
 		
 		
-		assertDispatchRequest(request, expectedRequestJson);
+		assertDispatchRequest(request, expectedRequestJson, "extension");
 	}
 	
 	@Test
@@ -68,11 +81,25 @@ public class RhinoDispatcherTest {
 		
 		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
 			+ "\"params\":{\"testNumber\":42},"
+			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\"},"
+			+ "\"id\":\"0\"}";
+		
+		
+		assertDispatchRequest(request, expectedRequestJson, null);
+	}
+	
+	@Test
+	public void testSingleRequestNumParamExtensionMode() throws DispatchException{
+		Request request = new Request("myHandler.fooMethod");
+		request.setMethodParameter("testNumber", 42);
+		
+		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+			+ "\"params\":{\"testNumber\":42},"
 			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
 			+ "\"id\":\"0\"}";
 		
 		
-		assertDispatchRequest(request, expectedRequestJson);
+		assertDispatchRequest(request, expectedRequestJson, "extension");
 	}
 	
 	@Test
@@ -86,7 +113,7 @@ public class RhinoDispatcherTest {
 			+ "\"id\":\"0\"}";
 		
 		
-		assertDispatchRequest(request, expectedRequestJson);
+		assertDispatchRequest(request, expectedRequestJson, "extension");
 	}
 	
 	@Test
@@ -104,13 +131,13 @@ public class RhinoDispatcherTest {
 			+ "\"id\":\"0\"}";
 		
 		
-		assertDispatchRequest(request, expectedRequestJson);
+		assertDispatchRequest(request, expectedRequestJson, "extension");
 	}
 	
-	public void assertDispatchRequest(Request request, String expectedRequestJson) throws DispatchException{
+	public void assertDispatchRequest(Request request, String expectedRequestJson, String mode) throws DispatchException{
 		MockTransport transport = new MockTransport();
 		RhinoDispatcher dispatcher = new RhinoDispatcher(transport);
-		Session session = getSession();
+		Session session = getSession(mode);
 		transport.addResponse("{}", "null");
 		
 		JsonElement result = dispatcher.dispatch(request, session);
@@ -119,13 +146,12 @@ public class RhinoDispatcherTest {
 		String actualResultJson = result.toString();
 		
 		assertEquals(expectedRequestJson, actualRequestJson);
-		assertEquals("{}", actualResultJson);
-		
+		assertEquals("{}", actualResultJson);	
 	}
 	
 	
-	protected Session getSession(){
-		return new RhinoSession("testUser", "testClient", "TEST-TOKEN", "extension");
+	protected Session getSession(String mode){
+		return new RhinoSession("testUser", "testClient", "TEST-TOKEN", mode);
 	}
 	
 }
