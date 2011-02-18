@@ -42,6 +42,20 @@ public abstract class AbstractSyncClient {
 		return dispatcher.dispatch(request, session); 	
 	}
 	
+	/** Create a paginated response iterator using the current session.  Requires the name of the parameter object that
+	 *  will carry the limit and offset parameters.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws DispatchException
+	 */
+	public PaginatedResponseIterator paginatedDispatch(Request request, String optionObjectName, int limit) throws DispatchException{
+		if (session == null){
+			throw new DispatchException(DispatchException.INTERNAL_ERROR, "Session not started", null);
+		}
+		return new PaginatedResponseIterator(dispatcher, session, request, optionObjectName, limit);
+	}
+	
 	/** Dispatch the array of requests as a single boxcar using the current session.
 	 * 
 	 * @param requests

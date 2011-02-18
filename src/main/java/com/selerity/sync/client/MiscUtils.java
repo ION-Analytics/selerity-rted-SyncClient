@@ -5,7 +5,10 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TimeZone;
+import java.util.TreeSet;
+import java.util.Map.Entry;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -57,13 +60,29 @@ public class MiscUtils {
 		return value.getAsString();
 	}
 	
-	public static int getInt(JsonObject obj, String key, int defaultValueStr){
+	public static int getInt(JsonObject obj, String key, int defaultValue){
 		JsonElement value = obj.get(key);
 		//log.debug("got value " + value + " for key " + key);
 		if ((value == null) || (value.isJsonNull())){
-			return defaultValueStr;
+			return defaultValue;
 		}
 		return value.getAsInt();
+	}
+	
+	public static long getNanoTime(JsonObject obj, String key, long defaultValue) throws ParseException{
+		JsonElement value = obj.get(key);
+		if ((value == null) || (value.isJsonNull())){
+			return defaultValue;
+		}
+		return parseNanoTime(value.getAsString());
+	}
+	
+	public static long getNanoTime(JsonObject obj, String key, String defaultValueStr) throws ParseException{
+		JsonElement value = obj.get(key);
+		if ((value == null) || (value.isJsonNull())){
+			return parseNanoTime(defaultValueStr);
+		}
+		return parseNanoTime(value.getAsString());
 	}
 	
 	
@@ -171,7 +190,7 @@ public class MiscUtils {
 	 * @param length
 	 * @return
 	 */
-	protected static String leftPadNumber(long number, int length){
+	public static String leftPadNumber(long number, int length){
 		String s = Long.toString(number);
 		StringBuffer buf = new StringBuffer();
 		int padLen = length - s.length();
@@ -190,7 +209,7 @@ public class MiscUtils {
 	 * @param power
 	 * @return
 	 */
-	protected static long parseNumber(String s, int power){
+	public static long parseNumber(String s, int power){
 		Long l = Long.parseLong(s);
 		int extraZeroes = power - s.length();
 		for (int i = 0; i < extraZeroes; i++){
@@ -198,6 +217,44 @@ public class MiscUtils {
 		}
 		return l;
 	}
+
+	/** Converts a set of strings into a sorted list of comma-separated strings
+	 * 
+	 * @param strings
+	 * @return
+	 */
+	public static String collapseSet(Set<String> strings){
+		if ((strings == null) || (strings.size() < 1)){
+			return "";
+		}
+		SortedSet<String> sortedStrings = new TreeSet<String>(strings);
+		StringBuffer buf = new StringBuffer();
+		for (String string : sortedStrings){
+			buf.append(',');		
+			buf.append(string);
+		}
+		
+		return buf.substring(1);  // trims off the first comma
+	}
+
+	/** Merges the two objects into a new object.  The entries of the first object
+	 *  are added to the merged object, followed by the entries of the second object.
+	 * 
+	 * @param obj1
+	 * @param obj2
+	 * @return
+	 */
+	public static JsonObject merge(JsonObject obj1, JsonObject obj2){
+		JsonObject merged = new JsonObject();
+		for (Entry<String,JsonElement> entry1 : obj1.entrySet()){
+			merged.add(entry1.getKey(), entry1.getValue());
+		}
+		for (Entry<String,JsonElement> entry2 : obj2.entrySet()){
+			merged.add(entry2.getKey(), entry2.getValue());
+		}
+		return merged;
+	}
+	
 	
 	
 }

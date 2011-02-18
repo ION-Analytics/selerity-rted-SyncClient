@@ -25,34 +25,23 @@ import com.google.gson.JsonObject;
 
 public class Request {
 
-	protected String method;
+	protected final String method;
 	protected JsonObject methodParameters;
 	
 	public Request(String method) {
-		super();
 		this.method = method;
 		this.methodParameters = new JsonObject();
 	}
 	
 	public Request(String method, JsonObject methodParameters) {
-		super();
 		this.method = method;
 		this.methodParameters = methodParameters;
 	}
 	
 
-	
-	
-
 	public String getMethod() {
 		return method;
 	}
-
-	public void setMethod(String method) {
-		this.method = method;
-	}
-
-	
 
 
 	public JsonObject getMethodParameters() {
@@ -86,9 +75,5 @@ public class Request {
 	public void setMethodParameter(String parameterName, Character parameterValue){
 		this.methodParameters.addProperty(parameterName, parameterValue);
 	}
-	
-	
-	
-	
 	
 }

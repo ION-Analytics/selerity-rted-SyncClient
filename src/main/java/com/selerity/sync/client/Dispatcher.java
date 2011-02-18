@@ -31,12 +31,49 @@ import com.google.gson.JsonElement;
  */
 public interface Dispatcher {
 
+	/** Dispatches a request using the explicit session information, returning the result or throwing an exception.
+	 * 
+	 * @param request
+	 * @param user
+	 * @param token
+	 * @param client
+	 * @param mode
+	 * @return
+	 * @throws DispatchException
+	 */
 	public JsonElement dispatch(Request request, String user, String token, String client, String mode) throws DispatchException;
 	
+	/** Dispatches a request using the given session, returning the result or throwing an exception.
+	 * 
+	 * @param request
+	 * @param session
+	 * @return
+	 * @throws DispatchException
+	 */
 	public JsonElement dispatch(Request request, Session session) throws DispatchException;
 	
+	/** Dispatches an array of requests using the explicit session information.  Returns the matching array of responses.
+	 * 
+	 * @param requests
+	 * @param user
+	 * @param token
+	 * @param client
+	 * @param mode
+	 * @return
+	 * @throws DispatchException
+	 */
 	public Response[] boxcarDispatch(Request[] requests, String user, String token, String client, String mode) throws DispatchException;
 	
+	/** Dispatches an array of requests using the given session.  Returns the matching array of responses.
+	 * 
+	 * @param requests
+	 * @param user
+	 * @param token
+	 * @param client
+	 * @param mode
+	 * @return
+	 * @throws DispatchException
+	 */
 	public Response[] boxcarDispatch(Request[] requests, Session session) throws DispatchException;
 	
 }

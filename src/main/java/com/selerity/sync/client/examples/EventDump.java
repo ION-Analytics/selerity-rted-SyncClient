@@ -25,6 +25,7 @@ import com.google.gson.JsonPrimitive;
 import com.selerity.sync.client.AbstractSyncClient;
 import com.selerity.sync.client.DispatchException;
 import com.selerity.sync.client.MiscUtils;
+import com.selerity.sync.client.PaginatedResponseIterator;
 import com.selerity.sync.client.Request;
 
 /**
@@ -315,34 +316,6 @@ public class EventDump  extends AbstractSyncClient{
 	protected List<JsonObject> getEventsForContentSet(String contentSetUUID, String startTime, String endTime, int limit, String timezone) throws DispatchException{
 	
 		List<JsonObject> events = new ArrayList<JsonObject>();
-		int offset = 0;
-		
-		while (true){
-			List<JsonObject> eventsChunk = getEventsForContentSet(contentSetUUID, startTime, endTime, offset, limit, timezone);
-			events.addAll(eventsChunk);
-			if (eventsChunk.size() < limit){
-				// we must have reached the end of the set
-				return events;
-			}
-			// otherwise, increment the offset and keep going
-			offset += limit;
-		}
-		
-	}
-	
-	/** Queries a chunk of events based on the given offset and limit.
-	 * 
-	 * @param contentSetUUID
-	 * @param startTime
-	 * @param endTime
-	 * @param offset
-	 * @param limit
-	 * @return
-	 * @throws DispatchException
-	 */
-	protected List<JsonObject> getEventsForContentSet(String contentSetUUID, String startTime, String endTime, int offset, int limit, String timezone) throws DispatchException{
-		
-		List<JsonObject> events = new ArrayList<JsonObject>();
 		
 		Request earningsEventsRequest = new Request("EventHandler.search");
 		
@@ -363,9 +336,7 @@ public class EventDump  extends AbstractSyncClient{
 		searchOptions.addProperty("timeIntervalEnd", endTime); 
 		searchOptions.addProperty("timeIntervalTimeZoneId", timezone); 
 		
-		// offset and limit are used to page through large sets of results.
-		searchOptions.addProperty("offset", offset); 
-		searchOptions.addProperty("limit", limit); 
+		// offset and limit are used to page through large sets of results but they're handled bu the paginated result iterator
 		
 		// sort by expected start date/time
 		searchOptions.addProperty("sortOrder", "BY_EXP_START_DATE");
@@ -373,18 +344,17 @@ public class EventDump  extends AbstractSyncClient{
 		// apply the search options
 		earningsEventsRequest.setMethodParameter("searchOption", searchOptions);
 		
-		// dispatch the search
-		JsonArray eventResponse = dispatch(earningsEventsRequest).getAsJsonArray(); 
+		PaginatedResponseIterator responseIt = paginatedDispatch(earningsEventsRequest, "searchOption", limit);
 		
-		// print out the array of events and record them in an array for future use
-		for (int i = 0; i < eventResponse.size(); i++){
-			JsonObject event = eventResponse.get(i).getAsJsonObject();
+		while (responseIt.hasNextResult()){
+			JsonObject event = responseIt.nextResult().getAsJsonObject();
 			events.add(event);
-			log.debug("event[" + i + "] = " + event);
 		}
 		
 		return events;
 	}
+	
+
 
 	
 	protected String getPrimaryEntityForEvent(JsonObject event){

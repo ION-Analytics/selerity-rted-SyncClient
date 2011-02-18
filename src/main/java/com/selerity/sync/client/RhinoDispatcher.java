@@ -113,6 +113,8 @@ public class RhinoDispatcher implements Dispatcher{
 				session.getHeaderParameter(RhinoSession.MODE));
 	}
 	
+	
+	
 	/** Dispatch the array of requests as a boxcar, returning the corresponding array of responses.  Uses the explicit session
 	 *  parameters given.
 	 * 
@@ -243,7 +245,7 @@ public class RhinoDispatcher implements Dispatcher{
 	 * @param client
 	 * @param mode
 	 */
-	protected void appendRequestString(StringBuffer buf, Request request, String id, String user, String token, String client, String mode){
+	protected void appendRequestString(StringBuffer buf, Request request, String id, String user, String token, String client, String mode){		
 		buf.append("{"
 	    	+"\"method\":" + MiscUtils.stringEncode(request.getMethod()) + ","
 	    	+"\"params\":" 
