@@ -15,7 +15,9 @@ import com.google.gson.JsonObject;
 import com.selerity.sync.client.AbstractSyncClient;
 import com.selerity.sync.client.DispatchException;
 import com.selerity.sync.client.MiscUtils;
+import com.selerity.sync.client.PaginatedResponseIterator;
 import com.selerity.sync.client.Request;
+import com.selerity.sync.client.Session;
 
 /**
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code
@@ -40,8 +42,8 @@ public class TagDump extends AbstractSyncClient{
 	
 	private static final Log log = LogFactory.getLog(TagDump.class);	
 	
-	public TagDump(String host, int port, String clientAppName) throws MalformedURLException, DispatchException{
-		super(host, port, clientAppName);
+	public TagDump(String host, int port, String user, String password, String clientAppName) throws MalformedURLException, DispatchException{
+		super(host, port, user, password, clientAppName);
 	}
 	
 	
@@ -70,13 +72,9 @@ public class TagDump extends AbstractSyncClient{
 
 			
 			// initialize the dumper
-			TagDump dumper = new TagDump(host, port, "TagDump");
-			dumper.startSession(user, password);
+			TagDump dumper = new TagDump(host, port, user, password, "TagDump");
 
 			dumper.dumpAllTags(outputFileName, 500);
-			
-			// be nice
-			dumper.closeSession();
 			
 			log.debug("all done");
 
@@ -96,13 +94,15 @@ public class TagDump extends AbstractSyncClient{
 	public void dumpAllTags(String outputFileName, int requestLimit) throws IOException, DispatchException{
 		long startDump = System.currentTimeMillis();
 		
+		Session session = startSession();
+		
 		// open the file
 		BufferedWriter out = new BufferedWriter(new FileWriter(outputFileName));
 		out.write("\"name\",\"value\",\"family\",\"synonym\"\n");
 		
 		// look up the tag name
 		Request tagNameRequest = new Request("TagHandler.getTagNames");
-		JsonArray tagNames = dispatch(tagNameRequest).getAsJsonArray();
+		JsonArray tagNames = dispatch(tagNameRequest, session).getAsJsonArray();
 		
 		int tagCount = 0;
 		
@@ -127,6 +127,8 @@ public class TagDump extends AbstractSyncClient{
 		}
 		out.close();
 		
+		closeSession(session);
+		
 		// all done; print out some simple stats
 		long elapsedDump = System.currentTimeMillis() - startDump;
 		double elapsedDumpSeconds = ((double)elapsedDump) / 1000.0;
@@ -146,50 +148,37 @@ public class TagDump extends AbstractSyncClient{
 
 		SortedMap<String,SortedMap<String, String>> tagSynonymMap = new TreeMap<String,SortedMap<String, String>>();
 		
-		// cycle through pages of tags
-		int offset = 0;
-		int numFound = requestLimit;
+		Session session = startSession();
 		
-		while (numFound > 0){
-			// build the request
-			Request synonymsRequest = new Request("SynonymHandler.getTagsByName");
-			synonymsRequest.setMethodParameter("name", tagName);
-			JsonObject paginationOption = new JsonObject();
-			paginationOption.addProperty("limit", requestLimit);
-			paginationOption.addProperty("offset", offset);
-			synonymsRequest.setMethodParameter("paginationOption", paginationOption);
+		// build the request
+		Request synonymsRequest = new Request("SynonymHandler.getTagsByName");
+		synonymsRequest.setMethodParameter("name", tagName);
+		
+		// dispatch the request
+		PaginatedResponseIterator synonymsIt = paginatedDispatch(synonymsRequest, session, "paginationOption", requestLimit);
+		
+		while (synonymsIt.hasNextResult()){
+			JsonObject synonym = synonymsIt.nextResult().getAsJsonObject();
 			
-			// dispatch the request
-			JsonArray synonyms = dispatch(synonymsRequest).getAsJsonArray();
-			
-			// update the offset and the number found
-			numFound = synonyms.size();
-			log.debug("returned " + numFound + " synonym records");
-			//offset += numFound;
-			offset += requestLimit;  // this is not what I expected... but maybe it's correct?
-			
-			// for each synonym
-			for (int s = 0; s < synonyms.size(); s++){
-				JsonObject synonym = synonyms.get(s).getAsJsonObject();				
-				String synonymString = MiscUtils.getString(synonym, "synonym", null);
-				String valueString = MiscUtils.getString(synonym, "value", null);
-				String familyString = MiscUtils.getString(synonym, "family", null);
-				log.debug("found " + tagName + " = " + valueString + " -> " + synonymString + " (" + familyString + ")");
-				SortedMap<String, String> synonymMap = tagSynonymMap.get(valueString);
-				if (synonymMap == null){
-					synonymMap = new TreeMap<String, String>();
-					synonymMap.put("CANONICAL", valueString);// a tag is its own synonym
-					tagSynonymMap.put(valueString, synonymMap);
+			String synonymString = MiscUtils.getString(synonym, "synonym", null);
+			String valueString = MiscUtils.getString(synonym, "value", null);
+			String familyString = MiscUtils.getString(synonym, "family", null);
+			log.debug("found " + tagName + " = " + valueString + " -> " + synonymString + " (" + familyString + ")");
+			SortedMap<String, String> synonymMap = tagSynonymMap.get(valueString);
+			if (synonymMap == null){
+				synonymMap = new TreeMap<String, String>();
+				synonymMap.put("CANONICAL", valueString);// a tag is its own synonym
+				tagSynonymMap.put(valueString, synonymMap);
+			}
+			if (synonymString != null){
+				if (familyString == null){
+					synonymMap.put("NULL", synonymString);
 				}
-				if (synonymString != null){
-					if (familyString == null){
-						synonymMap.put("NULL", synonymString);
-					}
-					else{
-						synonymMap.put(familyString, synonymString);
-					}
+				else{
+					synonymMap.put(familyString, synonymString);
 				}
 			}
+			
 		}
 			
 		return tagSynonymMap;

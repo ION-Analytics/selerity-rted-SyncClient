@@ -22,6 +22,7 @@ import com.selerity.sync.client.AbstractSyncClient;
 import com.selerity.sync.client.DispatchException;
 import com.selerity.sync.client.MiscUtils;
 import com.selerity.sync.client.Request;
+import com.selerity.sync.client.Session;
 
 /**
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code
@@ -122,8 +123,7 @@ public class SpecDump extends AbstractSyncClient{
 			long endTime = MiscUtils.parseNanoTime(endTimeStr);
 			
 			// initialize the dumper
-			SpecDump dumper = new SpecDump(host, port, "SpecDump");
-			dumper.startSession(user, password);
+			SpecDump dumper = new SpecDump(host, port, user, password, "SpecDump");
 			
 			if (eventUUID != null){
 				// dump specs for a single event
@@ -133,9 +133,6 @@ public class SpecDump extends AbstractSyncClient{
 				// dump the specs based on the optional time range
 				dumper.dumpSpecs(outputFileName, startTime, endTime, SPEC_LOOKUP_BATCH_SIZE_LIMIT);
 			}
-			
-			// clean up nicely
-			dumper.closeSession();
 			
 			log.debug("all done");
 
@@ -148,8 +145,8 @@ public class SpecDump extends AbstractSyncClient{
 	
 	
 	
-	public SpecDump(String host, int port, String clientAppName) throws MalformedURLException, DispatchException{
-		super(host, port, clientAppName);
+	public SpecDump(String host, int port, String user, String password, String clientAppName) throws MalformedURLException, DispatchException{
+		super(host, port, user, password, clientAppName);
 	}
 	
 	protected void dumpSpec(BufferedWriter out, JsonObject obsSpec, String entityID, String measureCode, String period) throws IOException{
@@ -218,10 +215,12 @@ public class SpecDump extends AbstractSyncClient{
 		// open the file
 		BufferedWriter out = new BufferedWriter(new FileWriter(outputFileName));	
 		
+		Session session = startSession();
+		
 		int obsSpecCount = 0;
 		
 		// get the content sets for this user
-		JsonArray contentSets = getEntitledContentSetUUIDs();
+		JsonArray contentSets = getEntitledContentSetUUIDs(session);
 		
 		// dowbload all observables for these content sets, mapping each spec to its observable
 		boolean finished = false;
@@ -235,7 +234,7 @@ public class SpecDump extends AbstractSyncClient{
 			paginationOption.addProperty("limit", limit);
 			obsSpecRequest.setMethodParameter("paginationOption", paginationOption);
 			
-			JsonArray obsSpecs = dispatch(obsSpecRequest).getAsJsonArray();
+			JsonArray obsSpecs = dispatch(obsSpecRequest, session).getAsJsonArray();
 			if ((obsSpecs == null) || (obsSpecs.isJsonNull()) || (obsSpecs.size() < 1)){
 				finished = true;
 			}
@@ -253,15 +252,15 @@ public class SpecDump extends AbstractSyncClient{
 					// look up the observable that corresponds to this spec
 					Request observableRequest = new Request("ObservableHandler.findById");
 					observableRequest.setMethodParameter("observableId", observableID);
-					JsonObject observable = dispatch(observableRequest).getAsJsonObject();
+					JsonObject observable = dispatch(observableRequest, session).getAsJsonObject();
 					String eventID = observable.get("eventId").getAsString();
 					
 					// check if this observable is in the time range given
-					if (overlapsTimeRange(eventID, startWindow, endWindow)){
+					if (overlapsTimeRange(session, eventID, startWindow, endWindow)){
 
 						// Static fields
 						String measureCode = observable.get("measure").getAsString();
-						String entityID = getPrimaryEntityForEventID(eventID);
+						String entityID = getPrimaryEntityForEventID(session, eventID);
 						String period = observable.get("period").getAsString();
 						
 						// dump out the spec
@@ -277,6 +276,8 @@ public class SpecDump extends AbstractSyncClient{
 		// all done
 		out.close();
 		
+		closeSession(session);
+		
 		// print out some simple stats
 		long elapsedDump = System.currentTimeMillis() - startDump;
 		double elapsedDumpSeconds = ((double)elapsedDump) / 1000.0;
@@ -290,12 +291,14 @@ public class SpecDump extends AbstractSyncClient{
 		// open the file
 		BufferedWriter out = new BufferedWriter(new FileWriter(outputFileName));	
 		
+		Session session = startSession();
+		
 		// look up the event
 		Request eventRequest = new Request("EventHandler.findById");
 		eventRequest.setMethodParameter("eventId", eventUUID);
 		eventRequest.setMethodParameter("timeZoneId", "UTC");
 		
-		JsonObject event = dispatch(eventRequest).getAsJsonObject();
+		JsonObject event = dispatch(eventRequest, session).getAsJsonObject();
 		if ((event == null) || (event.isJsonNull())){
 			log.info("couldn't find event");
 			return;
@@ -305,7 +308,7 @@ public class SpecDump extends AbstractSyncClient{
 		
 		Request observablesRequest = new Request("ObservableHandler.getObservablesForEvent");
 		observablesRequest.setMethodParameter("eventId", eventUUID);
-		JsonArray observables = dispatch(observablesRequest).getAsJsonArray();
+		JsonArray observables = dispatch(observablesRequest, session).getAsJsonArray();
 		
 		if ((observables == null) || (observables.isJsonNull())){
 			log.info("couldn't find any observables");
@@ -318,12 +321,12 @@ public class SpecDump extends AbstractSyncClient{
 			String measureCode = observable.get("measure").getAsString();
 			String period = observable.get("period").getAsString();
 			String eventID = observable.get("eventId").getAsString();
-			String entityID = getPrimaryEntityForEventID(eventID);
+			String entityID = getPrimaryEntityForEventID(session, eventID);
 			
 			// get the specs for this observable (normally only one)
 			Request specsRequest = new Request("ObservationSpecHandler.getCurrentObservationSpecForObservable");
 			specsRequest.setMethodParameter("observableId", observableID);
-			JsonArray specs = dispatch(specsRequest).getAsJsonArray();
+			JsonArray specs = dispatch(specsRequest, session).getAsJsonArray();
 			
 			if ((specs == null) || (specs.isJsonNull()) || (specs.size() < 1)){
 				log.info("couldn't find any specs for observable " + observableID);
@@ -341,6 +344,8 @@ public class SpecDump extends AbstractSyncClient{
 		// all done
 		out.close();
 		
+		closeSession(session);
+		
 		// print out some simple stats
 		long elapsedDump = System.currentTimeMillis() - startDump;
 		double elapsedDumpSeconds = ((double)elapsedDump) / 1000.0;
@@ -348,7 +353,7 @@ public class SpecDump extends AbstractSyncClient{
 		
 	}
 	
-	protected boolean overlapsTimeRange(String eventID, Long startWindow, Long endWindow) throws DispatchException, ParseException{
+	protected boolean overlapsTimeRange(Session session, String eventID, Long startWindow, Long endWindow) throws DispatchException, ParseException{
 		Long eventStartTime = eventStartTimes.get(eventID);
 		Long eventEndTime = eventEndTimes.get(eventID);
 		String eventEntity = eventEntities.get(eventID);
@@ -358,7 +363,7 @@ public class SpecDump extends AbstractSyncClient{
 			eventRequest.setMethodParameter("eventId", eventID);
 			eventRequest.setMethodParameter("timeZoneId", "UTC");
 					
-			JsonObject event = dispatch(eventRequest).getAsJsonObject(); 
+			JsonObject event = dispatch(eventRequest, session).getAsJsonObject(); 
 			String earliestStart = event.get("earliestExpectedStart").getAsString();
 			String latestEnd = event.get("latestExpectedEnd").getAsString();
 			eventStartTime = MiscUtils.parseNanoTime(earliestStart);
@@ -379,10 +384,10 @@ public class SpecDump extends AbstractSyncClient{
 	 * @return
 	 * @throws DispatchException
 	 */
-	protected JsonArray getEntitledContentSetUUIDs() throws DispatchException{
+	protected JsonArray getEntitledContentSetUUIDs(Session session) throws DispatchException{
 		// look up all of the content sets to which this user is entitled
 		Request contentSetRequest = new Request("ContentSetHandler.getContentSets");
-		JsonArray contentSetResponse = dispatch(contentSetRequest).getAsJsonArray(); 
+		JsonArray contentSetResponse = dispatch(contentSetRequest, session).getAsJsonArray(); 
 		log.debug("contentSetResponse = " + contentSetResponse);
 		
 		JsonArray contentSetUUIDs = new JsonArray();
@@ -401,7 +406,7 @@ public class SpecDump extends AbstractSyncClient{
 		return contentSetUUIDs;
 	}
 	
-	protected String getPrimaryEntityForEventID(String eventID) throws DispatchException{
+	protected String getPrimaryEntityForEventID(Session session, String eventID) throws DispatchException{
 		String entityID = eventEntities.get(eventID);
 		if (entityID != null){
 			return entityID;
@@ -410,7 +415,7 @@ public class SpecDump extends AbstractSyncClient{
 		eventRequest.setMethodParameter("eventId", eventID);
 		eventRequest.setMethodParameter("timeZoneId", "UTC");
 				
-		JsonObject event = dispatch(eventRequest).getAsJsonObject(); 
+		JsonObject event = dispatch(eventRequest, session).getAsJsonObject(); 
 		return getPrimaryEntityForEvent(event);
 	}
 	

@@ -61,8 +61,7 @@ public class IdentifiersDump{
 	protected final TagDump tagDump;
 	
 	public IdentifiersDump(String host, int port, String user, String password, String clientAppName) throws MalformedURLException, DispatchException{
-		tagDump = new TagDump(host, port, clientAppName);
-		tagDump.startSession(user, password);
+		tagDump = new TagDump(host, port, user, password, clientAppName);
 	}
 	
 	/** Given a map of values->families->synonyms, need to generate a map of selerity synonyms to other synonyms

@@ -11,6 +11,7 @@ import com.google.gson.JsonObject;
 import com.selerity.sync.client.AbstractSyncClient;
 import com.selerity.sync.client.DispatchException;
 import com.selerity.sync.client.Request;
+import com.selerity.sync.client.Session;
 
 /** 
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code is confidential 
@@ -33,8 +34,8 @@ public class TimeSeriesDump extends AbstractSyncClient{
 
 	private static final Log log = LogFactory.getLog(TimeSeriesDump.class);	
 	
-	public TimeSeriesDump(String host, int port, String clientAppName) throws MalformedURLException, DispatchException{
-		super(host, port, clientAppName);
+	public TimeSeriesDump(String host, int port, String user, String password, String clientAppName) throws MalformedURLException, DispatchException{
+		super(host, port, user, password, clientAppName);
 	}
 	
 	
@@ -68,13 +69,14 @@ public class TimeSeriesDump extends AbstractSyncClient{
 			String timeZoneID = "UTC";
 			
 			// initialized the transport and method dispatcher
-			TimeSeriesDump dumper = new TimeSeriesDump(host, port, "TimeSeriesDump");
-			dumper.startSession(user, password);
+			TimeSeriesDump dumper = new TimeSeriesDump(host, port, user, password, "TimeSeriesDump");
+			
+			Session session = dumper.startSession();
 			
 			// look up the time series
 			Request timeseriesRequest = new Request("TimeSeriesHandler.findById");
 			timeseriesRequest.setMethodParameter("id", timeSeriesUUID);
-			JsonObject timeseries = dumper.dispatch(timeseriesRequest).getAsJsonObject();		
+			JsonObject timeseries = dumper.dispatch(timeseriesRequest, session).getAsJsonObject();		
 			log.debug("got timeseries: " + timeseries);
 			
 			String timeseriesName = timeseries.get("name").getAsString();
@@ -83,12 +85,13 @@ public class TimeSeriesDump extends AbstractSyncClient{
 			// look up next observable in the series
 			Request nextObservableRequest = new Request("ObservableHandler.getNextObservableInTimeSeries");
 			nextObservableRequest.setMethodParameter("timeSeriesId", timeSeriesUUID);
-			JsonObject nextObservable = dumper.dispatch(nextObservableRequest).getAsJsonObject();		
+			JsonObject nextObservable = dumper.dispatch(nextObservableRequest, session).getAsJsonObject();		
 			log.debug("got next observable: " + nextObservable);
 			
 			// if there is no next observable then give up
 			if ((nextObservable == null) || (nextObservable.isJsonNull())){
 				log.warn("found no subsequent observable in the series, quitting");
+				dumper.closeSession(session);
 				return;
 			}
 			
@@ -104,12 +107,13 @@ public class TimeSeriesDump extends AbstractSyncClient{
 			Request obsSpecRequest = new Request("ObservationSpecHandler.getCurrentObservationSpecForObservable");
 			obsSpecRequest.setMethodParameter("observableId", observableID);
 			obsSpecRequest.setMethodParameter("contentSetId", contentSetUUID);
-			JsonObject obsSpec = dumper.dispatch(obsSpecRequest).getAsJsonObject();		
+			JsonObject obsSpec = dumper.dispatch(obsSpecRequest, session).getAsJsonObject();		
 			log.debug("obsSpec = " + obsSpec);
 			
 			// if there is no obs spec then quit
 			if ((obsSpec == null) || (obsSpec.isJsonNull())){
 				log.warn("no observation specification available, quitting");
+				dumper.closeSession(session);
 				return;
 			}
 			
@@ -122,7 +126,7 @@ public class TimeSeriesDump extends AbstractSyncClient{
 			eventRequest.setMethodParameter("eventId", eventID);
 			eventRequest.setMethodParameter("timeZoneId", timeZoneID);
 			eventRequest.setMethodParameter("contentSetId", contentSetUUID);
-			JsonObject event = dumper.dispatch(eventRequest).getAsJsonObject();		
+			JsonObject event = dumper.dispatch(eventRequest, session).getAsJsonObject();		
 			log.debug("event = " + event);
 			
 			// get the expected start time of the event
@@ -136,7 +140,7 @@ public class TimeSeriesDump extends AbstractSyncClient{
 			out.close();
 			
 			// and close the session
-			dumper.closeSession();
+			dumper.closeSession(session);
 			
 		}
 		catch (Exception ex) {

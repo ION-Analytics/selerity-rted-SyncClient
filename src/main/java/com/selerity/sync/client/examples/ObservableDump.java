@@ -16,6 +16,7 @@ import com.selerity.sync.client.AbstractSyncClient;
 import com.selerity.sync.client.DispatchException;
 import com.selerity.sync.client.MiscUtils;
 import com.selerity.sync.client.Request;
+import com.selerity.sync.client.Session;
 
 /**
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code
@@ -47,20 +48,11 @@ public class ObservableDump  extends AbstractSyncClient{
 	protected EventDump eventDump;
 	
 	
-	public ObservableDump(String host, int port, String clientAppName) throws MalformedURLException, DispatchException{
-		super(host, port, clientAppName);
-		eventDump = new EventDump(host, port, clientAppName);
+	public ObservableDump(String host, int port, String user, String password, String clientAppName) throws MalformedURLException, DispatchException{
+		super(host, port, user, password, clientAppName);
+		eventDump = new EventDump(host, port, user, password, clientAppName);
 	}
-	
-	public void startSession(String user, String password) throws DispatchException{
-		super.startSession(user, password);
-		eventDump.startSession(user, password);
-	}
-	
-	public void closeSession() throws DispatchException{
-		super.closeSession();
-		eventDump.closeSession();
-	} 
+
 	
 	
 	/**
@@ -107,14 +99,10 @@ public class ObservableDump  extends AbstractSyncClient{
 			}
 			
 			// initialize the dumper
-			ObservableDump dumper = new ObservableDump(host, port, "ObservableDump");
-			dumper.startSession(user, password);
+			ObservableDump dumper = new ObservableDump(host, port, user, password, "ObservableDump");
 
 			// dump out a bunch of events
 			dumper.dumpEventsWithOffsets(outputFileName, startTime, endTime);
-			
-			// close session
-			dumper.closeSession();
 			
 			log.debug("all done");
 		}
@@ -132,8 +120,10 @@ public class ObservableDump  extends AbstractSyncClient{
 				+ "measureName,MeasureCode,period,periodRelativity,dataType,legacyObsSpecID,"
 				+ "eventSeriesID,eventID,observableID,timeseriesID,obsSpecID\n");
 		
+		Session session = startSession();
+		
 		// get the content sets for this user
-		List<String> contentSetUUIDs = eventDump.getEntitledEventContentSetUUIDs();
+		List<String> contentSetUUIDs = eventDump.getEntitledEventContentSetUUIDs(session);
 
 		int eventCount = 0;
 		int observableCount = 0;
@@ -142,7 +132,7 @@ public class ObservableDump  extends AbstractSyncClient{
 		for (String contentSetUUID : contentSetUUIDs){
 			
 			// now look up events for each content set
-			List<JsonObject> events = eventDump.getEventsForContentSet(contentSetUUID, startTime, endTime, EVENT_LOOKUP_LIMIT, UTC);
+			List<JsonObject> events = eventDump.getEventsForContentSet(session, contentSetUUID, startTime, endTime, EVENT_LOOKUP_LIMIT, UTC);
 			log.debug("found " + events.size() + " events");
 			
 			eventCount += events.size();
@@ -161,7 +151,7 @@ public class ObservableDump  extends AbstractSyncClient{
 				String primaryCategory = eventDump.getPrimaryCategoryForEvent(event);
 				
 				// get the observables 
-				JsonArray observables = getObservablesForEvent(eventID);
+				JsonArray observables = getObservablesForEvent(session, eventID);
 				
 				observableCount += observables.size();
 				
@@ -170,15 +160,15 @@ public class ObservableDump  extends AbstractSyncClient{
 					JsonObject observable = observables.get(i).getAsJsonObject();
 					String observableID = observable.get("observableId").getAsString();
 					String measureCode = observable.get("measure").getAsString();
-					String measureTagID = getMeasureTagID(measureCode);
-					String measureName = getSynonym(measureTagID, null);
+					String measureTagID = getMeasureTagID(session, measureCode);
+					String measureName = getSynonym(session, measureTagID, null);
 
 					String period = observable.get("period").getAsString();
 					String timeseriesID = MiscUtils.getString(observable, "timeSeriesId", null);
 					String dataType = observable.get("observationFieldDatatype").getAsJsonObject().get("name").getAsString();
 					
 					// look up the spec to get the legacy ID
-					JsonObject obsSpec = getObservationSpecForObservable(observableID, contentSetUUID);
+					JsonObject obsSpec = getObservationSpecForObservable(session, observableID, contentSetUUID);
 					String obsSpecID = "";
 					String legacyObsSpecID = "";
 					if (obsSpec != null){
@@ -190,7 +180,7 @@ public class ObservableDump  extends AbstractSyncClient{
 					// look up the period relativity for the timeseries
 					String periodRelativity = "";
 					if (timeseriesID != null){
-						JsonObject timeseries = getTimeSeriesForObservable(timeseriesID);
+						JsonObject timeseries = getTimeSeriesForObservable(session, timeseriesID);
 						periodRelativity = timeseries.get("periodRelativity").getAsString();
 					}
 					
@@ -221,6 +211,8 @@ public class ObservableDump  extends AbstractSyncClient{
 		// all done
 		out.close();
 		
+		closeSession(session);
+		
 		// print out some simple stats
 		long elapsedDump = System.currentTimeMillis() - startDump;
 		double elapsedDumpSeconds = ((double)elapsedDump) / 1000.0;
@@ -238,8 +230,10 @@ public class ObservableDump  extends AbstractSyncClient{
 				+ "eventSeriesID,eventID,observableID,timeseriesID,obsSpecID,"
 				+ "MeasurementOffset,ObservationStatusOffset,EnvironmentLevelOffset,AlgorithmIDOffset\n");
 
+		Session session = startSession();
+		
 		// get the content sets for this user
-		List<String> contentSetUUIDs = eventDump.getEntitledEventContentSetUUIDs();
+		List<String> contentSetUUIDs = eventDump.getEntitledEventContentSetUUIDs(session);
 
 		int eventCount = 0;
 		int observableCount = 0;
@@ -248,7 +242,7 @@ public class ObservableDump  extends AbstractSyncClient{
 		for (String contentSetUUID : contentSetUUIDs){
 			
 			// now look up events for each content set
-			List<JsonObject> events = eventDump.getEventsForContentSet(contentSetUUID, startTime, endTime, EVENT_LOOKUP_LIMIT, UTC);
+			List<JsonObject> events = eventDump.getEventsForContentSet(session, contentSetUUID, startTime, endTime, EVENT_LOOKUP_LIMIT, UTC);
 			log.debug("found " + events.size() + " events");
 			
 			eventCount += events.size();
@@ -267,7 +261,7 @@ public class ObservableDump  extends AbstractSyncClient{
 				String primaryCategory = eventDump.getPrimaryCategoryForEvent(event);
 				
 				// get the observables 
-				JsonArray observables = getObservablesForEvent(eventID);
+				JsonArray observables = getObservablesForEvent(session, eventID);
 				
 				observableCount += observables.size();
 				
@@ -276,15 +270,15 @@ public class ObservableDump  extends AbstractSyncClient{
 					JsonObject observable = observables.get(i).getAsJsonObject();
 					String observableID = observable.get("observableId").getAsString();
 					String measureCode = observable.get("measure").getAsString();
-					String measureTagID = getMeasureTagID(measureCode);
-					String measureName = getSynonym(measureTagID, null);
+					String measureTagID = getMeasureTagID(session, measureCode);
+					String measureName = getSynonym(session, measureTagID, null);
 
 					String period = observable.get("period").getAsString();
 					String timeseriesID = MiscUtils.getString(observable, "timeSeriesId", null);
 					String dataType = observable.get("observationFieldDatatype").getAsJsonObject().get("name").getAsString();
 					
 					// look up the spec 
-					JsonObject obsSpec = getObservationSpecForObservable(observableID, contentSetUUID);
+					JsonObject obsSpec = getObservationSpecForObservable(session, observableID, contentSetUUID);
 					String obsSpecID = "";
 					String legacyObsSpecID = "";
 					
@@ -310,7 +304,7 @@ public class ObservableDump  extends AbstractSyncClient{
 					// look up the period relativity for the timeseries
 					String periodRelativity = "";
 					if (timeseriesID != null){
-						JsonObject timeseries = getTimeSeriesForObservable(timeseriesID);
+						JsonObject timeseries = getTimeSeriesForObservable(session, timeseriesID);
 						periodRelativity = timeseries.get("periodRelativity").getAsString();
 					}
 					
@@ -345,6 +339,8 @@ public class ObservableDump  extends AbstractSyncClient{
 		// all done
 		out.close();
 		
+		closeSession(session);
+		
 		// print out some simple stats
 		long elapsedDump = System.currentTimeMillis() - startDump;
 		double elapsedDumpSeconds = ((double)elapsedDump) / 1000.0;
@@ -369,44 +365,44 @@ public class ObservableDump  extends AbstractSyncClient{
 		return "";
 	}
 
-	protected JsonArray getObservablesForEvent(String eventID) throws DispatchException{
+	protected JsonArray getObservablesForEvent(Session session, String eventID) throws DispatchException{
 		Request observableRequest = new Request("ObservableHandler.getObservablesForEvent");
 		observableRequest.setMethodParameter("eventId", eventID);
 		
-		return dispatch(observableRequest).getAsJsonArray();
+		return dispatch(observableRequest, session).getAsJsonArray();
 	}
 	
-	protected JsonObject getObservationSpecForObservable(String observableUUID, String contentSetUUID) throws DispatchException{
+	protected JsonObject getObservationSpecForObservable(Session session, String observableUUID, String contentSetUUID) throws DispatchException{
 		Request obsSpecRequest = new Request("ObservationSpecHandler.getCurrentObservationSpecForObservable");
 		obsSpecRequest.setMethodParameter("observableId", observableUUID);
 		obsSpecRequest.setMethodParameter("contentSetId", contentSetUUID);
-		JsonElement spec = dispatch(obsSpecRequest);
+		JsonElement spec = dispatch(obsSpecRequest, session);
 		if ((spec == null) || (spec.isJsonNull())){
 			return null;
 		}
 		return spec.getAsJsonObject();
 	}
 	
-	protected JsonObject getTimeSeriesForObservable(String observableUUID) throws DispatchException{
+	protected JsonObject getTimeSeriesForObservable(Session session, String observableUUID) throws DispatchException{
 		Request timeseriesRequest = new Request("TimeSeriesHandler.findById");
 		timeseriesRequest.setMethodParameter("id", observableUUID);
-		return dispatch(timeseriesRequest).getAsJsonObject();
+		return dispatch(timeseriesRequest, session).getAsJsonObject();
 	}
 	
-	protected JsonObject getDataTypeForObservable(String observableUUID) throws DispatchException {
+	protected JsonObject getDataTypeForObservable(Session session, String observableUUID) throws DispatchException {
 		Request timeseriesRequest = new Request("TimeSeriesHandler.findById");
 		timeseriesRequest.setMethodParameter("id", observableUUID);
-		return dispatch(timeseriesRequest).getAsJsonObject();
+		return dispatch(timeseriesRequest, session).getAsJsonObject();
 	}
 	
 	
 	
 	
-	protected String getMeasureTagID(String measureCode) throws DispatchException{
+	protected String getMeasureTagID(Session session, String measureCode) throws DispatchException{
 		Request tagLookupRequest = new Request("TagHandler.getTagByNameValue");
 		tagLookupRequest.setMethodParameter("tagName", "Measure");
 		tagLookupRequest.setMethodParameter("tagValue", measureCode);
-		JsonObject tag = dispatch(tagLookupRequest).getAsJsonObject();
+		JsonObject tag = dispatch(tagLookupRequest, session).getAsJsonObject();
 		log.debug("got tag for measureCode " + measureCode + " is: " + tag);
 		if ((tag == null) || (tag.isJsonNull())){
 			return null;
@@ -414,11 +410,11 @@ public class ObservableDump  extends AbstractSyncClient{
 		return tag.get("tagId").getAsString();
 	}
 	
-	protected String getSynonym(String tagID, String familyName) throws DispatchException{
+	protected String getSynonym(Session session, String tagID, String familyName) throws DispatchException{
 		Request synonymRequest = new Request("SynonymHandler.findByTagIdAndFamily");
 		synonymRequest.setMethodParameter("tagId", tagID);
 		synonymRequest.setMethodParameter("familyName", familyName);
-		JsonObject synonym = dispatch(synonymRequest).getAsJsonObject();
+		JsonObject synonym = dispatch(synonymRequest, session).getAsJsonObject();
 		log.debug("got synonym for " + tagID + " for family " + familyName + " is: " + synonym);
 		if ((synonym == null) || (synonym.isJsonNull())){
 			return null;

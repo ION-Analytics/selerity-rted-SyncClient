@@ -6,9 +6,10 @@ import com.google.gson.JsonElement;
 
 public abstract class AbstractSyncClient {
 
-	private Session session;
-	private final Dispatcher dispatcher;
 	protected final String clientAppName;
+	private Dispatcher dispatcher;
+	private String user;
+	private String password;
 	
 	/** Initialize the dispatcher and start a session.
 	 * 
@@ -19,13 +20,15 @@ public abstract class AbstractSyncClient {
 	 * @throws MalformedURLException
 	 * @throws DispatchException
 	 */
-	public AbstractSyncClient(String host, int port, String clientAppName) throws MalformedURLException, DispatchException{
+	public AbstractSyncClient(String host, int port, String user, String password, String clientAppName) throws MalformedURLException, DispatchException{
 		// initialized the transport and method dispatcher
 		String rhinoURL = "http://" + host + ":" + port + "/rhino-1.0-SNAPSHOT/rpc.do";
 		Transport transport = new RhinoHTTPTransport(rhinoURL, false);
 		dispatcher = new RhinoDispatcher(transport);
 		
 		this.clientAppName = clientAppName;
+		this.user = user;
+		this.password = password;
 	}
 
 
@@ -35,10 +38,7 @@ public abstract class AbstractSyncClient {
 	 * @return
 	 * @throws DispatchException
 	 */
-	public JsonElement dispatch(Request request) throws DispatchException{
-		if (session == null){
-			throw new DispatchException(DispatchException.INTERNAL_ERROR, "Session not started", null);
-		}
+	public JsonElement dispatch(Request request, Session session) throws DispatchException{
 		return dispatcher.dispatch(request, session); 	
 	}
 	
@@ -49,10 +49,7 @@ public abstract class AbstractSyncClient {
 	 * @return
 	 * @throws DispatchException
 	 */
-	public PaginatedResponseIterator paginatedDispatch(Request request, String optionObjectName, int limit) throws DispatchException{
-		if (session == null){
-			throw new DispatchException(DispatchException.INTERNAL_ERROR, "Session not started", null);
-		}
+	public PaginatedResponseIterator paginatedDispatch(Request request, Session session, String optionObjectName, int limit) throws DispatchException{
 		return new PaginatedResponseIterator(dispatcher, session, request, optionObjectName, limit);
 	}
 	
@@ -62,11 +59,24 @@ public abstract class AbstractSyncClient {
 	 * @return
 	 * @throws DispatchException
 	 */
-	public Response[] boxcarDispatch(Request[] requests) throws DispatchException{
-		if (session == null){
-			throw new DispatchException(DispatchException.INTERNAL_ERROR, "Session not started", null);
-		}
+	public Response[] boxcarDispatch(Request[] requests, Session session) throws DispatchException{
 		return dispatcher.boxcarDispatch(requests, session); 	
+	}
+	
+	/** Updates the user name to be used in future sessions
+	 * 
+	 * @param user
+	 */
+	public void setUser(String user){
+		this.user = user;
+	}
+	
+	/** Updates the password to be used in future sessions
+	 * 
+	 * @param password
+	 */
+	public void setPassword(String password){
+		this.password = password;
 	}
 	
 	/** Starts a session in normal mode.
@@ -75,8 +85,8 @@ public abstract class AbstractSyncClient {
 	 * @param password
 	 * @throws DispatchException
 	 */
-	public void startSession(String user, String password) throws DispatchException{
-		session = new RhinoSessionFactory().getInstance(dispatcher,
+	public Session startSession() throws DispatchException{
+		return new RhinoSessionFactory().getInstance(dispatcher,
 				clientAppName, null, user, password);
 	}
 	
@@ -86,8 +96,8 @@ public abstract class AbstractSyncClient {
 	 * @param password
 	 * @throws DispatchException
 	 */
-	public void startSession(String user, String password, String mode) throws DispatchException{
-		session = new RhinoSessionFactory().getInstance(dispatcher,
+	public Session startSession(String mode) throws DispatchException{
+		return new RhinoSessionFactory().getInstance(dispatcher,
 				clientAppName, mode, user, password);
 	}
 	
@@ -97,8 +107,8 @@ public abstract class AbstractSyncClient {
 	 * @param password
 	 * @throws DispatchException
 	 */
-	public void startSessionExtensionMode(String user, String password) throws DispatchException{
-		session = new RhinoSessionFactory().getInstance(dispatcher,
+	public Session startSessionExtensionMode() throws DispatchException{
+		return new RhinoSessionFactory().getInstance(dispatcher,
 				clientAppName, "extension", user, password);
 	}
 	
@@ -106,9 +116,9 @@ public abstract class AbstractSyncClient {
 	 * 
 	 * @throws DispatchException
 	 */
-	public void extendSession() throws DispatchException{
+	public void extendSession(Session session) throws DispatchException{
 		Request extendRequest = new Request("AuthenticationHandler.extend");
-		dispatch(extendRequest);
+		dispatch(extendRequest, session);
 	}
 	
 	
@@ -116,9 +126,9 @@ public abstract class AbstractSyncClient {
 	 * 
 	 * @throws DispatchException
 	 */
-	public void closeSession() throws DispatchException{
+	public void closeSession(Session session) throws DispatchException{
 		Request logoutRequest = new Request("AuthenticationHandler.invalidate");
-		dispatch(logoutRequest);
+		dispatch(logoutRequest, session);
 	}
 	
 }

@@ -27,6 +27,7 @@ import com.selerity.sync.client.DispatchException;
 import com.selerity.sync.client.MiscUtils;
 import com.selerity.sync.client.PaginatedResponseIterator;
 import com.selerity.sync.client.Request;
+import com.selerity.sync.client.Session;
 
 /**
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code
@@ -57,20 +58,11 @@ public class EventDump  extends AbstractSyncClient{
 	
 	protected TagDump tagDump;
 
-	public EventDump(String host, int port, String clientAppName) throws MalformedURLException, DispatchException{
-		super(host, port, clientAppName);
-		tagDump = new TagDump(host, port, clientAppName);
+	public EventDump(String host, int port, String user, String password, String clientAppName) throws MalformedURLException, DispatchException{
+		super(host, port, user, password, clientAppName);
+		tagDump = new TagDump(host, port, user, password, clientAppName);
 	}
-	
-	public void startSession(String user, String password) throws DispatchException{
-		super.startSession(user, password);
-		tagDump.startSession(user, password);
-	}
-	
-	public void closeSession() throws DispatchException{
-		super.closeSession();
-		tagDump.closeSession();
-	} 
+
 	
 	/**
 	 * @param args
@@ -122,8 +114,8 @@ public class EventDump  extends AbstractSyncClient{
 			
 			
 			// initialize the dumper
-			EventDump dumper = new EventDump(host, port, "EventDump");
-			dumper.startSession(user, password);
+			EventDump dumper = new EventDump(host, port, user, password, "EventDump");
+
 
 			// open file
 			BufferedWriter out = new BufferedWriter(new FileWriter(outputFileName));
@@ -133,7 +125,7 @@ public class EventDump  extends AbstractSyncClient{
 			
 			// close file and session
 			out.close();
-			dumper.closeSession();
+
 			
 			log.debug("all done");
 
@@ -211,7 +203,9 @@ public class EventDump  extends AbstractSyncClient{
 		log.info("searching for events starting between " + startTimeStr + " and " + endTimeStr);
 	
 		// now look up events for each content set
-		List<JsonObject> events = getEventsForContentSet(contentSetUUID, startTimeStr, endTimeStr, REQUEST_LIMIT, UTC);
+		Session session = startSession();
+		List<JsonObject> events = getEventsForContentSet(session, contentSetUUID, startTimeStr, endTimeStr, REQUEST_LIMIT, UTC);
+		closeSession(session);
 		log.debug("found " + events.size() + " events");
 		
 		// loop through each event
@@ -282,10 +276,10 @@ public class EventDump  extends AbstractSyncClient{
 	 * @return
 	 * @throws DispatchException
 	 */
-	protected List<String> getEntitledEventContentSetUUIDs() throws DispatchException{
+	protected List<String> getEntitledEventContentSetUUIDs(Session session) throws DispatchException{
 		// look up all of the content sets to which this user is entitled
 		Request contentSetRequest = new Request("ContentSetHandler.getContentSets");
-		JsonArray contentSetResponse = dispatch(contentSetRequest).getAsJsonArray(); 
+		JsonArray contentSetResponse = dispatch(contentSetRequest, session).getAsJsonArray(); 
 		log.debug("contentSetResponse = " + contentSetResponse);
 		
 		List<String> contentSetUUIDs = new ArrayList<String>();
@@ -313,15 +307,15 @@ public class EventDump  extends AbstractSyncClient{
 	 * @return
 	 * @throws DispatchException
 	 */
-	protected List<JsonObject> getEventsForContentSet(String contentSetUUID, String startTime, String endTime, int limit, String timezone) throws DispatchException{
+	protected List<JsonObject> getEventsForContentSet(Session session, String contentSetUUID, String startTime, String endTime, int limit, String timezone) throws DispatchException{
 	
 		List<JsonObject> events = new ArrayList<JsonObject>();
 		
-		Request earningsEventsRequest = new Request("EventHandler.search");
+		Request eventsRequest = new Request("EventHandler.search");
 		
 		// a search string that should match all events
 		String searchString = "AND()";
-		earningsEventsRequest.setMethodParameter("searchString", searchString);
+		eventsRequest.setMethodParameter("searchString", searchString);
 		
 		// set some options for the search
 		JsonObject searchOptions = new JsonObject();
@@ -342,9 +336,9 @@ public class EventDump  extends AbstractSyncClient{
 		searchOptions.addProperty("sortOrder", "BY_EXP_START_DATE");
 
 		// apply the search options
-		earningsEventsRequest.setMethodParameter("searchOption", searchOptions);
+		eventsRequest.setMethodParameter("searchOption", searchOptions);
 		
-		PaginatedResponseIterator responseIt = paginatedDispatch(earningsEventsRequest, "searchOption", limit);
+		PaginatedResponseIterator responseIt = paginatedDispatch(eventsRequest, session, "searchOption", limit);
 		
 		while (responseIt.hasNextResult()){
 			JsonObject event = responseIt.nextResult().getAsJsonObject();

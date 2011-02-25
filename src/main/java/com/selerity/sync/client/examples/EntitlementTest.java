@@ -13,6 +13,7 @@ import com.google.gson.JsonObject;
 import com.selerity.sync.client.AbstractSyncClient;
 import com.selerity.sync.client.DispatchException;
 import com.selerity.sync.client.Request;
+import com.selerity.sync.client.Session;
 
 /**
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code
@@ -38,8 +39,8 @@ public class EntitlementTest extends AbstractSyncClient{
 	private static final int SPEC_LOOKUP_LIMIT = 500;
 
 	
-	public EntitlementTest(String host, int port, String clientAppName) throws MalformedURLException, DispatchException{
-		super(host, port, clientAppName);
+	public EntitlementTest(String host, int port, String user, String password, String clientAppName) throws MalformedURLException, DispatchException{
+		super(host, port, user, password, clientAppName);
 	}
 	
 	
@@ -68,8 +69,7 @@ public class EntitlementTest extends AbstractSyncClient{
 			String password = args[3];
 			
 			// initialize the dumper
-			EntitlementTest tester = new EntitlementTest(host, port, "EntitlementTest");
-			tester.startSession(user, password);
+			EntitlementTest tester = new EntitlementTest(host, port, user, password, "EntitlementTest");
 			
 			// dump out a bunch of events
 			Set<Long> specIDs = tester.getAllObsSpecIDs(SPEC_LOOKUP_LIMIT);
@@ -95,9 +95,11 @@ public class EntitlementTest extends AbstractSyncClient{
 		long startDump = System.currentTimeMillis();
 		Set<Long> specIDSet = new HashSet<Long>();
 		
+		Session session = startSession();
+		
 		// get the content sets for this user
 		Request contentSetRequest = new Request("ContentSetHandler.getContentSets");
-		JsonArray contentSetResponse = dispatch(contentSetRequest).getAsJsonArray(); 
+		JsonArray contentSetResponse = dispatch(contentSetRequest, session).getAsJsonArray(); 
 		log.debug("contentSetResponse = " + contentSetResponse);
 		
 		// print out the content sets
@@ -114,6 +116,8 @@ public class EntitlementTest extends AbstractSyncClient{
 		double elapsedDumpSeconds = ((double)elapsedDump) / 1000.0;
 		log.debug("got " + specIDSet.size() + " specs for all content sets in " + elapsedDumpSeconds + " seconds");
 		
+		closeSession(session);
+		
 		return specIDSet;
 	}
 	
@@ -126,7 +130,8 @@ public class EntitlementTest extends AbstractSyncClient{
 	 */
 	public Set<Long> getAllObsSpecIDsForContentSet(String contentSetUUID, int limit) throws DispatchException, IOException{
 		long startDump = System.currentTimeMillis();
-
+		Session session = startSession();
+		
 		Set<Long> specIDSet = new HashSet<Long>();
 		
 		int offset = 0;
@@ -144,7 +149,7 @@ public class EntitlementTest extends AbstractSyncClient{
 			
 			specRequest.setMethodParameter("paginationOption", paginationOption);
 			
-			JsonArray specs = dispatch(specRequest).getAsJsonArray();
+			JsonArray specs = dispatch(specRequest, session).getAsJsonArray();
 			numRetreived = specs.size();
 			offset += limit;
 			log.debug("got " + specs.size() + " specs");
@@ -161,6 +166,8 @@ public class EntitlementTest extends AbstractSyncClient{
 		long elapsedDump = System.currentTimeMillis() - startDump;
 		double elapsedDumpSeconds = ((double)elapsedDump) / 1000.0;
 		log.debug("got " + specIDSet.size() + " specs for this content set in " + elapsedDumpSeconds + " seconds");
+		
+		closeSession(session);
 		
 		return specIDSet;
 	}
