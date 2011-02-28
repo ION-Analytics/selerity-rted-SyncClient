@@ -35,7 +35,7 @@ public class RhinoDispatcher implements Dispatcher{
 	
 	private static final Log log = LogFactory.getLog (RhinoDispatcher.class);
 	
-	private static final long DISPATCH_WARN_THRESHOLD = 2000;
+	private static final long DISPATCH_WARN_THRESHOLD = 10000;
 	
 	private final Gson gson = new GsonBuilder().serializeNulls().create();
 	private final JsonParser parser = new JsonParser();
