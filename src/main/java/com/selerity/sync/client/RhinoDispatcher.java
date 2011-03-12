@@ -98,10 +98,66 @@ public class RhinoDispatcher implements Dispatcher{
 		}
 		catch (Exception ex){
 			// wrap and rethrow
-			DispatchException localEx = new DispatchException(DispatchException.INTERNAL_ERROR, "local exception", ex.getMessage(), ex);
+			DispatchException localEx = new DispatchException(DispatchException.INTERNAL_ERROR, "local exception", (String)null, ex);
 			throw localEx;
 		}
 	}
+	
+	
+	/** Dispatches a request using the explicit session information, returning the full response object.
+	 * 
+	 */
+	public synchronized Response dispatchWithResponse(Request request, String user, String token, String client, String mode) {
+		
+		// construct the request string
+		String id = getNextID(user, client);
+		StringBuffer reqBuf = new StringBuffer();
+		appendRequestString(reqBuf, request, id, user, token, client, mode);
+		String requestString = reqBuf.toString();
+		
+		// now actually do the dispatching
+		try{
+			log.debug("about to dispatch: " + requestString);
+			long startTime = System.currentTimeMillis();
+			String responseString = transport.dispatch(requestString);
+			long elapsedTime = System.currentTimeMillis() - startTime;
+			if (elapsedTime < DISPATCH_WARN_THRESHOLD){
+				log.debug("DISPATCHTIME: " + elapsedTime + " ms after " + request.getMethod() + "; got response: " + responseString);
+			}
+			else{
+				log.warn("DISPATCHTIME: " + elapsedTime + " ms after " + request.getMethod() + "; got response: " + responseString);
+			}
+			
+			// parse the response into the result, error and correlation ID
+			JsonObject responseMap = parser.parse(responseString).getAsJsonObject();
+			JsonElement result = responseMap.get("result");
+			DispatchException dx = getException(responseMap);
+			String returnedID = gson.fromJson(responseMap.get("id"), String.class);
+			JsonElement headerElem = responseMap.get("header");
+			JsonObject header = null;
+			if ((headerElem != null) && (!headerElem.isJsonNull())){
+				header = headerElem.getAsJsonObject();
+			}
+			
+			// check that the correlation ID's match.  This shouldn't ever fail.
+			if ((id != null) && (!id.equals(returnedID))){
+				String errorMsg = "correlation ID's didn't match, sent \"" + id + "\", received \"" + returnedID + "\"";
+				log.error(errorMsg);
+				throw new DispatchException(DispatchException.INTERNAL_ERROR, errorMsg, returnedID);
+			}
+			
+			// construct the response
+			return new Response(result, dx, returnedID, header);
+			
+		}
+		catch (Exception ex){
+			// wrap and rethrow
+			DispatchException localEx = new DispatchException(DispatchException.INTERNAL_ERROR, "local exception", ex.getMessage(), ex);
+			return new Response(localEx, id);
+		}
+	}
+	
+	
 	
 	/** Dispatch the request, returning the result (and throwing an error if one occurs).  Uses the cached session parameters.
 	 * 
@@ -176,11 +232,16 @@ public class RhinoDispatcher implements Dispatcher{
 		Response[] responses = new Response[responseArray.size()];
 		for (JsonElement responseElement : responseArray){
 			
-			// parse out the result, error and correlation ID
+			// parse out the result, error, correlation ID and header
 			JsonObject responseMap = responseElement.getAsJsonObject();
 			JsonElement result = responseMap.get("result");
 			DispatchException dx = getException(responseMap);
 			String returnedID = gson.fromJson(responseMap.get("id"), String.class);
+			JsonElement headerElem = responseMap.get("header");
+			JsonObject header = null;
+			if ((headerElem != null) && (!headerElem.isJsonNull())){
+				header = headerElem.getAsJsonObject();
+			}
 			
 			// check the ID and get the index for it
 			index = requestIndex.get(returnedID);
@@ -191,7 +252,7 @@ public class RhinoDispatcher implements Dispatcher{
 			}
 			else{
 				// valid response, set the value in the array and mark it off the missing list
-				responses[index] = new Response(result, dx);
+				responses[index] = new Response(result, dx, returnedID, header);
 				missing.remove(returnedID);
 			}
 			

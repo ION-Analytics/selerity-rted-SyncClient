@@ -69,6 +69,24 @@ public class MiscUtils {
 		return value.getAsInt();
 	}
 	
+	public static long getLong(JsonObject obj, String key, long defaultValue){
+		JsonElement value = obj.get(key);
+		//log.debug("got value " + value + " for key " + key);
+		if ((value == null) || (value.isJsonNull())){
+			return defaultValue;
+		}
+		return value.getAsLong();
+	}
+	
+	public static boolean getBoolean(JsonObject obj, String key, boolean defaultValue){
+		JsonElement value = obj.get(key);
+		//log.debug("got value " + value + " for key " + key);
+		if ((value == null) || (value.isJsonNull())){
+			return defaultValue;
+		}
+		return value.getAsBoolean();
+	}
+	
 	public static long getNanoTime(JsonObject obj, String key, long defaultValue) throws ParseException{
 		JsonElement value = obj.get(key);
 		if ((value == null) || (value.isJsonNull())){

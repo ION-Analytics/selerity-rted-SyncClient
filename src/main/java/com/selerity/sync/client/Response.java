@@ -1,6 +1,7 @@
 package com.selerity.sync.client;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 /** 
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code is confidential 
@@ -24,10 +25,22 @@ public class Response {
 
 	protected final JsonElement result;
 	protected final DispatchException exception;
+	protected final String id;
+	protected final JsonObject header;
 	
-	public Response(JsonElement result, DispatchException exception) {
+	public Response(JsonElement result, DispatchException exception, String id, JsonObject header) {
 		this.result = result;
 		this.exception = exception;
+		this.id = id;
+		this.header = header;
+	}
+	
+	public Response(DispatchException exception, String id) {
+		this.result = null;
+		this.exception = exception;
+		this.id = id;
+		this.header = new JsonObject();
+		header.addProperty("result-type", "void");
 	}
 
 	public JsonElement getResult() {
@@ -36,6 +49,14 @@ public class Response {
 
 	public DispatchException getException() {
 		return exception;
+	}
+	
+	public String getID(){
+		return id;
+	}
+	
+	public JsonObject getHeader(){
+		return header;
 	}
 	
 	public boolean isError(){

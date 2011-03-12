@@ -1,5 +1,9 @@
 package com.selerity.sync.client;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
+import com.google.gson.JsonPrimitive;
+
 
 /** 
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code is confidential 
@@ -41,11 +45,30 @@ public class DispatchException extends Exception{
 	
 	private int code;
     private String message;
-    private String data;
+    private JsonElement data;
     
+    
+    public DispatchException(int code, String message, JsonElement data) {
+		super(message);
+		this.code = code;
+		this.message = message;
+		this.data = data;
+	}
     
 	public DispatchException(int code, String message, String data) {
 		super(message);
+		this.code = code;
+		this.message = message;
+		if (data == null){
+			this.data = new JsonNull();
+		}
+		else{
+			this.data = new JsonPrimitive(data);
+		}
+	}
+	
+	public DispatchException(int code, String message, JsonElement data, Exception nestedException) {
+		super(message, nestedException);
 		this.code = code;
 		this.message = message;
 		this.data = data;
@@ -55,9 +78,13 @@ public class DispatchException extends Exception{
 		super(message, nestedException);
 		this.code = code;
 		this.message = message;
-		this.data = data;
+		if (data == null){
+			this.data = new JsonNull();
+		}
+		else{
+			this.data = new JsonPrimitive(data);
+		}
 	}
-	
 
 	public int getCode() {
 		return code;
@@ -67,7 +94,7 @@ public class DispatchException extends Exception{
 		return message;
 	}
 
-	public String getData() {
+	public JsonElement getData() {
 		return data;
 	}
 	

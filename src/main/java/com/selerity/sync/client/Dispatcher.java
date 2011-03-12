@@ -43,6 +43,18 @@ public interface Dispatcher {
 	 */
 	public JsonElement dispatch(Request request, String user, String token, String client, String mode) throws DispatchException;
 	
+	/** Dispatches a request using the explicit session information, returning the full response object.
+	 * 
+	 * @param request
+	 * @param user
+	 * @param token
+	 * @param client
+	 * @param mode
+	 * @return
+	 * @throws DispatchException
+	 */
+	public Response dispatchWithResponse(Request request, String user, String token, String client, String mode);
+	
 	/** Dispatches a request using the given session, returning the result or throwing an exception.
 	 * 
 	 * @param request
