@@ -3,10 +3,15 @@ package com.selerity.sync.client.examples;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.selerity.sync.client.AbstractSyncClient;
 import com.selerity.sync.client.DispatchException;
@@ -34,21 +39,85 @@ public class TimeSeriesDump extends AbstractSyncClient{
 
 	private static final Log log = LogFactory.getLog(TimeSeriesDump.class);	
 	
+	public static final String FIELD_SEPARATOR = "^";
+	
+	private static final List<String> EMPTY_LIST = Collections.unmodifiableList(new ArrayList<String>(0));
+	
 	public TimeSeriesDump(String host, int port, String user, String password, String clientAppName) throws MalformedURLException, DispatchException{
 		super(host, port, user, password, clientAppName);
 	}
 	
+	/** Looks up a timeseries with the given UUID. 
+	 * 
+	 * @param session
+	 * @param timeSeriesUUID
+	 * @return
+	 * @throws DispatchException
+	 */
+	public JsonObject getTimeSeriesByID(Session session, String timeSeriesUUID) throws DispatchException{
+		// look up the time series
+		Request timeseriesRequest = new Request("TimeSeriesHandler.findById");
+		timeseriesRequest.setMethodParameter("id", timeSeriesUUID);
+		JsonElement timeSeriesElem = dispatch(timeseriesRequest, session).getAsJsonObject();		
+		if ((timeSeriesElem == null) || (timeSeriesElem.isJsonNull())){
+			return null;
+		}
+		return timeSeriesElem.getAsJsonObject();
+	}
+	
+	/** Returns the next observable for a given time series
+	 * 
+	 * @param session
+	 * @param timeSeriesUUID
+	 * @return
+	 * @throws DispatchException
+	 */
+	public JsonObject getNextObservableInTimeSeries(Session session, String timeSeriesUUID) throws DispatchException{
+		Request nextObservableRequest = new Request("ObservableHandler.getNextObservableInTimeSeries");
+		nextObservableRequest.setMethodParameter("timeSeriesId", timeSeriesUUID);
+		JsonElement nextObservableElem = dispatch(nextObservableRequest, session);
+		if ((nextObservableElem == null) || (nextObservableElem.isJsonNull())){
+			return null;
+		}
+		return nextObservableElem.getAsJsonObject();		
+	}
+	
+	/** Returns an unmodifiable list of UUID's for the content set to which the current
+	 *  user is entitled.
+	 * 
+	 * @param session
+	 * @return
+	 * @throws DispatchException
+	 */
+	public List<String> getEntitledContentSetUUIDs(Session session) throws DispatchException{
+		Request contentSetRequest = new Request("ContentSetHandler.getContentSets");
+		JsonElement contentSetListElem = dispatch(contentSetRequest, session);
+		if ((contentSetListElem == null) || (contentSetListElem.isJsonNull())){
+			return EMPTY_LIST;
+		}
+		List<String> contentSetUUIList = new ArrayList<String>();
+		JsonArray contentSetArray = contentSetListElem.getAsJsonArray();
+		for (int i = 0; i < contentSetArray.size(); i++){
+			JsonObject contentSet = contentSetArray.get(i).getAsJsonObject();
+			String name = contentSet.get("name").getAsString();
+			String uuid = contentSet.get("contentSetId").getAsString();
+			log.debug("found content set " + name + " with UUID: " + uuid);
+			contentSetUUIList.add(uuid);
+		}
+		return Collections.unmodifiableList(contentSetUUIList); // make it unmodifiable so that it doesn't accidentally get changed later
+	}
 	
 	/** 
 	 * @param args
 	 */
 	public static void main(String[] args) {
 
-
+		long startTime = System.currentTimeMillis();
+		
 		try {
 			
-			if (args.length < 7){
-				System.err.println("arguments: host port user password contentSetUUID timeSeriesUUID outputFileName");
+			if (args.length < 6){
+				System.err.println("arguments: host port user password timeSeriesUUID outputFileName");
 				System.exit(1);
 			}
 			
@@ -61,9 +130,8 @@ public class TimeSeriesDump extends AbstractSyncClient{
 			int port = Integer.parseInt(args[1]);
 			String user = args[2];
 			String password = args[3];
-			String contentSetUUID = args[4];
-			String timeSeriesUUID = args[5];
-			String outputFileName = args[6];
+			String timeSeriesUUID = args[4];
+			String outputFileName = args[5];
 			
 			// timezone, hardcoded for now
 			String timeZoneID = "UTC";
@@ -71,26 +139,28 @@ public class TimeSeriesDump extends AbstractSyncClient{
 			// initialized the transport and method dispatcher
 			TimeSeriesDump dumper = new TimeSeriesDump(host, port, user, password, "TimeSeriesDump");
 			
+			// start a session, use the same session for all requests
 			Session session = dumper.startSession();
 			
-			// look up the time series
-			Request timeseriesRequest = new Request("TimeSeriesHandler.findById");
-			timeseriesRequest.setMethodParameter("id", timeSeriesUUID);
-			JsonObject timeseries = dumper.dispatch(timeseriesRequest, session).getAsJsonObject();		
-			log.debug("got timeseries: " + timeseries);
 			
+			// look up the time series
+			JsonObject timeseries = dumper.getTimeSeriesByID(session, timeSeriesUUID);	
+			if (timeseries == null){
+				log.warn("could not find a time series with this UUID: " + timeSeriesUUID + ", quitting");
+				dumper.closeSession(session);
+				return;
+			}
 			String timeseriesName = timeseries.get("name").getAsString();
 			log.debug("timeseries name = " + timeseriesName);
 			
+			
 			// look up next observable in the series
-			Request nextObservableRequest = new Request("ObservableHandler.getNextObservableInTimeSeries");
-			nextObservableRequest.setMethodParameter("timeSeriesId", timeSeriesUUID);
-			JsonObject nextObservable = dumper.dispatch(nextObservableRequest, session).getAsJsonObject();		
+			JsonObject nextObservable = dumper.getNextObservableInTimeSeries(session, timeSeriesUUID);
 			log.debug("got next observable: " + nextObservable);
 			
 			// if there is no next observable then give up
-			if ((nextObservable == null) || (nextObservable.isJsonNull())){
-				log.warn("found no subsequent observable in the series, quitting");
+			if (nextObservable == null){
+				log.warn("found no subsequent observable in the time series with this UUID: " + timeSeriesUUID + ", quitting");
 				dumper.closeSession(session);
 				return;
 			}
@@ -103,44 +173,72 @@ public class TimeSeriesDump extends AbstractSyncClient{
 			log.debug("measure = " + measure);
 			log.debug("period = " + period);
 			
-			// look up the spec for that observable
-			Request obsSpecRequest = new Request("ObservationSpecHandler.getCurrentObservationSpecForObservable");
-			obsSpecRequest.setMethodParameter("observableId", observableID);
-			obsSpecRequest.setMethodParameter("contentSetId", contentSetUUID);
-			JsonObject obsSpec = dumper.dispatch(obsSpecRequest, session).getAsJsonObject();		
-			log.debug("obsSpec = " + obsSpec);
 			
-			// if there is no obs spec then quit
-			if ((obsSpec == null) || (obsSpec.isJsonNull())){
-				log.warn("no observation specification available, quitting");
+			// look up the content sets to which this user is entitled
+			List<String> contentSetUUIDList = dumper.getEntitledContentSetUUIDs(session);
+			if (contentSetUUIDList.size() < 1){
+				log.warn("user " + user + " is not entitled to any content sets, quitting");
 				dumper.closeSession(session);
 				return;
 			}
 			
-			// get the legacy obs spec id
-			long legacyObsSpecID = obsSpec.get("legacyId").getAsLong(); 
-			log.debug("legacyObsSpecID = " + legacyObsSpecID);
+			BufferedWriter out = null; // only open the output file if there's something to write
+			int specCount = 0;
 			
-			// look up the event for that observable
-			Request eventRequest = new Request("EventHandler.findById");
-			eventRequest.setMethodParameter("eventId", eventID);
-			eventRequest.setMethodParameter("timeZoneId", timeZoneID);
-			eventRequest.setMethodParameter("contentSetId", contentSetUUID);
-			JsonObject event = dumper.dispatch(eventRequest, session).getAsJsonObject();		
-			log.debug("event = " + event);
+			// Loop through the remaining sections by content set
+			for (String contentSetUUID : contentSetUUIDList){
+				
+				// look up the spec for that observable
+				Request obsSpecRequest = new Request("ObservationSpecHandler.getCurrentObservationSpecForObservable");
+				obsSpecRequest.setMethodParameter("observableId", observableID);
+				obsSpecRequest.setMethodParameter("contentSetId", contentSetUUID);
+				JsonElement obsSpecElem = dumper.dispatch(obsSpecRequest, session);
+				if ((obsSpecElem == null) || (obsSpecElem.isJsonNull())){
+					log.warn("no observation specification available for content set UUID " + contentSetUUID + ", trying next one");
+				}
+				else{					
+					JsonObject obsSpec = obsSpecElem.getAsJsonObject();		
+					log.debug("obsSpec = " + obsSpec);
+					// get the legacy obs spec id
+					long legacyObsSpecID = obsSpec.get("legacyId").getAsLong(); 
+					log.debug("legacyObsSpecID = " + legacyObsSpecID);
+					
+					// look up the event for that observable
+					Request eventRequest = new Request("EventHandler.findById");
+					eventRequest.setMethodParameter("eventId", eventID);
+					eventRequest.setMethodParameter("timeZoneId", timeZoneID);
+					eventRequest.setMethodParameter("contentSetId", contentSetUUID);
+					JsonObject event = dumper.dispatch(eventRequest, session).getAsJsonObject();		
+					log.debug("event = " + event);
+					
+					// get the expected start time of the event
+					String expectedStart = event.get("expectedStart").getAsString();
+					log.debug("expectedStart = " + expectedStart);
+					
+					// now write out the results to a file
+					if (out == null){
+						// if it wasn't opened already then open it and write the header first
+						out = new BufferedWriter(new FileWriter(outputFileName));
+						out.write("expectedStartTime (" + timeZoneID + ")" + FIELD_SEPARATOR + "measure" 
+								+ FIELD_SEPARATOR + "period" + FIELD_SEPARATOR + "legacyObsSpecID\n");
+					}
+					out.write(expectedStart + FIELD_SEPARATOR + measure 
+							+ FIELD_SEPARATOR + period + FIELD_SEPARATOR + legacyObsSpecID + "\n");
+					specCount++;
+				}
 			
-			// get the expected start time of the event
-			String expectedStart = event.get("expectedStart").getAsString();
-			log.debug("expectedStart = " + expectedStart);
+			}
 			
-			// now write out the results to a file
-			BufferedWriter out = new BufferedWriter(new FileWriter(outputFileName));
-			out.write("expectedStartTime (" + timeZoneID + "),measure,period,legacyObsSpecID\n");
-			out.write(expectedStart + "," + measure + "," + period + "," + legacyObsSpecID + "\n");
-			out.close();
-			
+			// close the output file if it was opened
+			if (out != null){
+				out.close();
+			}
+				
 			// and close the session
 			dumper.closeSession(session);
+			
+			long elapsedTime = System.currentTimeMillis() - startTime;
+			log.info("found " + specCount + " specs for timeSeriesUUID " + timeSeriesUUID + " in " + ((double)elapsedTime / 1000.0) + " seconds");
 			
 		}
 		catch (Exception ex) {
