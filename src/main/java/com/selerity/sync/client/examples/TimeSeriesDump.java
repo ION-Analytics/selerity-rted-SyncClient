@@ -39,7 +39,7 @@ public class TimeSeriesDump extends AbstractSyncClient{
 
 	private static final Log log = LogFactory.getLog(TimeSeriesDump.class);	
 	
-	public static final String FIELD_SEPARATOR = "^";
+	public static final String DEFAULT_FIELD_SEPARATOR = "^";
 	
 	private static final List<String> EMPTY_LIST = Collections.unmodifiableList(new ArrayList<String>(0));
 	
@@ -117,7 +117,7 @@ public class TimeSeriesDump extends AbstractSyncClient{
 		try {
 			
 			if (args.length < 6){
-				System.err.println("arguments: host port user password timeSeriesUUID outputFileName");
+				System.err.println("arguments: host port user password timeSeriesUUID outputFileName {fieldSeparator}");
 				System.exit(1);
 			}
 			
@@ -132,6 +132,11 @@ public class TimeSeriesDump extends AbstractSyncClient{
 			String password = args[3];
 			String timeSeriesUUID = args[4];
 			String outputFileName = args[5];
+			
+			String fieldSeparator = DEFAULT_FIELD_SEPARATOR;
+			if (args.length > 6){
+				fieldSeparator = args[6];
+			}
 			
 			// timezone, hardcoded for now
 			String timeZoneID = "UTC";
@@ -219,11 +224,11 @@ public class TimeSeriesDump extends AbstractSyncClient{
 					if (out == null){
 						// if it wasn't opened already then open it and write the header first
 						out = new BufferedWriter(new FileWriter(outputFileName));
-						out.write("expectedStartTime (" + timeZoneID + ")" + FIELD_SEPARATOR + "measure" 
-								+ FIELD_SEPARATOR + "period" + FIELD_SEPARATOR + "legacyObsSpecID\n");
+						out.write("expectedStartTime (" + timeZoneID + ")" + fieldSeparator + "measure" 
+								+ fieldSeparator + "period" + fieldSeparator + "legacyObsSpecID\n");
 					}
-					out.write(expectedStart + FIELD_SEPARATOR + measure 
-							+ FIELD_SEPARATOR + period + FIELD_SEPARATOR + legacyObsSpecID + "\n");
+					out.write(expectedStart + fieldSeparator + measure 
+							+ fieldSeparator + period + fieldSeparator + legacyObsSpecID + "\n");
 					specCount++;
 				}
 			
