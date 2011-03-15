@@ -3,7 +3,6 @@ package com.selerity.sync.client.examples;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -17,7 +16,9 @@ import com.selerity.sync.client.DispatchException;
 import com.selerity.sync.client.MiscUtils;
 import com.selerity.sync.client.PaginatedResponseIterator;
 import com.selerity.sync.client.Request;
+import com.selerity.sync.client.RhinoHTTPTransportFactory;
 import com.selerity.sync.client.Session;
+import com.selerity.sync.client.TransportFactory;
 
 /**
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code
@@ -42,8 +43,8 @@ public class TagDump extends AbstractSyncClient{
 	
 	private static final Log log = LogFactory.getLog(TagDump.class);	
 	
-	public TagDump(String host, int port, String user, String password, String clientAppName) throws MalformedURLException, DispatchException{
-		super(host, port, user, password, clientAppName);
+	public TagDump(TransportFactory transportFactory, String user, String password, String clientAppName) throws Exception{
+		super(transportFactory, user, password, clientAppName);
 	}
 	
 	
@@ -72,7 +73,7 @@ public class TagDump extends AbstractSyncClient{
 
 			
 			// initialize the dumper
-			TagDump dumper = new TagDump(host, port, user, password, "TagDump");
+			TagDump dumper = new TagDump(new RhinoHTTPTransportFactory(host, port), user, password, "TagDump");
 
 			dumper.dumpAllTags(outputFileName, 500);
 			

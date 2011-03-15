@@ -2,7 +2,6 @@ package com.selerity.sync.client.examples;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
-import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -16,7 +15,9 @@ import com.google.gson.JsonObject;
 import com.selerity.sync.client.AbstractSyncClient;
 import com.selerity.sync.client.DispatchException;
 import com.selerity.sync.client.Request;
+import com.selerity.sync.client.RhinoHTTPTransportFactory;
 import com.selerity.sync.client.Session;
+import com.selerity.sync.client.TransportFactory;
 
 /** 
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code is confidential 
@@ -43,8 +44,8 @@ public class TimeSeriesDump extends AbstractSyncClient{
 	
 	private static final List<String> EMPTY_LIST = Collections.unmodifiableList(new ArrayList<String>(0));
 	
-	public TimeSeriesDump(String host, int port, String user, String password, String clientAppName) throws MalformedURLException, DispatchException{
-		super(host, port, user, password, clientAppName);
+	public TimeSeriesDump(TransportFactory transportFactory, String user, String password, String clientAppName) throws Exception{
+		super(transportFactory, user, password, clientAppName);
 	}
 	
 	/** Looks up a timeseries with the given UUID. 
@@ -142,7 +143,7 @@ public class TimeSeriesDump extends AbstractSyncClient{
 			String timeZoneID = "UTC";
 			
 			// initialized the transport and method dispatcher
-			TimeSeriesDump dumper = new TimeSeriesDump(host, port, user, password, "TimeSeriesDump");
+			TimeSeriesDump dumper = new TimeSeriesDump(new RhinoHTTPTransportFactory(host, port), user, password, "TimeSeriesDump");
 			
 			// start a session, use the same session for all requests
 			Session session = dumper.startSession();

@@ -4,7 +4,6 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
-import java.net.MalformedURLException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -27,7 +26,9 @@ import com.selerity.sync.client.DispatchException;
 import com.selerity.sync.client.MiscUtils;
 import com.selerity.sync.client.PaginatedResponseIterator;
 import com.selerity.sync.client.Request;
+import com.selerity.sync.client.RhinoHTTPTransportFactory;
 import com.selerity.sync.client.Session;
+import com.selerity.sync.client.TransportFactory;
 
 /**
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code
@@ -58,9 +59,9 @@ public class EventDump  extends AbstractSyncClient{
 	
 	protected TagDump tagDump;
 
-	public EventDump(String host, int port, String user, String password, String clientAppName) throws MalformedURLException, DispatchException{
-		super(host, port, user, password, clientAppName);
-		tagDump = new TagDump(host, port, user, password, clientAppName);
+	public EventDump(TransportFactory transportFactory, String user, String password, String clientAppName) throws Exception{
+		super(transportFactory, user, password, clientAppName);
+		tagDump = new TagDump(transportFactory, user, password, clientAppName);
 	}
 
 	
@@ -114,7 +115,7 @@ public class EventDump  extends AbstractSyncClient{
 			
 			
 			// initialize the dumper
-			EventDump dumper = new EventDump(host, port, user, password, "EventDump");
+			EventDump dumper = new EventDump(new RhinoHTTPTransportFactory(host, port), user, password, "EventDump");
 
 
 			// open file

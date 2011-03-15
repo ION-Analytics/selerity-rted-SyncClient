@@ -3,7 +3,6 @@ package com.selerity.sync.client.examples;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -16,7 +15,9 @@ import com.selerity.sync.client.AbstractSyncClient;
 import com.selerity.sync.client.DispatchException;
 import com.selerity.sync.client.MiscUtils;
 import com.selerity.sync.client.Request;
+import com.selerity.sync.client.RhinoHTTPTransportFactory;
 import com.selerity.sync.client.Session;
+import com.selerity.sync.client.TransportFactory;
 
 /**
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code
@@ -48,9 +49,9 @@ public class ObservableDump  extends AbstractSyncClient{
 	protected EventDump eventDump;
 	
 	
-	public ObservableDump(String host, int port, String user, String password, String clientAppName) throws MalformedURLException, DispatchException{
-		super(host, port, user, password, clientAppName);
-		eventDump = new EventDump(host, port, user, password, clientAppName);
+	public ObservableDump(TransportFactory transportFactory, String user, String password, String clientAppName) throws Exception{
+		super(transportFactory, user, password, clientAppName);
+		eventDump = new EventDump(transportFactory, user, password, clientAppName);
 	}
 
 	
@@ -99,7 +100,7 @@ public class ObservableDump  extends AbstractSyncClient{
 			}
 			
 			// initialize the dumper
-			ObservableDump dumper = new ObservableDump(host, port, user, password, "ObservableDump");
+			ObservableDump dumper = new ObservableDump(new RhinoHTTPTransportFactory(host, port), user, password, "ObservableDump");
 
 			// dump out a bunch of events
 			dumper.dumpEventsWithOffsets(outputFileName, startTime, endTime);

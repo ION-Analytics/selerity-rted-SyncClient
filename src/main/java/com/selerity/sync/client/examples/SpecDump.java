@@ -3,7 +3,6 @@ package com.selerity.sync.client.examples;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,7 +21,9 @@ import com.selerity.sync.client.AbstractSyncClient;
 import com.selerity.sync.client.DispatchException;
 import com.selerity.sync.client.MiscUtils;
 import com.selerity.sync.client.Request;
+import com.selerity.sync.client.RhinoHTTPTransportFactory;
 import com.selerity.sync.client.Session;
+import com.selerity.sync.client.TransportFactory;
 
 /**
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code
@@ -123,7 +124,7 @@ public class SpecDump extends AbstractSyncClient{
 			long endTime = MiscUtils.parseNanoTime(endTimeStr);
 			
 			// initialize the dumper
-			SpecDump dumper = new SpecDump(host, port, user, password, "SpecDump");
+			SpecDump dumper = new SpecDump(new RhinoHTTPTransportFactory(host, port), user, password, "SpecDump");
 			
 			if (eventUUID != null){
 				// dump specs for a single event
@@ -145,8 +146,8 @@ public class SpecDump extends AbstractSyncClient{
 	
 	
 	
-	public SpecDump(String host, int port, String user, String password, String clientAppName) throws MalformedURLException, DispatchException{
-		super(host, port, user, password, clientAppName);
+	public SpecDump(TransportFactory transportFactory, String user, String password, String clientAppName) throws Exception{
+		super(transportFactory, user, password, clientAppName);
 	}
 	
 	protected void dumpSpec(BufferedWriter out, JsonObject obsSpec, String entityID, String measureCode, String period) throws IOException{

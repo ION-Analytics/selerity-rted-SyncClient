@@ -4,7 +4,6 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
-import java.net.MalformedURLException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.SortedMap;
@@ -14,6 +13,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.selerity.sync.client.DispatchException;
+import com.selerity.sync.client.RhinoHTTPTransportFactory;
+import com.selerity.sync.client.TransportFactory;
 
 /**
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code
@@ -60,8 +61,8 @@ public class IdentifiersDump{
 	
 	protected final TagDump tagDump;
 	
-	public IdentifiersDump(String host, int port, String user, String password, String clientAppName) throws MalformedURLException, DispatchException{
-		tagDump = new TagDump(host, port, user, password, clientAppName);
+	public IdentifiersDump(TransportFactory transportFactory, String user, String password, String clientAppName) throws Exception{
+		tagDump = new TagDump(transportFactory, user, password, clientAppName);
 	}
 	
 	/** Given a map of values->families->synonyms, need to generate a map of selerity synonyms to other synonyms
@@ -173,7 +174,7 @@ public class IdentifiersDump{
 			String outputFileName = args[4];
 			
 			// initialize the dumper
-			IdentifiersDump dumper = new IdentifiersDump(host, port, user, password, "IdentifiersDump");
+			IdentifiersDump dumper = new IdentifiersDump(new RhinoHTTPTransportFactory(host, port), user, password, "IdentifiersDump");
 
 			// open the file
 			BufferedWriter out = new BufferedWriter(new FileWriter(outputFileName));

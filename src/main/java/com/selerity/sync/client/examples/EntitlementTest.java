@@ -1,7 +1,6 @@
 package com.selerity.sync.client.examples;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -13,7 +12,9 @@ import com.google.gson.JsonObject;
 import com.selerity.sync.client.AbstractSyncClient;
 import com.selerity.sync.client.DispatchException;
 import com.selerity.sync.client.Request;
+import com.selerity.sync.client.RhinoHTTPTransportFactory;
 import com.selerity.sync.client.Session;
+import com.selerity.sync.client.TransportFactory;
 
 /**
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code
@@ -39,8 +40,8 @@ public class EntitlementTest extends AbstractSyncClient{
 	private static final int SPEC_LOOKUP_LIMIT = 500;
 
 	
-	public EntitlementTest(String host, int port, String user, String password, String clientAppName) throws MalformedURLException, DispatchException{
-		super(host, port, user, password, clientAppName);
+	public EntitlementTest(TransportFactory transportFactory, String user, String password, String clientAppName) throws Exception{
+		super(transportFactory, user, password, clientAppName);
 	}
 	
 	
@@ -69,7 +70,7 @@ public class EntitlementTest extends AbstractSyncClient{
 			String password = args[3];
 			
 			// initialize the dumper
-			EntitlementTest tester = new EntitlementTest(host, port, user, password, "EntitlementTest");
+			EntitlementTest tester = new EntitlementTest(new RhinoHTTPTransportFactory(host, port), user, password, "EntitlementTest");
 			
 			// dump out a bunch of events
 			Set<Long> specIDs = tester.getAllObsSpecIDs(SPEC_LOOKUP_LIMIT);
