@@ -1,7 +1,5 @@
 package com.selerity.sync.client;
 
-import java.net.MalformedURLException;
-
 import com.google.gson.JsonElement;
 
 public abstract class AbstractSyncClient {
@@ -17,13 +15,11 @@ public abstract class AbstractSyncClient {
 	 * @param port
 	 * @param user
 	 * @param password
-	 * @throws MalformedURLException
-	 * @throws DispatchException
+	 * @throws Exception 
 	 */
-	public AbstractSyncClient(String host, int port, String user, String password, String clientAppName) throws MalformedURLException, DispatchException{
+	public AbstractSyncClient(TransportFactory transportFactory, String user, String password, String clientAppName) throws Exception{
 		// initialized the transport and method dispatcher
-		String rhinoURL = "http://" + host + ":" + port + "/rhino-1.0-SNAPSHOT/rpc.do";
-		Transport transport = new RhinoHTTPTransport(rhinoURL, false);
+		Transport transport = transportFactory.getInstance();
 		dispatcher = new RhinoDispatcher(transport);
 		
 		this.clientAppName = clientAppName;
