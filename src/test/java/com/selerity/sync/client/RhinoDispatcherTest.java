@@ -75,12 +75,40 @@ public class RhinoDispatcherTest {
 	}
 	
 	@Test
+	public void testSingleRequestStringArrayParam() throws DispatchException{
+		Request request = new Request("myHandler.fooMethod");
+		request.addMethodParameter("stringValue");
+		
+		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+			+ "\"params\":[\"stringValue\"],"
+			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
+			+ "\"id\":\"0\"}";
+		
+		
+		assertDispatchRequest(request, expectedRequestJson, "extension");
+	}
+	
+	@Test
 	public void testSingleRequestNumParam() throws DispatchException{
 		Request request = new Request("myHandler.fooMethod");
 		request.setMethodParameter("testNumber", 42);
 		
 		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
 			+ "\"params\":{\"testNumber\":42},"
+			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\"},"
+			+ "\"id\":\"0\"}";
+		
+		
+		assertDispatchRequest(request, expectedRequestJson, null);
+	}
+	
+	@Test
+	public void testSingleRequestNumArrayParam() throws DispatchException{
+		Request request = new Request("myHandler.fooMethod");
+		request.addMethodParameter(42);
+		
+		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+			+ "\"params\":[42],"
 			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\"},"
 			+ "\"id\":\"0\"}";
 		
@@ -117,6 +145,20 @@ public class RhinoDispatcherTest {
 	}
 	
 	@Test
+	public void testSingleRequestBoolArrayParam() throws DispatchException{
+		Request request = new Request("myHandler.fooMethod");
+		request.addMethodParameter(false);
+		
+		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+			+ "\"params\":[false],"
+			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
+			+ "\"id\":\"0\"}";
+		
+		
+		assertDispatchRequest(request, expectedRequestJson, "extension");
+	}
+	
+	@Test
 	public void testSingleRequestObjParam() throws DispatchException{
 		Request request = new Request("myHandler.fooMethod");
 		JsonObject obj = new JsonObject();
@@ -127,6 +169,56 @@ public class RhinoDispatcherTest {
 		
 		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
 			+ "\"params\":{\"testObj\":{\"stringProp\":\"value1\",\"numProp\":2,\"boolProp\":true}},"
+			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
+			+ "\"id\":\"0\"}";
+		
+		
+		assertDispatchRequest(request, expectedRequestJson, "extension");
+	}
+	
+	@Test
+	public void testSingleRequestObjArrayParam() throws DispatchException{
+		Request request = new Request("myHandler.fooMethod");
+		JsonObject obj = new JsonObject();
+		obj.addProperty("stringProp", "value1");
+		obj.addProperty("numProp", 2);
+		obj.addProperty("boolProp", true);
+		request.addMethodParameter(obj);
+		
+		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+			+ "\"params\":[{\"stringProp\":\"value1\",\"numProp\":2,\"boolProp\":true}],"
+			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
+			+ "\"id\":\"0\"}";
+		
+		
+		assertDispatchRequest(request, expectedRequestJson, "extension");
+	}
+	
+	@Test
+	public void testMultiArrayParams() throws DispatchException{
+		Request request = new Request("myHandler.fooMethod");
+		request.addMethodParameter("foo");
+		request.addMethodParameter(true);
+		request.addMethodParameter(42);
+		
+		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+			+ "\"params\":[\"foo\",true,42],"
+			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
+			+ "\"id\":\"0\"}";
+		
+		
+		assertDispatchRequest(request, expectedRequestJson, "extension");
+	}
+	
+	@Test
+	public void testMultiObjParams() throws DispatchException{
+		Request request = new Request("myHandler.fooMethod");
+		request.setMethodParameter("arg","foo");
+		request.setMethodParameter("happy",true);
+		request.setMethodParameter("meaning",42);
+		
+		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+			+ "\"params\":{\"arg\":\"foo\",\"happy\":true,\"meaning\":42},"
 			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
 			+ "\"id\":\"0\"}";
 		

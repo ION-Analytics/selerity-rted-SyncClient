@@ -249,6 +249,9 @@ public class TimeSeriesDump extends AbstractSyncClient{
 				
 				// look up the spec for that observable
 				Request obsSpecRequest = new Request("ObservationSpecHandler.getCurrentObservationSpecForObservable");
+				// variant for object (map) style parames)
+				//obsSpecRequest.setMethodParameter("observableId", observableID);
+				//obsSpecRequest.setMethodParameter("contentSetId", contentSetUUID);
 				obsSpecRequest.setMethodParameter("observableId", observableID);
 				obsSpecRequest.setMethodParameter("contentSetId", contentSetUUID);
 				JsonElement obsSpecElem = dumper.dispatch(obsSpecRequest, session);
