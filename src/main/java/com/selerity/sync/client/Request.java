@@ -1,7 +1,9 @@
 package com.selerity.sync.client;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
 /** 
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code is confidential 
@@ -26,25 +28,30 @@ import com.google.gson.JsonObject;
 public class Request {
 
 	protected final String method;
-	protected JsonObject methodParameters;
-	
+	protected JsonElement methodParameters;
+
 	public Request(String method) {
 		this.method = method;
 		this.methodParameters = new JsonObject();
 	}
-	
+
 	public Request(String method, JsonObject methodParameters) {
 		this.method = method;
 		this.methodParameters = methodParameters;
 	}
-	
+
+	public Request(String method, JsonArray methodParameters) {
+		this.method = method;
+		this.methodParameters = methodParameters;
+	}
+
 
 	public String getMethod() {
 		return method;
 	}
 
 
-	public JsonObject getMethodParameters() {
+	public JsonElement getMethodParameters() {
 		return methodParameters;
 	}
 
@@ -52,28 +59,125 @@ public class Request {
 		this.methodParameters = methodParameters;
 	}
 	
+	
+
 	public JsonElement getMethodParameter(String parameterName){
-		return this.methodParameters.get(parameterName);
+		if (this.methodParameters.isJsonObject()){
+			return this.methodParameters.getAsJsonObject().get(parameterName);
+		}
+		else{
+			throw new IllegalStateException("cannot use object syntax with array parameters, already initialized with object parameters");
+		}
 	}
 	
+	
+
 	public void setMethodParameter(String parameterName, String parameterValue){
-		this.methodParameters.addProperty(parameterName, parameterValue);
+		if (this.methodParameters.isJsonObject()){
+			this.methodParameters.getAsJsonObject().addProperty(parameterName, parameterValue);
+		}
+		else{
+			throw new IllegalStateException("cannot use object syntax with array parameters, already initialized with object parameters");
+		}
 	}
-	
+
 	public void setMethodParameter(String parameterName, JsonElement parameterValue){
-		this.methodParameters.add(parameterName, parameterValue);
+		if (this.methodParameters.isJsonObject()){
+			this.methodParameters.getAsJsonObject().add(parameterName, parameterValue);
+		}
+		else{
+			throw new IllegalStateException("cannot use object syntax with array parameters, already initialized with object parameters");
+		}
 	}
-	
+
 	public void setMethodParameter(String parameterName, Number parameterValue){
-		this.methodParameters.addProperty(parameterName, parameterValue);
+		if (this.methodParameters.isJsonObject()){
+			this.methodParameters.getAsJsonObject().addProperty(parameterName, parameterValue);
+		}
+		else{
+			throw new IllegalStateException("cannot use object syntax with array parameters, already initialized with object parameters");
+		}
 	}
 
 	public void setMethodParameter(String parameterName, Boolean parameterValue){
-		this.methodParameters.addProperty(parameterName, parameterValue);
+		if (this.methodParameters.isJsonObject()){
+			this.methodParameters.getAsJsonObject().addProperty(parameterName, parameterValue);
+		}
+		else{
+			throw new IllegalStateException("cannot use object syntax with array parameters, already initialized with object parameters");
+		}
 	}
-	
+
 	public void setMethodParameter(String parameterName, Character parameterValue){
-		this.methodParameters.addProperty(parameterName, parameterValue);
+		if (this.methodParameters.isJsonObject()){
+			this.methodParameters.getAsJsonObject().addProperty(parameterName, parameterValue);
+		}
+		else{
+			throw new IllegalStateException("cannot use object syntax with array parameters, already initialized with object parameters");
+		}
 	}
 	
+	
+	
+	
+	
+	// and the array equivalents
+	public void setMethodParameters(JsonArray methodParameters) {
+		this.methodParameters = methodParameters;
+	}
+	
+	public JsonElement getMethodParameter(int parameterIndex){
+		if (this.methodParameters.isJsonArray()){
+			return this.methodParameters.getAsJsonArray().get(parameterIndex);
+		}
+		throw new IllegalStateException("cannot use object syntax with object parameters, already initialized with array parameters");
+	}
+	
+	
+	
+	public void addMethodParameter(String parameterValue){
+		if (this.methodParameters.isJsonArray()){
+			this.methodParameters.getAsJsonArray().add(new JsonPrimitive(parameterValue));
+		}
+		else{
+			throw new IllegalStateException("cannot use object syntax with object parameters, already initialized with array parameters");
+		}
+	}
+
+	public void addMethodParameter(JsonElement parameterValue){
+		if (this.methodParameters.isJsonArray()){
+			this.methodParameters.getAsJsonArray().add(parameterValue);
+		}
+		else{
+			throw new IllegalStateException("cannot use object syntax with object parameters, already initialized with array parameters");
+		}
+	}
+
+	public void addMethodParameter(Number parameterValue){
+		if (this.methodParameters.isJsonArray()){
+			this.methodParameters.getAsJsonArray().add(new JsonPrimitive(parameterValue));
+		}
+		else{
+			throw new IllegalStateException("cannot use object syntax with object parameters, already initialized with array parameters");
+		}
+	}
+
+	public void addMethodParameter(Boolean parameterValue){
+		if (this.methodParameters.isJsonArray()){
+			this.methodParameters.getAsJsonArray().add(new JsonPrimitive(parameterValue));
+		}
+		else{
+			throw new IllegalStateException("cannot use object syntax with object parameters, already initialized with array parameters");
+		}
+	}
+
+	public void addMethodParameter(Character parameterValue){
+		if (this.methodParameters.isJsonArray()){
+			this.methodParameters.getAsJsonArray().add(new JsonPrimitive(parameterValue));
+		}
+		else{
+			throw new IllegalStateException("cannot use object syntax with object parameters, already initialized with array parameters");
+		}
+	}
+
 }

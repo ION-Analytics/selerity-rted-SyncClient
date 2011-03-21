@@ -14,6 +14,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.selerity.sync.client.AbstractSyncClient;
 import com.selerity.sync.client.DispatchException;
+import com.selerity.sync.client.MiscUtils;
 import com.selerity.sync.client.Request;
 import com.selerity.sync.client.RhinoHTTPTransportFactory;
 import com.selerity.sync.client.Session;
@@ -106,6 +107,58 @@ public class TimeSeriesDump extends AbstractSyncClient{
 			contentSetUUIList.add(uuid);
 		}
 		return Collections.unmodifiableList(contentSetUUIList); // make it unmodifiable so that it doesn't accidentally get changed later
+	}
+	
+	/** Extracts a field object from an observation spec object based on the field name.
+	 *  Returns null if no matching field name is found.  Match is case sensitive.
+	 * 
+	 * @param obsSpec
+	 * @param desiredFieldName
+	 * @return
+	 */
+	public JsonObject getFieldByName(JsonObject obsSpec, String desiredFieldName){
+		JsonElement fieldsElem = obsSpec.get("fields");
+		if ((fieldsElem == null) || (fieldsElem.isJsonNull())){
+			return null;
+		}
+		JsonArray fields = fieldsElem.getAsJsonArray();
+		for (int i = 0; i < fields.size(); i++){
+			JsonObject field = fields.get(i).getAsJsonObject();
+			String fieldName = MiscUtils.getString(field, "name", null);
+			if (desiredFieldName.equals(fieldName)){
+				return field;
+			}
+		}
+		return null;
+	}
+	
+	/** Returns the data type (as a string) for a given field object.
+	 *  Throws NullPointerException if the field has no data type. 
+	 * 
+	 * @param field
+	 * @return
+	 */
+	public String getDataTypeForField(JsonObject field){
+		JsonElement datatypeElem = field.get("datatype");
+		if ((datatypeElem == null) || (datatypeElem.isJsonNull())){
+			throw new NullPointerException("field " + field + " had no datatype");
+		}
+		JsonObject datatype = datatypeElem.getAsJsonObject();
+		return MiscUtils.getString(datatype, "name", null);
+	}
+	
+	/** Returns the offset of the given field object.  Throws
+	 *  NullPointerException if no offset is defined.
+	 * 
+	 * @param field
+	 * @return
+	 */
+	public Integer getOffsetForField(JsonObject field){
+		JsonElement offsetElem = field.get("offset");
+		if ((offsetElem == null) || (offsetElem.isJsonNull())){
+			throw new NullPointerException("field " + field + " had no offset");
+		}
+		return offsetElem.getAsInt();
 	}
 	
 	/** 
@@ -209,6 +262,21 @@ public class TimeSeriesDump extends AbstractSyncClient{
 					long legacyObsSpecID = obsSpec.get("legacyId").getAsLong(); 
 					log.debug("legacyObsSpecID = " + legacyObsSpecID);
 					
+					// look up some offset and data type info for the measurement field
+					JsonObject measurementField = dumper.getFieldByName(obsSpec, "Measurement");
+					if (measurementField == null){
+						log.error("couldn't find measurement field for spec " + legacyObsSpecID);
+					}
+					int measurementOffset = dumper.getOffsetForField(measurementField);
+					String measurementDataType = dumper.getDataTypeForField(measurementField);
+					
+					// and get the offset for the observation status field
+					JsonObject obsStatusField = dumper.getFieldByName(obsSpec, "ObservationStatus");
+					if (obsStatusField == null){
+						log.error("couldn't find observation status field for spec " + legacyObsSpecID);
+					}
+					int obsStatusOffset = dumper.getOffsetForField(obsStatusField);
+					
 					// look up the event for that observable
 					Request eventRequest = new Request("EventHandler.findById");
 					eventRequest.setMethodParameter("eventId", eventID);
@@ -225,11 +293,22 @@ public class TimeSeriesDump extends AbstractSyncClient{
 					if (out == null){
 						// if it wasn't opened already then open it and write the header first
 						out = new BufferedWriter(new FileWriter(outputFileName));
-						out.write("expectedStartTime (" + timeZoneID + ")" + fieldSeparator + "measure" 
-								+ fieldSeparator + "period" + fieldSeparator + "legacyObsSpecID\n");
+						out.write("expectedStartTime (" + timeZoneID + ")" 
+								+ fieldSeparator + "measure" 
+								+ fieldSeparator + "period" 
+								+ fieldSeparator + "legacyObsSpecID" 
+								 + fieldSeparator + "measurement offset" 
+								 + fieldSeparator + "observation status offset" 
+								 + fieldSeparator + "measurement data type\n");
 					}
-					out.write(expectedStart + fieldSeparator + measure 
-							+ fieldSeparator + period + fieldSeparator + legacyObsSpecID + "\n");
+					out.write(expectedStart 
+							+ fieldSeparator + measure 
+							+ fieldSeparator + period 
+							+ fieldSeparator + legacyObsSpecID
+							+ fieldSeparator + measurementOffset
+							+ fieldSeparator + obsStatusOffset
+							+ fieldSeparator + measurementDataType
+							+ "\n");
 					specCount++;
 				}
 			

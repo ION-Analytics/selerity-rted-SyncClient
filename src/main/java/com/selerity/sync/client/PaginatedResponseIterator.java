@@ -22,6 +22,9 @@ import com.google.gson.JsonObject;
  * so calls to hasNextResult() or nextResult() can block.  An asynchronous, parallel version of this 
  * class might be useful.
  * 
+ * Note also that this class assumes object (map) style parameters -- it cannot be used with array-style
+ * parameters.
+ * 
  * @author andrewbrook
  *
  */
@@ -134,7 +137,7 @@ public class PaginatedResponseIterator {
 		// find the object that has the limit and offset fields defined, creating it if necessary, and update the offset and limit fields
 		JsonObject options = null;  // start at the parameters object
 		if (optionObjectName != null){ // the parameters are stored in an object
-			options = request.getMethodParameters();
+			options = request.getMethodParameters().getAsJsonObject();
 			if (options.has(optionObjectName)){
 				// the object exists, just remove/replace the limit and offset
 				options = options.get(optionObjectName).getAsJsonObject();
