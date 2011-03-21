@@ -252,8 +252,9 @@ public class TimeSeriesDump extends AbstractSyncClient{
 				// variant for object (map) style parames)
 				//obsSpecRequest.setMethodParameter("observableId", observableID);
 				//obsSpecRequest.setMethodParameter("contentSetId", contentSetUUID);
-				obsSpecRequest.setMethodParameter("observableId", observableID);
-				obsSpecRequest.setMethodParameter("contentSetId", contentSetUUID);
+				// array variant of same
+				obsSpecRequest.addMethodParameter(observableID);
+				obsSpecRequest.addMethodParameter(contentSetUUID);
 				JsonElement obsSpecElem = dumper.dispatch(obsSpecRequest, session);
 				if ((obsSpecElem == null) || (obsSpecElem.isJsonNull())){
 					log.warn("no observation specification available for content set UUID " + contentSetUUID + ", trying next one");
