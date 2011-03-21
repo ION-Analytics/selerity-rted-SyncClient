@@ -35,6 +35,16 @@ public class Request {
 		this.methodParameters = new JsonObject();
 	}
 
+	public Request(String method, JsonElement methodParameters) {
+		if (methodParameters.isJsonArray() || methodParameters.isJsonObject()){
+			this.method = method;
+			this.methodParameters = methodParameters;
+		}
+		else{
+			throw new IllegalArgumentException("method parameters must be either an array or an object");
+		}
+	}
+
 	public Request(String method, JsonObject methodParameters) {
 		this.method = method;
 		this.methodParameters = methodParameters;
@@ -54,7 +64,7 @@ public class Request {
 	public JsonElement getMethodParameters() {
 		return methodParameters;
 	}
-	
+
 	public JsonObject getMethodParametersAsObject(){
 		if (this.methodParameters.isJsonObject()){
 			return this.methodParameters.getAsJsonObject();
@@ -71,7 +81,7 @@ public class Request {
 			throw new IllegalStateException("unknown params format");
 		}
 	}
-	
+
 	public JsonArray getMethodParametersAsArray(){
 		if (this.methodParameters.isJsonArray()){
 			return this.methodParameters.getAsJsonArray();
@@ -89,23 +99,23 @@ public class Request {
 		}
 	}
 
-	
-	
-	
+
+
+
 	//
 	// object-style getters and setters
 	//
-	
-	
+
+
 	public void setMethodParameters(JsonObject methodParameters) {
 		this.methodParameters = methodParameters;
 	}
-	
+
 	public JsonElement getMethodParameter(String parameterName){
 		return getMethodParametersAsObject().get(parameterName);
 	}
-	
-	
+
+
 	public void setMethodParameter(String parameterName, JsonElement parameterValue){
 		getMethodParametersAsObject().add(parameterName, parameterValue);
 	}
@@ -125,18 +135,18 @@ public class Request {
 	public void setMethodParameter(String parameterName, Character parameterValue){
 		getMethodParametersAsObject().addProperty(parameterName, parameterValue);
 	}
-	
-	
-	
-	
+
+
+
+
 	//
 	// array-style getters and setters
 	//
-	
+
 	public void setMethodParameters(JsonArray methodParameters) {
 		this.methodParameters = methodParameters;
 	}
-	
+
 	public JsonElement getMethodParameter(int parameterIndex){
 		return getMethodParametersAsArray().get(parameterIndex);
 	}
