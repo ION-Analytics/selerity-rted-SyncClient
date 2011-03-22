@@ -3,6 +3,7 @@ package com.selerity.sync.client;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Set;
 import java.util.SortedSet;
@@ -10,8 +11,10 @@ import java.util.TimeZone;
 import java.util.TreeSet;
 import java.util.Map.Entry;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
 /** 
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code is confidential 
@@ -273,6 +276,31 @@ public class MiscUtils {
 		return merged;
 	}
 	
+	
+	
+	public static JsonArray makeStringArray(Collection<String> strings){
+		JsonArray array = new JsonArray();
+		for (String s : strings){
+			array.add(new JsonPrimitive(s));
+		}
+		return array;
+	}
+	
+	public static JsonArray makeNumberArray(Collection<Number> numbers){
+		JsonArray array = new JsonArray();
+		for (Number n : numbers){
+			array.add(new JsonPrimitive(n));
+		}
+		return array;
+	}
+	
+	public static JsonArray makeBooleanArray(Collection<Boolean> booleans){
+		JsonArray array = new JsonArray();
+		for (Boolean b : booleans){
+			array.add(new JsonPrimitive(b));
+		}
+		return array;
+	}
 	
 	
 }
