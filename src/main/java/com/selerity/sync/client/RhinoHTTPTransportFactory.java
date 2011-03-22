@@ -23,17 +23,27 @@ public class RhinoHTTPTransportFactory implements TransportFactory {
 	public final static String RHINO_RPC_RESOURCE = "rhino-1.0-SNAPSHOT/rpc.do";
 	
 	protected final String serviceURL;
+	protected final boolean urlEncode;
 
 	public RhinoHTTPTransportFactory(String host, int port) {
-		this(host, port, RHINO_RPC_RESOURCE);
+		this(host, port, RHINO_RPC_RESOURCE, true);
 	}
 	
 	public RhinoHTTPTransportFactory(String host, int port, String rhinoRPCResource) {
+		this(host, port, rhinoRPCResource, true);
+	}
+	
+	public RhinoHTTPTransportFactory(String host, int port, boolean urlEncode) {
+		this(host, port, RHINO_RPC_RESOURCE, urlEncode);
+	}
+	
+	public RhinoHTTPTransportFactory(String host, int port, String rhinoRPCResource, boolean urlEncode) {
 		this.serviceURL = "http://" + host + ":" + port + "/" + rhinoRPCResource;
+		this.urlEncode = urlEncode;
 	}
 	
 	public Transport getInstance() throws MalformedURLException{
-		return new RhinoHTTPTransport(serviceURL);
+		return new RhinoHTTPTransport(serviceURL, urlEncode);
 	}
 	
 }
