@@ -54,7 +54,7 @@ public class RhinoHTTPTransport implements Transport{
 	public RhinoHTTPTransport(String serviceURLString, boolean enableURLEncoding) throws MalformedURLException{
 		this.serviceURL = new URL(serviceURLString);
 		this.enableURLEncoding = enableURLEncoding;
-		log.debug("connecting to URL: " + serviceURLString + "; enableURLEncoding = " + enableURLEncoding);
+		log.info("connecting to URL: " + serviceURLString + "; enableURLEncoding = " + enableURLEncoding);
 	}
 	
 	public RhinoHTTPTransport(URL serviceURL){
