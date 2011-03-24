@@ -52,7 +52,7 @@ public class RhinoDispatcher implements Dispatcher{
 	 *  parameters given.
 	 * 
 	 */
-	public synchronized JsonElement dispatch(Request request, String user, String token, String client, String mode) throws DispatchException{
+	public JsonElement dispatch(Request request, String user, String token, String client, String mode) throws DispatchException{
 		
 		// construct the request string
 		String id = getNextID(user, client);

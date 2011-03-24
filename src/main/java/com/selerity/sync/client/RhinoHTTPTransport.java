@@ -32,8 +32,8 @@ public class RhinoHTTPTransport implements Transport{
 	
 	private static final Log log = LogFactory.getLog (RhinoHTTPTransport.class);
 	
-	protected URL serviceURL;
-	protected boolean enableURLEncoding;
+	protected final URL serviceURL;
+	protected final boolean enableURLEncoding;
 	
 	/** Creates transport that will POST JSON-RPC requests to the given URL.  Defaults to enableURLEncoding = true;
 	 * 
@@ -59,6 +59,7 @@ public class RhinoHTTPTransport implements Transport{
 	
 	public RhinoHTTPTransport(URL serviceURL){
 		this.serviceURL = serviceURL;
+		this.enableURLEncoding = true;
 	}
 	
 	
