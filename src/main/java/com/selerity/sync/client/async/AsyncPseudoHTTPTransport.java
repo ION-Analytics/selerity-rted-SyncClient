@@ -139,6 +139,10 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable{
 
 		String jsonRequestString = gson.toJson(request, FullRequest.class);
 
+		if (log.isDebugEnabled()){
+        	log.debug("preparing to send " + jsonRequestString + " to " + name);
+        }
+		
 		// record start time of dispatch
 		if (log.isDebugEnabled()){
 			log.debug("starting dispatch via " + name + " of " + summarize(jsonRequestString, 50));
