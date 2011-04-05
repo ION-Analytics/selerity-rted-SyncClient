@@ -11,6 +11,11 @@ import java.net.URLEncoder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonParser;
+
 /** 
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code is confidential 
  * and proprietary information of Selerity Inc. and may be used only by a recipient designated by 
@@ -35,13 +40,16 @@ public class RhinoHTTPTransport implements Transport{
 	protected final URL serviceURL;
 	protected final boolean enableURLEncoding;
 	
-	/** Creates transport that will POST JSON-RPC requests to the given URL.  Defaults to enableURLEncoding = true;
+	protected final Gson gson;
+	protected final JsonParser jsonParser = new JsonParser();
+	
+	/** Creates transport that will POST JSON-RPC requests to the given URL.  Defaults to enableURLEncoding = false;
 	 * 
 	 * @param serviceURLString
 	 * @throws MalformedURLException
 	 */
 	public RhinoHTTPTransport(String serviceURLString) throws MalformedURLException{
-		this(serviceURLString, true);
+		this(new URL(serviceURLString), false);
 	}
 	
 	/** Creates transport that will POST JSON-RPC requests to the given URL.  If enableURLEncoding is true then 
@@ -52,14 +60,90 @@ public class RhinoHTTPTransport implements Transport{
 	 * @throws MalformedURLException
 	 */
 	public RhinoHTTPTransport(String serviceURLString, boolean enableURLEncoding) throws MalformedURLException{
-		this.serviceURL = new URL(serviceURLString);
-		this.enableURLEncoding = enableURLEncoding;
-		log.info("connecting to URL: " + serviceURLString + "; enableURLEncoding = " + enableURLEncoding);
+		this(new URL(serviceURLString), enableURLEncoding);
 	}
 	
+	/** Creates transport that will POST JSON-RPC requests to the given URL. Defaults to enableURLEncoding = false;
+	 * 
+	 * @param serviceURLString
+	 * @param enableURLEncoding
+	 * @throws MalformedURLException
+	 */
 	public RhinoHTTPTransport(URL serviceURL){
+		this(serviceURL, false);
+	}
+	
+	public RhinoHTTPTransport(URL serviceURL, boolean enableURLEncoding){
 		this.serviceURL = serviceURL;
-		this.enableURLEncoding = true;
+		this.enableURLEncoding = enableURLEncoding;
+		
+		GsonBuilder builder = new GsonBuilder().serializeNulls();
+		builder.registerTypeAdapter(FullRequest.class, new FullRequest.FullRequestDeserializer());
+		builder.registerTypeAdapter(FullRequest.class, new FullRequest.FullRequestSerializer());
+		builder.registerTypeAdapter(Response.class, new Response.ResponseDeserializer());
+		builder.registerTypeAdapter(Response.class, new Response.ResponseSerializer());
+		gson = builder.create();
+		
+		log.info("connecting to URL: " + serviceURL + "; enableURLEncoding = " + enableURLEncoding);
+	}
+	
+	
+	public Response syncDispatch(FullRequest request) throws DispatchException{
+		try{
+			String jsonRequest = gson.toJson(request, FullRequest.class);
+			String responseString = dispatch(jsonRequest);
+			Response response = gson.fromJson(responseString, Response.class);
+			return response;
+		}
+		catch (DispatchException dx){
+			throw dx;
+		}
+		catch (Exception ex){
+			throw new DispatchException(DispatchException.INTERNAL_ERROR, "caught " + ex + " while dispatching", ex.toString());
+		}
+	}
+	
+	public Response[] boxcarDispatch(FullRequest[] requests) throws DispatchException{
+		StringBuffer requestBuf = new StringBuffer();
+		requestBuf.append('['); // start the array
+		boolean first = true;
+		for (int i = 0; i < requests.length; i++){
+			if (first){
+				first = false;
+			}
+			else{
+				requestBuf.append(',');
+			}
+			String requestString = gson.toJson(requests[i], FullRequest.class);
+			requestBuf.append(requestString);
+		}
+		requestBuf.append(']');
+		
+		try{
+			log.debug("about to dispatch boxcar with " + requests.length + " requests");
+			String responseString = dispatch(requestBuf.toString());
+			log.debug("got response to boxcar request");
+			JsonArray responseArray = jsonParser.parse(responseString).getAsJsonArray();
+			if (responseArray.size() != requests.length){
+				log.error("sent " + requests.length + " requests but got " + responseArray.size() + " responses");
+			}
+			Response[] responses = new Response[responseArray.size()];
+			for (int j = 0; j < responses.length; j++){
+				responses[j] = gson.fromJson(responseArray.get(j), Response.class);
+				String requestID = requests[j].getId();
+				String responseID = responses[j].getID();
+				if (!requestID.equals(responseID)){
+					log.error("got mismatched ID's: request " + j + " had ID " + requestID + " but got response with ID " + responseID);
+				}
+			}
+			return responses;
+		}
+		catch (DispatchException dx){
+			throw dx;
+		}
+		catch (Exception ex){
+			throw new DispatchException(DispatchException.INTERNAL_ERROR, "caught " + ex + " while dispatching", ex.toString());
+		}		
 	}
 	
 	
@@ -87,7 +171,6 @@ public class RhinoHTTPTransport implements Transport{
     		encodedJSONRequest = jsonRequest;
     	}
     	
-	    
 	    String result;
 	    BufferedReader in = null;
 	    

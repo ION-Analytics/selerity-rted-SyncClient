@@ -1,19 +1,11 @@
 package com.selerity.sync.client;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 /** 
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code is confidential 
@@ -26,7 +18,8 @@ import com.google.gson.JsonParser;
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be 
  * removed from the software by any user thereof. 
  * 
- * A dispatcher which knows how to format JSON-RPC requests for Selerity's 'Rhino' server implementation.
+ * A dispatcher which knows how to format JSON-RPC requests for Selerity's 'Rhino' server implementation and runs on
+ * a synchronous transport.
  * 
  * @author andrewbrook
  *
@@ -35,126 +28,61 @@ public class RhinoDispatcher implements Dispatcher{
 	
 	private static final Log log = LogFactory.getLog (RhinoDispatcher.class);
 	
-	private static final long DISPATCH_WARN_THRESHOLD = 10000;
+	private static final long DISPATCH_WARN_THRESHOLD_MILLIS = 10000;
 	
-	private final Gson gson = new GsonBuilder().serializeNulls().create();
-	private final JsonParser parser = new JsonParser();
+	private final Gson gson;
 	
-	protected final Transport transport;
+	protected final Transport transport;  // yes, this is just a wrapper of an asynchronous dispatcher.
 	
 	protected int nextID = 0;
 	
 	public RhinoDispatcher(Transport transport){
 		this.transport = transport;
+		GsonBuilder builder = new GsonBuilder().serializeNulls();
+		builder.registerTypeAdapter(FullRequest.class, new FullRequest.FullRequestDeserializer());
+		builder.registerTypeAdapter(FullRequest.class, new FullRequest.FullRequestSerializer());
+		builder.registerTypeAdapter(Response.class, new Response.ResponseDeserializer());
+		builder.registerTypeAdapter(Response.class, new Response.ResponseSerializer());
+		gson = builder.create();
 	}
 
 	/** Dispatch the request, returning the result (and throwing an error if one occurs).  Uses the explicit session
 	 *  parameters given.
+	 *  
+	 *  Assumes a single response.
 	 * 
 	 */
 	public JsonElement dispatch(Request request, String user, String token, String client, String mode) throws DispatchException{
-		
-		// construct the request string
-		String id = getNextID(user, client);
-		StringBuffer reqBuf = new StringBuffer();
-		appendRequestString(reqBuf, request, id, user, token, client, mode);
-		String requestString = reqBuf.toString();
-		
-		// now actually do the dispatching
-		try{
-			log.debug("about to dispatch: " + requestString);
-			long startTime = System.currentTimeMillis();
-			String responseString = transport.dispatch(requestString);
-			long elapsedTime = System.currentTimeMillis() - startTime;
-			if (elapsedTime < DISPATCH_WARN_THRESHOLD){
-				log.debug("DISPATCHTIME: " + elapsedTime + " ms after " + request.getMethod() + "; got response: " + responseString);
+		long startTime = System.currentTimeMillis();
+		String id = getNextID();
+		FullRequest fullRequest = new FullRequest(request, user, token, client, mode, id);
+		Response response = transport.syncDispatch(fullRequest);
+		long elapsedTime = System.currentTimeMillis() - startTime;
+		if (elapsedTime < DISPATCH_WARN_THRESHOLD_MILLIS){
+			if (log.isDebugEnabled()){
+				log.debug("DISPATCHTIME: " + elapsedTime + " ms after " + request.getMethod() + "; got response: " + gson.toJson(response, Response.class));
 			}
-			else{
-				log.warn("DISPATCHTIME: " + elapsedTime + " ms after " + request.getMethod() + "; got response: " + responseString);
-			}
-			
-			// parse the response into the result, error and correlation ID
-			JsonObject responseMap = parser.parse(responseString).getAsJsonObject();
-			JsonElement result = responseMap.get("result");
-			DispatchException dx = getException(responseMap);
-			String returnedID = gson.fromJson(responseMap.get("id"), String.class);
-			
-			// if there's no error, this will be null.  if not null then there was an error
-			if (dx != null){
-				log.warn("got error from server, throwing exception " + dx, dx);
-				throw dx;
-			}
-			
-			// check that the correlation ID's match.  This shouldn't ever fail.
-			if ((id != null) && (!id.equals(returnedID))){
-				String errorMsg = "correlation ID's didn't match, sent \"" + id + "\", received \"" + returnedID + "\"";
-				log.error(errorMsg);
-				throw new DispatchException(DispatchException.INTERNAL_ERROR, errorMsg, returnedID);
-			}
-			
-			// if we got here then we have a valid response
-			return result;
-			
 		}
-		catch (Exception ex){
-			// wrap and rethrow
-			DispatchException localEx = new DispatchException(DispatchException.INTERNAL_ERROR, "local exception", (String)null, ex);
-			throw localEx;
+		else{
+			log.warn("DISPATCHTIME: " + elapsedTime + " ms after " + request.getMethod() + "; got response: " + gson.toJson(response, Response.class));
 		}
+		
+		if (response.isError()){
+			throw response.getError();
+		}
+		return response.getResult();
+		
 	}
 	
 	
 	/** Dispatches a request using the explicit session information, returning the full response object.
 	 * 
 	 */
-	public synchronized Response dispatchWithResponse(Request request, String user, String token, String client, String mode) {
-		
-		// construct the request string
-		String id = getNextID(user, client);
-		StringBuffer reqBuf = new StringBuffer();
-		appendRequestString(reqBuf, request, id, user, token, client, mode);
-		String requestString = reqBuf.toString();
-		
-		// now actually do the dispatching
-		try{
-			log.debug("about to dispatch: " + requestString);
-			long startTime = System.currentTimeMillis();
-			String responseString = transport.dispatch(requestString);
-			long elapsedTime = System.currentTimeMillis() - startTime;
-			if (elapsedTime < DISPATCH_WARN_THRESHOLD){
-				log.debug("DISPATCHTIME: " + elapsedTime + " ms after " + request.getMethod() + "; got response: " + responseString);
-			}
-			else{
-				log.warn("DISPATCHTIME: " + elapsedTime + " ms after " + request.getMethod() + "; got response: " + responseString);
-			}
-			
-			// parse the response into the result, error and correlation ID
-			JsonObject responseMap = parser.parse(responseString).getAsJsonObject();
-			JsonElement result = responseMap.get("result");
-			DispatchException dx = getException(responseMap);
-			String returnedID = gson.fromJson(responseMap.get("id"), String.class);
-			JsonElement headerElem = responseMap.get("header");
-			JsonObject header = null;
-			if ((headerElem != null) && (!headerElem.isJsonNull())){
-				header = headerElem.getAsJsonObject();
-			}
-			
-			// check that the correlation ID's match.  This shouldn't ever fail.
-			if ((id != null) && (!id.equals(returnedID))){
-				String errorMsg = "correlation ID's didn't match, sent \"" + id + "\", received \"" + returnedID + "\"";
-				log.error(errorMsg);
-				throw new DispatchException(DispatchException.INTERNAL_ERROR, errorMsg, returnedID);
-			}
-			
-			// construct the response
-			return new Response(result, dx, returnedID, header);
-			
-		}
-		catch (Exception ex){
-			// wrap and rethrow
-			DispatchException localEx = new DispatchException(DispatchException.INTERNAL_ERROR, "local exception", ex.getMessage(), ex);
-			return new Response(localEx, id);
-		}
+	public synchronized Response dispatchWithResponse(Request request, String user, String token, String client, String mode) throws DispatchException {
+		String id = getNextID();
+		FullRequest fullRequest = new FullRequest(request, user, token, client, mode, id);
+		Response response = transport.syncDispatch(fullRequest);
+		return response;
 	}
 	
 	
@@ -176,97 +104,20 @@ public class RhinoDispatcher implements Dispatcher{
 	 * 
 	 */
 	public Response[] boxcarDispatch(Request[] requests, String user, String token, String client, String mode) throws DispatchException {
-		// keep track of which request is which
-		Map<String,Integer> requestIndex = new HashMap<String,Integer>();
+		int requestCount = requests.length;
 		
-		// keep track of any requests which don't get a corresponding response
-		Set<String> missing = new HashSet<String>();
+		// temporary objects to hold the full requests (the partials plus their ID's)
+		FullRequest[] fullRequests = new FullRequest[requestCount];
 		
-		// grab the next request ID, we'll append suffixes to it for each request in the train
-		String baseID = getNextID(user, client);
-		
-		// generate the request string (and array of requests)
-		StringBuffer reqBuf = new StringBuffer();
-		reqBuf.append('[');
-		boolean first = true;
-		int index = 0;
-		for (Request request : requests){
-			if (first){
-				first = false;
-			}
-			else{
-				reqBuf.append(',');
-			}
-			String id = baseID + "_" + index;  // generate a new request ID which is easy to debug 
-			requestIndex.put(id, index);  // record this request's correlation ID
-			missing.add(id);  // put it into the missing list - we'll remove it later when the response comes back
-			appendRequestString(reqBuf, request, id, user, token, client, mode);
-			index++;
-		}
-		reqBuf.append(']');
-		String requestString = reqBuf.toString();
-		
-		// now actually do the dispatching and correlate the results
-
-		log.debug("about to dispatch: " + requestString);
-		String responseString = null;
-		try{
-			responseString = transport.dispatch(requestString);
-		}
-		catch (Exception ex){
-			// wrap and rethrow
-			DispatchException localEx = new DispatchException(DispatchException.OTHER_ERROR, "dispatch exception", ex.getMessage(), ex);
-			throw localEx;
-		}
-		log.debug("got response: " + responseString);
-		
-		// the response should be an array
-		JsonArray responseArray = parser.parse(responseString).getAsJsonArray();
-		
-		// be sure we got back the same number as we sent!
-		if (responseArray.size() != requests.length){
-			String errorMsg = "sent " + requests.length + " boxcarred requests but got " + responseArray.size() + " responses";
-			throw new DispatchException(DispatchException.INTERNAL_ERROR, errorMsg, "got " + responseArray.size() + " responses");
+		String baseID = getNextID();
+		for (int i = 0; i < requestCount; i++){
+			String id = baseID + "_" + i;
+			log.debug("setting ID for sub-request " + i + " of " + requestCount + " as " + id);
+			fullRequests[i] = new FullRequest(requests[i], user, token, client, mode, id);
 		}
 		
-		Response[] responses = new Response[responseArray.size()];
-		for (JsonElement responseElement : responseArray){
-			
-			// parse out the result, error, correlation ID and header
-			JsonObject responseMap = responseElement.getAsJsonObject();
-			JsonElement result = responseMap.get("result");
-			DispatchException dx = getException(responseMap);
-			String returnedID = gson.fromJson(responseMap.get("id"), String.class);
-			JsonElement headerElem = responseMap.get("header");
-			JsonObject header = null;
-			if ((headerElem != null) && (!headerElem.isJsonNull())){
-				header = headerElem.getAsJsonObject();
-			}
-			
-			// check the ID and get the index for it
-			index = requestIndex.get(returnedID);
-			log.debug("mapped id: " + returnedID + " to index: " + index);
-			if (responses[index] != null){
-				String errorMsg = "got duplicate response for request " + returnedID + " at index " + index;
-				throw new DispatchException(DispatchException.INTERNAL_ERROR, errorMsg, "returned ID = " + returnedID);
-			}
-			else{
-				// valid response, set the value in the array and mark it off the missing list
-				responses[index] = new Response(result, dx, returnedID, header);
-				missing.remove(returnedID);
-			}
-			
-		}
-			
-		// now check to see if anything's still missing
-		if (missing.size() > 0){
-			String errorMsg = "no responses for " + missing.size() + " out of " 
-							+ requests.length + " requests including: " + MiscUtils.listSomeElements(missing, 5);
-			throw new DispatchException(DispatchException.INTERNAL_ERROR, errorMsg, "missing count = " + missing.size());
-		}
-			
-		// if not then everything is done, return the response array
-		return responses;
+		// hand off to the transport layer
+		return transport.boxcarDispatch(fullRequests);
 	}
 	
 	/** Dispatch the array of requests as a boxcar.  Uses the cached session parameters.
@@ -279,62 +130,10 @@ public class RhinoDispatcher implements Dispatcher{
 				session.getHeaderParameter(RhinoSession.MODE));
 	}
 	
-	/** Convert a JsonObject into a DispatchException
-	 * 
-	 * @param responseMap
-	 * @return
-	 */
-	protected DispatchException getException(JsonObject responseMap){
-		JsonElement errorElement = responseMap.get("error");
-		if ((errorElement == null) || (errorElement.isJsonNull())){
-			return null;
-		}
-		JsonObject errorObj = errorElement.getAsJsonObject();
-		int code = MiscUtils.getInt(errorObj, "code", DispatchException.OTHER_ERROR);
-		String message = MiscUtils.getString(errorObj, "message", null);
-		String data = MiscUtils.getString(errorObj, "data", null);
-		return new DispatchException(code, message, data);
-	}
 	
-	/** Convert the request into a string and append it to the string buffer.
-	 * 
-	 * @param buf
-	 * @param request
-	 * @param id
-	 * @param user
-	 * @param token
-	 * @param client
-	 * @param mode
-	 */
-	protected void appendRequestString(StringBuffer buf, Request request, String id, String user, String token, String client, String mode){		
-		buf.append("{"
-	    	+"\"method\":" + MiscUtils.stringEncode(request.getMethod()) + ","
-	    	+"\"params\":" 
-	    	+ gson.toJson(request.getMethodParameters())
-	    	+ ","
-	    	+"\"header\":{"
-	    	+"\"user\":" + MiscUtils.stringEncode(user) + ","
-	    	+"\"token\":" + MiscUtils.stringEncode(token) + ","
-	    	+"\"client\":" + MiscUtils.stringEncode(client));
-		if (mode != null){
-			buf.append(",\"mode\":" + MiscUtils.stringEncode(mode));
-		}
-		buf.append("},"
-	    	+"\"id\":\"" + id + "\""
-    		+"}");
-	}
-	
-	/** Returns a (nearly) unique correlation ID based on the user, client, dispatcher creation time and a sequence number.  Useful
-	 *  for debugging.
-	 * 
-	 * @param user
-	 * @param client
-	 * @return
-	 */
-	protected synchronized String getNextID(String user, String client){
+	protected synchronized String getNextID(){
 		int id = nextID++;
 		return Integer.toString(id);
 	}
-
 	
 }

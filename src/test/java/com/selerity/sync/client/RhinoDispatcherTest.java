@@ -7,11 +7,6 @@ import org.junit.Test;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.selerity.sync.client.DispatchException;
-import com.selerity.sync.client.Request;
-import com.selerity.sync.client.RhinoDispatcher;
-import com.selerity.sync.client.RhinoSession;
-import com.selerity.sync.client.Session; 
 
 /**
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code is confidential 
@@ -40,7 +35,7 @@ public class RhinoDispatcherTest {
 		
 		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
 			+ "\"params\":{},"
-			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\"},"
+			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":null},"
 			+ "\"id\":\"0\"}";
 		
 		
@@ -95,7 +90,7 @@ public class RhinoDispatcherTest {
 		
 		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
 			+ "\"params\":{\"testNumber\":42},"
-			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\"},"
+			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":null},"
 			+ "\"id\":\"0\"}";
 		
 		
@@ -109,7 +104,7 @@ public class RhinoDispatcherTest {
 		
 		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
 			+ "\"params\":[42],"
-			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\"},"
+			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":null},"
 			+ "\"id\":\"0\"}";
 		
 		

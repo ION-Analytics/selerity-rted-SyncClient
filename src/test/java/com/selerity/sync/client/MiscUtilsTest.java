@@ -4,6 +4,8 @@ package com.selerity.sync.client;
 import static org.junit.Assert.assertEquals;
 
 import java.text.ParseException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.Test;
 
@@ -35,6 +37,14 @@ public class MiscUtilsTest {
 		assertEquals("00123", MiscUtils.leftPadNumber(123, 5));
 		assertEquals("12345", MiscUtils.leftPadNumber(12345, 5));
 		assertEquals("1234567", MiscUtils.leftPadNumber(1234567, 5));
+	}
+	
+
+	@Test
+	public void testMakeStringStringMap(){
+		Map<String,String> map = new HashMap<String,String>();
+		map.put("foo", "blah");
+		assertEquals("{\"foo\":\"blah\"}", MiscUtils.makeStringStringMap(map).toString());
 	}
 	
 	

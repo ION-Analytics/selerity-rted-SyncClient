@@ -196,7 +196,7 @@ public class TimeSeriesDump extends AbstractSyncClient{
 			String timeZoneID = "UTC";
 			
 			// initialized the transport and method dispatcher
-			TimeSeriesDump dumper = new TimeSeriesDump(new RhinoHTTPTransportFactory(host, port), user, password, "TimeSeriesDump");
+			TimeSeriesDump dumper = new TimeSeriesDump(new RhinoHTTPTransportFactory(host, port, false), user, password, "TimeSeriesDump");
 			
 			// start a session, use the same session for all requests
 			Session session = dumper.startSession();

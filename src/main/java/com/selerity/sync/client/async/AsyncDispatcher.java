@@ -1,4 +1,8 @@
-package com.selerity.sync.client;
+package com.selerity.sync.client.async;
+
+import com.selerity.sync.client.Request;
+import com.selerity.sync.client.Response;
+import com.selerity.sync.client.Session;
 
 /** 
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code is confidential 
@@ -11,16 +15,18 @@ package com.selerity.sync.client;
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be 
  * removed from the software by any user thereof. 
  * 
- *  A Transport is an abstraction of the mechanism for carrying a JSON-RPC request from the client to the server and then bringing the response back.  The
- *  transport abstracts away issues like physical connectivity, text encoding, compression, etc.
- * 
  * @author andrewbrook
  *
  */
-public interface Transport {
-	
-	public Response syncDispatch(FullRequest request) throws DispatchException;
-	
-	public Response[] boxcarDispatch(FullRequest[] requests) throws DispatchException;
 
+public interface AsyncDispatcher{
+	
+	public StreamedResponse asyncDispatch(Request request, String user, String token, String client, String mode);
+	
+	public StreamedResponse asyncDispatch(Request request, Session session);
+	
+	public Response syncDispatch(Request request, String user, String token, String client, String mode);
+	
+	public Response syncDispatch(Request request, Session session);
+	
 }

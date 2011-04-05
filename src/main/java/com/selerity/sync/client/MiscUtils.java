@@ -3,13 +3,18 @@ package com.selerity.sync.client;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TimeZone;
 import java.util.TreeSet;
-import java.util.Map.Entry;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -104,6 +109,63 @@ public class MiscUtils {
 			return parseNanoTime(defaultValueStr);
 		}
 		return parseNanoTime(value.getAsString());
+	}
+	
+	public static JsonObject getJsonObject(JsonObject obj, String key, JsonObject defaultValueObj) {
+		JsonElement value = obj.get(key);
+		if ((value == null) || (value.isJsonNull())){
+			return defaultValueObj;
+		}
+		return value.getAsJsonObject();
+	}
+	
+	public static JsonArray getJsonArray(JsonObject obj, String key, JsonArray defaultValueArray) {
+		JsonElement value = obj.get(key);
+		if ((value == null) || (value.isJsonNull())){
+			return defaultValueArray;
+		}
+		return value.getAsJsonArray();
+	}
+	
+	public static List<String> parseAsStringList(JsonArray array){
+		List<String> list = new ArrayList<String>(array.size());
+		for (int i = 0; i < array.size(); i++){
+			list.add(array.get(i).getAsString());
+		}
+		return list;
+	}
+	
+	public static List<Long> parseAsLongList(JsonArray array){
+		List<Long> list = new ArrayList<Long>(array.size());
+		for (int i = 0; i < array.size(); i++){
+			list.add(array.get(i).getAsLong());
+		}
+		return list;
+	}
+	
+	public static Set<String> parseAsStringSet(JsonArray array){
+		Set<String> set = new HashSet<String>(array.size());
+		for (int i = 0; i < array.size(); i++){
+			set.add(array.get(i).getAsString());
+		}
+		return set;
+	}
+	
+	public static Set<Long> parseAsLongSet(JsonArray array){
+		Set<Long> set = new HashSet<Long>(array.size());
+		for (int i = 0; i < array.size(); i++){
+			set.add(array.get(i).getAsLong());
+		}
+		return set;
+	}
+	
+	public static Map<String,String> parseAsStringStringMap(JsonObject obj){
+		Set<Entry<String,JsonElement>> entrySet = obj.entrySet();
+		Map<String,String> map = new HashMap<String,String>(entrySet.size());
+		for (Entry<String,JsonElement> entry : entrySet){
+			map.put(entry.getKey(), entry.getValue().getAsString());
+		}
+		return map;
 	}
 	
 	
@@ -303,4 +365,16 @@ public class MiscUtils {
 	}
 	
 	
+	public static JsonObject makeStringStringMap(Map<String,String> strings){
+		JsonObject obj = new JsonObject();
+		for (Entry<String,String> entry : strings.entrySet()){
+			obj.addProperty(entry.getKey(), entry.getValue());
+		}
+		return obj;
+	}
+	
 }
+
+
+
+

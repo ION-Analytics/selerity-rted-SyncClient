@@ -5,6 +5,7 @@ import org.apache.commons.logging.LogFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.selerity.sync.client.async.AsyncDispatcher;
 
 /** 
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code is confidential 
@@ -60,6 +61,50 @@ public class RhinoSessionFactory{
 	 * @throws DispatchException
 	 */
 	public Session getInstance(Dispatcher dispatcher, String client, String mode) throws DispatchException{
+		String user = System.getProperty(SYNC_USER_PROPERTY_NAME);
+		String password = System.getProperty(SYNC_PASSWORD_PROPERTY_NAME);
+		if (user == null){
+			throw new NullPointerException("user cannot be null, try setting property " + SYNC_USER_PROPERTY_NAME);
+		}
+		if (password == null){
+			throw new NullPointerException("password cannot be null, try setting property " + SYNC_PASSWORD_PROPERTY_NAME);
+		}
+
+		return getInstance(dispatcher, client, mode, user, password);
+	}
+	
+	/** Gets an instance with the provided user and password.
+	 * 
+	 * @param dispatcher
+	 * @param client
+	 * @param mode
+	 * @param user
+	 * @param password
+	 * @return
+	 * @throws DispatchException
+	 */
+	public Session getInstance(AsyncDispatcher dispatcher, String client, String mode, String user, String password) throws DispatchException{
+		Request authRequest = new Request("AuthenticationHandler.authenticate");
+		authRequest.setMethodParameter("user", user);
+		authRequest.setMethodParameter("password", password);
+		Response response = dispatcher.syncDispatch(authRequest, user, null, client, mode);
+		if (response.isError()){
+			throw response.getError();
+		}
+		String token = gson.fromJson(response.getResult(), String.class);
+		log.debug("got token " + token + " for user " + user);
+		return new RhinoSession(user, client, token, mode);
+	}
+	
+	/** Gets a session using the user and password set in the system properties.
+	 * 
+	 * @param dispatcher
+	 * @param client
+	 * @param mode
+	 * @return
+	 * @throws DispatchException
+	 */
+	public Session getInstance(AsyncDispatcher dispatcher, String client, String mode) throws DispatchException{
 		String user = System.getProperty(SYNC_USER_PROPERTY_NAME);
 		String password = System.getProperty(SYNC_PASSWORD_PROPERTY_NAME);
 		if (user == null){

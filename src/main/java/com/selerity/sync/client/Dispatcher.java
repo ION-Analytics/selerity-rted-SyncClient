@@ -53,7 +53,7 @@ public interface Dispatcher {
 	 * @return
 	 * @throws DispatchException
 	 */
-	public Response dispatchWithResponse(Request request, String user, String token, String client, String mode);
+	public Response dispatchWithResponse(Request request, String user, String token, String client, String mode) throws DispatchException;
 	
 	/** Dispatches a request using the given session, returning the result or throwing an exception.
 	 * 

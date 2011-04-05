@@ -40,13 +40,19 @@ public class DispatchException extends Exception{
 	public static final int METHOD_NOT_FOUND = -32601;
 	public static final int INVALID_PARAMETERS_ERROR = -32602;
 	public static final int INTERNAL_ERROR = -32603;
-	
+	public static final int TIMEOUT_ERROR = -32603;
 	
 	
 	private int code;
     private String message;
     private JsonElement data;
     
+    public DispatchException(int code, String message){
+    	super(message);
+    	this.code = code;
+    	this.message = message;
+    	this.data = null;
+    }
     
     public DispatchException(int code, String message, JsonElement data) {
 		super(message);

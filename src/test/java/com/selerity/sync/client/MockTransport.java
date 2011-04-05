@@ -4,9 +4,10 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.selerity.sync.client.Transport;
 
 /**
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code is confidential 
@@ -34,7 +35,18 @@ public class MockTransport implements Transport{
 	
 	protected JsonParser parser = new JsonParser();
 	
-	public MockTransport(){}
+	protected final Gson gson;
+
+	protected final JsonParser jsonParser = new JsonParser();
+	
+	public MockTransport(){
+		GsonBuilder builder = new GsonBuilder().serializeNulls();
+		builder.registerTypeAdapter(FullRequest.class, new FullRequest.FullRequestDeserializer());
+		builder.registerTypeAdapter(FullRequest.class, new FullRequest.FullRequestSerializer());
+		builder.registerTypeAdapter(Response.class, new Response.ResponseDeserializer());
+		builder.registerTypeAdapter(Response.class, new Response.ResponseSerializer());
+		gson = builder.create();
+	}
 	
 	/** Adds a response to the response queue.
 	 * 
@@ -69,11 +81,17 @@ public class MockTransport implements Transport{
 	public synchronized String getRequest(int index){
 		return requests.get(index);
 	}
+	
+	public Response syncDispatch(FullRequest request) throws DispatchException {
+		String requestStr = gson.toJson(request, FullRequest.class);
+		String responseString = dispatch(requestStr);
+		return gson.fromJson(responseString, Response.class);
+	}
 
 	/** Log the request and return the next response from the queue, wrapped with the header from the request
 	 * 
 	 */
-	public synchronized String dispatch(String jsonRequest) throws Exception{
+	public synchronized String dispatch(String jsonRequest) throws DispatchException{
 		requests.add(jsonRequest);
 		
 		JsonObject requestObj = parser.parse(jsonRequest).getAsJsonObject();
@@ -84,6 +102,10 @@ public class MockTransport implements Transport{
 		
 		return "{\"result\":" + result + ",\"error\":" + error + ",\"header\":{},\"id\":" + id + "}";
 		
+	}
+	
+	public Response[] boxcarDispatch(FullRequest[] requests) throws DispatchException{
+		throw new DispatchException(DispatchException.INTERNAL_ERROR, "not implemented");
 	}
 	
 }

@@ -1,15 +1,22 @@
-package com.selerity.sync.client;
+package com.selerity.sync.client.async;
 
 import com.google.gson.JsonElement;
+import com.selerity.sync.client.DispatchException;
+import com.selerity.sync.client.PaginatedResponseIterator;
+import com.selerity.sync.client.Request;
+import com.selerity.sync.client.Response;
+import com.selerity.sync.client.RhinoSessionFactory;
+import com.selerity.sync.client.Session;
 
-public abstract class AbstractSyncClient {
-
+public abstract class AbstractAsyncClient {
+		
 	protected final String clientAppName;
-	protected final Dispatcher dispatcher;
+	protected final AsyncDispatcher dispatcher;
 	protected final String user;
 	protected final String password;
 	
-	/** Initialize the dispatcher and start a session.
+
+	/** Initialize the dispatcher.
 	 * 
 	 * @param host
 	 * @param port
@@ -17,10 +24,10 @@ public abstract class AbstractSyncClient {
 	 * @param password
 	 * @throws Exception 
 	 */
-	public AbstractSyncClient(TransportFactory transportFactory, String user, String password, String clientAppName) throws Exception{
+	public AbstractAsyncClient(AsyncTransportFactory transportFactory, String user, String password, String clientAppName) throws Exception{
 		// initialized the transport and method dispatcher
-		Transport transport = transportFactory.getInstance();
-		dispatcher = new RhinoDispatcher(transport);
+		dispatcher = new AsyncDispatcherImpl(transportFactory.getInstance());
+
 		
 		this.clientAppName = clientAppName;
 		this.user = user;
@@ -34,8 +41,23 @@ public abstract class AbstractSyncClient {
 	 * @return
 	 * @throws DispatchException
 	 */
-	public JsonElement dispatch(Request request, Session session) throws DispatchException{
-		return dispatcher.dispatch(request, session); 	
+	public StreamedResponse asyncDispatch(Request request, Session session) throws DispatchException{
+		return dispatcher.asyncDispatch(request, session); 	
+	}
+	
+	/** Returns a single result assuming the method call is synchronous.
+	 * 
+	 * @param request
+	 * @param session
+	 * @return
+	 * @throws DispatchException
+	 */
+	public JsonElement syncDispatch(Request request, Session session) throws DispatchException{
+		Response response = dispatcher.syncDispatch(request, session);
+		if (response.isError()){
+			throw response.getError();
+		}
+		return response.getResult();
 	}
 	
 	/** Create a paginated response iterator using the current session.  Requires the name of the parameter object that
@@ -46,20 +68,10 @@ public abstract class AbstractSyncClient {
 	 * @throws DispatchException
 	 */
 	public PaginatedResponseIterator paginatedDispatch(Request request, Session session, String optionObjectName, int limit) throws DispatchException{
-		return new PaginatedResponseIteratorImpl(dispatcher, session, request, optionObjectName, limit);
-	}
-	
-	/** Dispatch the array of requests as a single boxcar using the current session.
-	 * 
-	 * @param requests
-	 * @return
-	 * @throws DispatchException
-	 */
-	public Response[] boxcarDispatch(Request[] requests, Session session) throws DispatchException{
-		return dispatcher.boxcarDispatch(requests, session); 	
+		return new AsyncPaginatedResponseIteratorImpl(dispatcher, session, request, optionObjectName, limit);
 	}
 
-	
+
 	/** Starts a session in normal mode.
 	 * 
 	 * @param user
@@ -70,7 +82,7 @@ public abstract class AbstractSyncClient {
 		return new RhinoSessionFactory().getInstance(dispatcher,
 				clientAppName, null, user, password);
 	}
-	
+
 	/** Starts a session in the given mode.
 	 * 
 	 * @param user
@@ -81,7 +93,7 @@ public abstract class AbstractSyncClient {
 		return new RhinoSessionFactory().getInstance(dispatcher,
 				clientAppName, mode, user, password);
 	}
-	
+
 	/** Starts a session in "extension" mode.
 	 * 
 	 * @param user
@@ -92,24 +104,25 @@ public abstract class AbstractSyncClient {
 		return new RhinoSessionFactory().getInstance(dispatcher,
 				clientAppName, "extension", user, password);
 	}
-	
+
 	/** Extends the current session.
 	 * 
 	 * @throws DispatchException
 	 */
 	public void extendSession(Session session) throws DispatchException{
 		Request extendRequest = new Request("AuthenticationHandler.extend");
-		dispatch(extendRequest, session);
+		syncDispatch(extendRequest, session);
 	}
-	
-	
+
+
 	/** Closes the current session.
 	 * 
 	 * @throws DispatchException
 	 */
 	public void closeSession(Session session) throws DispatchException{
 		Request logoutRequest = new Request("AuthenticationHandler.invalidate");
-		dispatch(logoutRequest, session);
+		syncDispatch(logoutRequest, session);
 	}
-	
+
 }
+
