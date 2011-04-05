@@ -39,6 +39,13 @@ public interface StreamedResponse {
 	 */
 	public boolean hasMore();
 	
+	/** Returns true if this streamed response may be having additional responses added to it.  If false then
+	 *  no additional responses will be added to the queue but the queue may or may not be empty.
+	 * 
+	 * @return
+	 */
+	public boolean gettingMore();
+	
 	/** Allows the producer to indicate that they intend to produce no more responses.  This does
 	 *  not immediately cause hasMore() to return false since there may still be some responses enqueued.
 	 * 
