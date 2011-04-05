@@ -158,6 +158,10 @@ public class RhinoHTTPTransport implements Transport{
 		// record start time of dispatch
     	long startTime = System.currentTimeMillis();
     	
+    	if (log.isDebugEnabled()){
+        	log.debug("preparing to send " + jsonRequest + "... to " + serviceURL);
+        }
+    	
     	URLConnection con = serviceURL.openConnection();
     	con.addRequestProperty("Accept","text/plain");
     	
@@ -212,7 +216,9 @@ public class RhinoHTTPTransport implements Transport{
         // record end time of dispatch
         long deltaMillis = System.currentTimeMillis() - startTime;
         
-        log.debug("took " + deltaMillis + " ms to dispatch " + summarize(jsonRequest, 50) + "... to " + serviceURL);
+        if (log.isDebugEnabled()){
+        	log.debug("took " + deltaMillis + " ms to dispatch " + summarize(jsonRequest, 50) + "... to " + serviceURL);
+        }
         
         return result;
     }
