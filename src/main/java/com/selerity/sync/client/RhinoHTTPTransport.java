@@ -159,7 +159,7 @@ public class RhinoHTTPTransport implements Transport{
     	long startTime = System.currentTimeMillis();
     	
     	if (log.isDebugEnabled()){
-        	log.debug("preparing to send " + jsonRequest + "... to " + serviceURL);
+        	log.debug("preparing to send " + jsonRequest + " to " + serviceURL);
         }
     	
     	URLConnection con = serviceURL.openConnection();
