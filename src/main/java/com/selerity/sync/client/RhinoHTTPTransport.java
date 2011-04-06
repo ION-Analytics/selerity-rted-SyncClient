@@ -217,7 +217,7 @@ public class RhinoHTTPTransport implements Transport{
         long deltaMillis = System.currentTimeMillis() - startTime;
         
         if (log.isDebugEnabled()){
-        	log.debug("took " + deltaMillis + " ms to dispatch " + summarize(jsonRequest, 50) + "... to " + serviceURL);
+        	log.debug("took " + deltaMillis + " ms to dispatch " + summarize(jsonRequest, 50) + "... to " + serviceURL + " and get response: " + result);
         }
         
         return result;
