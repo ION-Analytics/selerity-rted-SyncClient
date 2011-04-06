@@ -216,8 +216,11 @@ public class RhinoHTTPTransport implements Transport{
         // record end time of dispatch
         long deltaMillis = System.currentTimeMillis() - startTime;
         
-        if (log.isDebugEnabled()){
+        if (log.isTraceEnabled()){
         	log.debug("took " + deltaMillis + " ms to dispatch " + summarize(jsonRequest, 50) + "... to " + serviceURL + " and get response: " + result);
+        }
+        else if (log.isDebugEnabled()){
+        	log.debug("took " + deltaMillis + " ms to dispatch " + summarize(jsonRequest, 50) + "... to " + serviceURL);
         }
         
         return result;
