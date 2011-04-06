@@ -14,7 +14,6 @@ import org.apache.commons.logging.LogFactory;
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be 
  * removed from the software by any user thereof. 
  * 
- * @author andrewbrook
  *
  */
 
@@ -28,38 +27,40 @@ public class AsyncPseudoHTTPTransportPoolFactory implements AsyncTransportFactor
 	protected final int port;
 	protected final long checkIntervalMillis;
 	protected final long startIntervalMillis;
-	protected final long maxTransportAgeMillis;
 	protected final int minPoolSize;
+	protected final long activeIntervalMillis;
+	protected final long retirementIntervalMillis;
 
 
 	public AsyncPseudoHTTPTransportPoolFactory(String httpAction, String httpResource,
 			String host, int port,
-			long checkIntervalMillis, long startIntervalMillis,
-			long maxTransportAgeMillis, int minPoolSize) {
+			long checkIntervalMillis, long startIntervalMillis, int minPoolSize,
+			long activeIntervalMillis, long retirementIntervalMillis) {
 		this.httpAction = httpAction;
 		this.httpResource = httpResource;
 		this.host = host;
 		this.port = port;
 		this.checkIntervalMillis = checkIntervalMillis;
 		this.startIntervalMillis = startIntervalMillis;
-		this.maxTransportAgeMillis = maxTransportAgeMillis;
 		this.minPoolSize = minPoolSize;
+		this.activeIntervalMillis = activeIntervalMillis;
+		this.retirementIntervalMillis = retirementIntervalMillis;
 	}
 	
 	public AsyncPseudoHTTPTransportPoolFactory(String host, int port,
-			long checkIntervalMillis, long startIntervalMillis,
-			long maxTransportAgeMillis, int minPoolSize) {
+			long checkIntervalMillis, long startIntervalMillis, int minPoolSize,
+			long activeIntervalMillis, long retirementIntervalMillis) {
 		this(AsyncPseudoHTTPTransport.DEFAULT_HTTP_ACTION, AsyncPseudoHTTPTransport.DEFAULT_HTTP_RESOURCE,
 				host, port, 
-				checkIntervalMillis, startIntervalMillis, maxTransportAgeMillis, 
-				minPoolSize);
+				checkIntervalMillis, startIntervalMillis, 
+				minPoolSize, activeIntervalMillis, retirementIntervalMillis);
 	}
 
 	public AsyncTransport getInstance() throws Exception{
-		AsyncPseudoHTTPTransportPool transportPool = new AsyncPseudoHTTPTransportPool(httpAction, httpResource, host, port, minPoolSize);
-		transportPool.start(checkIntervalMillis, startIntervalMillis, maxTransportAgeMillis);
+		AsyncPseudoHTTPTransportPool transportPool = new AsyncPseudoHTTPTransportPool(httpAction, httpResource, host, port, minPoolSize, activeIntervalMillis, retirementIntervalMillis);
+		transportPool.start(checkIntervalMillis, startIntervalMillis);
 		log.debug("started pool to " + host + ":" + port + " with min size " + minPoolSize 
-				+ ", checking every " + checkIntervalMillis + "ms, retiring transports with max age " + maxTransportAgeMillis
+				+ ", checking every " + checkIntervalMillis + "ms, retiring transports with active period " + activeIntervalMillis
 				+ " ms and with gaps of " + startIntervalMillis + " ms between starts");
 		return transportPool;
 	}

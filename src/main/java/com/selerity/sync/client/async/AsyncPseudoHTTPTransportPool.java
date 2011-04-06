@@ -1,10 +1,6 @@
 package com.selerity.sync.client.async;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Queue;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -24,7 +20,6 @@ import com.selerity.sync.client.Response;
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be 
  * removed from the software by any user thereof. 
  * 
- * @author andrewbrook
  *
  */
 
@@ -32,9 +27,7 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
 	
 	private static final Log log = LogFactory.getLog (AsyncPseudoHTTPTransportPool.class);
 
-	protected final Queue<AsyncTransport> activeTransports = new LinkedList<AsyncTransport>();
-
-	protected final Map<AsyncPseudoHTTPTransport,Long> startTimesMillis = new HashMap<AsyncPseudoHTTPTransport,Long>();
+	protected final AgedPool<AsyncPseudoHTTPTransport> transports;
 	
 	protected final String host;
 	protected final int port;
@@ -49,21 +42,20 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
 	
 	protected long checkIntervalMillis;
 	protected long startIntervalMillis;
-	protected long maxTransportAgeMillis;
 	
 	
-	AsyncPseudoHTTPTransportPool(String httpAction, String httpResource, String host, int port, int minPoolSize){
+	AsyncPseudoHTTPTransportPool(String httpAction, String httpResource, String host, int port, int minPoolSize, long activeIntervalMillis, long retirementIntervalMillis){
 		this.httpAction = httpAction;
 		this.httpResource = httpResource;
 		this.host = host;
 		this.port = port;
 		this.minPoolSize = minPoolSize;
+		transports = new AgedPool<AsyncPseudoHTTPTransport>(activeIntervalMillis, retirementIntervalMillis);
 	}
 	
-	public void start(long checkIntervalMillis, long startIntervalMillis, long maxTransportAgeMillis){
+	public void start(long checkIntervalMillis, long startIntervalMillis){
 		this.checkIntervalMillis = checkIntervalMillis;
 		this.startIntervalMillis = startIntervalMillis;
-		this.maxTransportAgeMillis = maxTransportAgeMillis;
 		
 		startNewTransport(); // make sure there's at least one!
 		
@@ -82,9 +74,9 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
 	}
 
 	public void asyncDispatch(FullRequest request) throws DispatchException{
-		AsyncTransport transport = null;
-		synchronized (activeTransports){
-			transport = activeTransports.poll();
+		AsyncPseudoHTTPTransport transport = null;
+		synchronized (transports){
+			transport = transports.getNextActive();
 		}
 			
 		log.debug("got transport " + transport + " from pool");
@@ -102,9 +94,9 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
 			throw dx;
 		}
 		
-		synchronized(activeTransports){
+		synchronized(transports){
 			log.debug("adding " + transport + " back into the pool");
-			activeTransports.add(transport);
+			transports.returnToActive(transport);
 		}
 	}
 	
@@ -122,27 +114,19 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
 		while (true){
 			// first, check retirement ages of exiting transports.  Yes, this stops the world
 			log.debug("checking ages of transports");
-			long currentTimeMillis = System.currentTimeMillis();
-			int retiredCount = 0;
-			synchronized (this){
-				Iterator<AsyncTransport> transportIt = activeTransports.iterator();
-				while (transportIt.hasNext()){
-					AsyncTransport transport = transportIt.next();
-					long startTimeMillis = startTimesMillis.get(transport);
-					long ageMillis = currentTimeMillis - startTimeMillis;
-					if (ageMillis > this.maxTransportAgeMillis){
-						log.debug("retiring transport " + transport + " since it is " + ageMillis + " ms old");
-						transportIt.remove();
-						retiredCount++;
-					}					
-				}
+			Set<AsyncPseudoHTTPTransport> retired;
+			synchronized(transports){
+				retired = transports.getRetired();
 			}
-			log.debug("retired " + retiredCount + " old transports");
+			for (AsyncPseudoHTTPTransport transport : retired){
+				transport.close();
+			}
+			log.debug("retired " + retired.size() + " old transports");
 			
 			// now see how many we need to start
 			int startCount = 0;
-			synchronized(this){
-				startCount = (minPoolSize - activeTransports.size());
+			synchronized(transports){
+				startCount = (minPoolSize - transports.getActiveCount());
 			}
 			log.debug("need to start " + startCount + " new transports");
 			for (int i = 0; i < startCount; i++){
@@ -174,10 +158,9 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
 				host, port, host + ":" + port + ":" + transportNumber);
 		try{
 			log.debug("starting transport " + transport + "...");
-			transport.addAsyncTransportListener(this);
-			transport.start();
-			startTimesMillis.put(transport, System.currentTimeMillis());
-			activeTransports.add(transport);
+			synchronized(transports){
+				transports.addNew(transport);
+			}
 			log.debug("transport " + transport + " started");
 		}
 		catch (Exception ex){
