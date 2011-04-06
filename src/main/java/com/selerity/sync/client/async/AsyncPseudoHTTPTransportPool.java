@@ -158,6 +158,7 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
 				host, port, host + ":" + port + ":" + transportNumber);
 		try{
 			log.debug("starting transport " + transport + "...");
+			transport.start();
 			synchronized(transports){
 				transports.addNew(transport);
 			}
