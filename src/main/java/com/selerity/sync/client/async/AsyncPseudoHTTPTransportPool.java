@@ -156,6 +156,7 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
 		int transportNumber = nextTransportNumber++;
 		AsyncPseudoHTTPTransport transport = new AsyncPseudoHTTPTransport(httpAction, httpResource,
 				host, port, host + ":" + port + ":" + transportNumber);
+		transport.addAsyncTransportListener(this);
 		try{
 			log.debug("starting transport " + transport + "...");
 			transport.start();
