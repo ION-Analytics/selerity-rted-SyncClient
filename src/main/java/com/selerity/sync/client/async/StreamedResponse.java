@@ -29,8 +29,7 @@ import com.selerity.sync.client.Response;
 
 public interface StreamedResponse {
 
-
-
+	
 	/** Returns true if there are responses pending (either already added or anticipated).
 	 * 
 	 *  Note that setting the 'more' flag to false does not make this method return false until the queue has been drained.

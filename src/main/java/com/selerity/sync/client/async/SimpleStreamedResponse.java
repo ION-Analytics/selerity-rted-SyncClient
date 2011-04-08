@@ -31,9 +31,13 @@ public class SimpleStreamedResponse implements StreamedResponse {
 	
 	private static final Log log = LogFactory.getLog (SimpleStreamedResponse.class);
 
+	public static final int DEFAULT_MAX_SIZE = 100;
+	
 	protected final Queue<Response> responseQueue;
 	protected boolean hasMore = true;
 	protected boolean wantsMore = true;
+	
+	protected final int maxSize;
 	
 	
 	/** Creates a new StreamedResponse instance with the given single response.
@@ -85,17 +89,36 @@ public class SimpleStreamedResponse implements StreamedResponse {
 	
 	
 	public SimpleStreamedResponse(){
+		this(DEFAULT_MAX_SIZE);
+	}
+	
+	public SimpleStreamedResponse(int maxSize){
+		this.maxSize = maxSize;
 		responseQueue = new LinkedList<Response>();
 	}
 	
 	/** Adds another response to this Streamed Response.  Sets the more flag to false if 
 	 *  this response's hasMore() method returns false.
+	 *  
+	 *  Note, this method may block if the response queue is full.
 	 * 
 	 * 
 	 * @throws IllegalArgumentException if the 'more' flag is already set to false.
 	 * @param response
 	 */
 	public synchronized void add(Response response){
+		//log.debug("adding to " + response.getID());
+		while (wantsMore && hasMore && (responseQueue.size() >= maxSize)){
+			// the queue is full
+			try{
+				//log.debug("waiting to add to " + response.getID());
+				wait();
+			}
+			catch (InterruptedException ix){
+				// ignore
+			}
+			//log.debug("done waiting to add to " + response.getID());
+		}
 		if (!wantsMore){
 			log.info("discarding response because consumer doesn't want any more");
 			return;
@@ -104,10 +127,13 @@ public class SimpleStreamedResponse implements StreamedResponse {
 			throw new IllegalArgumentException("cannot add a response after more has been set to false");
 		}
 		if (!response.hasMore()){
+			//log.debug("setting hasMore = false for " + response.getID());
 			hasMore = false;
 		}
 		responseQueue.add(response);
+		//log.debug("added to " + response.getID());
 		notifyAll();
+		//log.debug("notifying after adding to " + response.getID());
 	}
 	
 	
@@ -135,6 +161,7 @@ public class SimpleStreamedResponse implements StreamedResponse {
 	 * 
 	 */
 	public synchronized void setHasNoMore(){
+		//log.debug("setting has no more");
 		hasMore = false;
 		notifyAll();
 	}
@@ -153,10 +180,13 @@ public class SimpleStreamedResponse implements StreamedResponse {
 	 * 
 	 */
 	public synchronized void setWantsNoMore(){
+		//log.debug("setting wants no more");
 		wantsMore = false;
 		notifyAll();
 	}
 
+	
+	
 	
 	/** Blocks until the next response is available.  Returns null if no more responses are coming.
 	 *  May block indefinitely if the writer doesn't set the 'more' flag to false.
@@ -165,23 +195,33 @@ public class SimpleStreamedResponse implements StreamedResponse {
 	 */
 	public synchronized Response getNextResponse(){
 		while (true){
+			//log.debug("in next response loop");
 			if (!wantsMore){
 				log.error("wantsMore already set to false, cannot get next response (" + responseQueue.size() + " waiting in queue)");
+				notifyAll();
 				return null;
 			}
+			//log.debug("polling queue");
 			Response response = responseQueue.poll();
 			if (response != null){
+				//log.debug("returning response");
+				notifyAll();
 				return response;
 			}
+			//log.debug("polled a null");
 			if (hasMore){
 				try{
+					//log.debug("waiting while we have more");
 					wait();
 				}
 				catch (InterruptedException ix){
 					// ignore
 				}
+				//log.debug("done waiting after has more");
 			}
 			else{
+				//log.debug("has no more and polled null so returning null");
+				notifyAll();
 				return null; // queue is no more available
 			}
 		}
@@ -195,27 +235,39 @@ public class SimpleStreamedResponse implements StreamedResponse {
 	public synchronized Response getNextResponse(long timeoutMillis){
 		long timeoutTime = System.currentTimeMillis() + timeoutMillis;
 		while (timeoutTime > (System.currentTimeMillis())){
+			//log.debug("in next response loop (timed)");
 			if (!wantsMore){
 				log.error("wantsMore already set to false, cannot get next response (" + responseQueue.size() + " waiting in queue)");
+				notifyAll();
 				return null;
 			}
+			//log.debug("polling queue (timed)");
 			Response response = responseQueue.poll();
 			if (response != null){
+				//log.debug("polling a value, returning (timed)");
+				notifyAll();
 				return response;
 			}
+			//log.debug("polling a null (timed)");
 			if (hasMore){
 				try{
 					long waitTimeMillis = timeoutTime - System.currentTimeMillis();
+					//log.debug("waiting up to " + waitTimeMillis + " while we have more (timed)");
 					wait(waitTimeMillis);
 				}
 				catch (InterruptedException ix){
 					// ignore
 				}
+				//log.debug("done waiting after has more (timed)");
 			}
 			else{
+				//log.debug("has no more and polled null so returning null (timed)");
+				notifyAll();
 				return null; // queue is no more available
 			}
 		}
+		//log.debug("time ran out so returning null (timed)");
+		notifyAll();
 		return null;
 	}
 	

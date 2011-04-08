@@ -48,7 +48,8 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable{
 	protected Socket socket = null;
 	protected InputStream in = null;
 	protected OutputStream out = null;
-
+	protected boolean isFirstRequest = false;
+	
 	protected final String name;
 
 	protected AsyncTransportListener listener = null;
@@ -148,8 +149,27 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable{
 			log.debug("starting dispatch via " + name + " of " + summarize(jsonRequestString, 50));
 		}
 
+		final boolean includeHeader;
+		synchronized(this){
+			if (isFirstRequest){
+				includeHeader = true;
+				isFirstRequest = false;
+			}
+			else{
+				includeHeader = false;
+			}
+		}
+		
 		// combine the output pieces:
-		String httpRequestString = pseudoRequestHeader + ((char)13) + ((char)10) + ((char)13) + ((char)10) + jsonRequestString;
+		final String httpRequestString;
+		if (includeHeader){
+			// this is the first request, need it to look like a valid HTTP request
+			httpRequestString = pseudoRequestHeader + ((char)13) + ((char)10) + ((char)13) + ((char)10) + jsonRequestString;
+		}
+		else{
+			// it's not the first request, no need for the header
+			httpRequestString = "" + ((char)13) + ((char)10) + ((char)13) + ((char)10) + jsonRequestString;
+		}
 
 		// send the request
 		try{
@@ -167,7 +187,7 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable{
 
 	public void run() {
 
-		// strip the header and get a JsonReader
+		// strip the HTTP response header and get a JsonReader
 		JsonReader reader = null;
 		try{
 			if (!stripHeader()){
