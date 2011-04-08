@@ -196,6 +196,7 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable{
 				return;
 			}
 			reader = new JsonReader(new InputStreamReader(in, "UTF-8"));
+			reader.setLenient(true); // this allows reading multiple top-level values
 		}
 		catch (Exception ex){
 			log.error("failed to parse response due to " + ex, ex);
