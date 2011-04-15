@@ -194,17 +194,17 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable{
 		JsonReader reader = null;
 		try{
 			if (!stripHeader()){
-				if (isConnected()){
-					log.debug("failed to strip header, giving up");
-					close();
-				}
+				log.debug("failed to strip header, giving up");
+				close();
 				return;
 			}
 			reader = new JsonReader(new InputStreamReader(in, "UTF-8"));
 			reader.setLenient(true); // this allows reading multiple top-level values
 		}
 		catch (Exception ex){
-			log.error("failed to parse response due to " + ex, ex);
+			if (isConnected()){
+				log.error("failed to parse response due to " + ex, ex);
+			}
 			close();
 			return;
 		}
@@ -227,8 +227,8 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable{
 		catch (Exception ex){
 			if (isConnected()){
 				log.error("caught " + ex + " while reading responses for " + name + "; closing", ex);
-				close();
 			}
+			close();
 		}
 	}
 
