@@ -48,7 +48,7 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable{
 	protected Socket socket = null;
 	protected InputStream in = null;
 	protected OutputStream out = null;
-	protected boolean isFirstRequest = false;
+	protected boolean isFirstRequest = true;
 	
 	protected final String name;
 
@@ -161,20 +161,23 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable{
 		}
 		
 		// combine the output pieces:
-		final String httpRequestString;
-		if (includeHeader){
-			// this is the first request, need it to look like a valid HTTP request
-			httpRequestString = pseudoRequestHeader + ((char)13) + ((char)10) + ((char)13) + ((char)10) + jsonRequestString;
-		}
-		else{
-			// it's not the first request, no need for the header
-			httpRequestString = "" + ((char)13) + ((char)10) + ((char)13) + ((char)10) + jsonRequestString;
-		}
-
-		// send the request
 		try{
+			final String httpRequestString;
+			if (includeHeader){
+				// this is the first request, need it to look like a valid HTTP request
+				byte[] contentBytes = jsonRequestString.getBytes("UTF-8");
+				int contentLength = contentBytes.length;  // yes, we need this for some servers...  ugh.
+				httpRequestString = pseudoRequestHeader + "\nContent-length: " + contentLength + ((char)13) + ((char)10) + ((char)13) + ((char)10) + jsonRequestString;
+			}
+			else{
+				// it's not the first request, no need for the header
+				httpRequestString = "" + ((char)13) + ((char)10) + ((char)13) + ((char)10) + jsonRequestString;
+			}
+	
+			// send the request
+			byte[] bytesToWrite = httpRequestString.getBytes("UTF-8");
 			synchronized (this){
-				out.write(httpRequestString.getBytes("UTF-8"));
+				out.write(bytesToWrite);
 				out.flush();
 			}
 		}

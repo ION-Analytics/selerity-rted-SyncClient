@@ -77,6 +77,10 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
 		AsyncPseudoHTTPTransport transport = null;
 		synchronized (transports){
 			transport = transports.getNextActive();
+			while ((transport != null) && (!transport.isConnected())){
+				log.warn("got a disconnected transport " + transport + ", will not put back in pool");
+				transport = transports.getNextActive();
+			}
 		}
 			
 		log.debug("got transport " + transport + " from pool");
@@ -112,7 +116,7 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
 	
 	public void run(){
 		while (true){
-			// first, check retirement ages of exiting transports.  Yes, this stops the world
+			// first, check retirement ages of existing transports.  Yes, this stops the world
 			log.debug("checking ages of transports");
 			Set<AsyncPseudoHTTPTransport> retired;
 			synchronized(transports){

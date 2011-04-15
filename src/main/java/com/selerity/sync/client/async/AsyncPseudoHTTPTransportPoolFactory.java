@@ -21,6 +21,12 @@ public class AsyncPseudoHTTPTransportPoolFactory implements AsyncTransportFactor
 
 	private static final Log log = LogFactory.getLog (AsyncPseudoHTTPTransportPoolFactory.class);
 
+	public static final String CONNECTION_POOL_CHECK_INTERVAL_MILLIS = "com.selerity.sync.client.async.connectionPool.checkInterval";
+	public static final String CONNECTION_POOL_START_INTERVAL_MILLIS = "com.selerity.sync.client.async.connectionPool.startInterval";
+	public static final String CONNECTION_POOL_ACTIVE_INTERVAL_MILLIS = "com.selerity.sync.client.async.connectionPool.activeInterval";
+	public static final String CONNECTION_POOL_RETIREMENT_INTERVAL_MILLIS = "com.selerity.sync.client.async.connectionPool.retirementInterval";
+	public static final String CONNECTION_POOL_MIN_SIZE = "com.selerity.sync.client.async.connectionPool.poolSize";
+	
 	protected final String httpAction;
 	protected final String httpResource;
 	protected final String host;
@@ -31,7 +37,33 @@ public class AsyncPseudoHTTPTransportPoolFactory implements AsyncTransportFactor
 	protected final long activeIntervalMillis;
 	protected final long retirementIntervalMillis;
 
-
+	protected static long getDefaultedProperty(String propertyName, long defaultValue){
+		String s = System.getProperty(propertyName);
+		if (s == null){
+			log.info("Optional property not set: " + propertyName + "; defaulting to " + defaultValue);
+			return defaultValue;
+		}
+		return Long.parseLong(s);
+	}
+	
+	public AsyncPseudoHTTPTransportPoolFactory(String httpAction, String httpResource,
+			String host, int port){
+		this.httpAction = httpAction;
+		this.httpResource = httpResource;
+		this.host = host;
+		this.port = port;
+		this.checkIntervalMillis = getDefaultedProperty(CONNECTION_POOL_CHECK_INTERVAL_MILLIS, 5000); 
+		this.startIntervalMillis = getDefaultedProperty(CONNECTION_POOL_START_INTERVAL_MILLIS, 10000);
+		this.activeIntervalMillis = getDefaultedProperty(CONNECTION_POOL_ACTIVE_INTERVAL_MILLIS, 60000);
+		this.retirementIntervalMillis = getDefaultedProperty(CONNECTION_POOL_RETIREMENT_INTERVAL_MILLIS, 30000);
+		this.minPoolSize = (int)getDefaultedProperty(CONNECTION_POOL_MIN_SIZE, 10);
+	}
+	
+	public AsyncPseudoHTTPTransportPoolFactory(String host, int port){
+		this(AsyncPseudoHTTPTransport.DEFAULT_HTTP_ACTION, AsyncPseudoHTTPTransport.DEFAULT_HTTP_RESOURCE,
+				host, port);
+	}
+	
 	public AsyncPseudoHTTPTransportPoolFactory(String httpAction, String httpResource,
 			String host, int port,
 			long checkIntervalMillis, long startIntervalMillis, int minPoolSize,
