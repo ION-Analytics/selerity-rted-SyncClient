@@ -131,7 +131,7 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
 				startNewTransport();
 			}
 			else if (transports.getActiveCount() < minPoolSize){
-				log.debug("currently have onlt " + transports.getActiveCount() + " transports, pool should have " + minPoolSize);
+				log.debug("currently have only " + transports.getActiveCount() + " transports, pool should have " + minPoolSize);
 				long elapsedSinceLastStart = System.currentTimeMillis() - lastStartTimeMillis;
 				if (elapsedSinceLastStart >= startIntervalMillis){
 					log.debug("enough time has passed, starting another transport");
