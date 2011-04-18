@@ -39,6 +39,8 @@ public class AsyncDispatcherImpl implements AsyncDispatcher, AsyncTransportListe
 	
 	protected int nextID = 0;
 	
+	protected final long DEFAULT_SYNCHRONOUS_TIMEOUT_MILLIS = 60000; 
+	
 	public AsyncDispatcherImpl(AsyncTransport transport){
 		this.transport = transport;
 		transport.addAsyncTransportListener(this);
@@ -50,7 +52,7 @@ public class AsyncDispatcherImpl implements AsyncDispatcher, AsyncTransportListe
 			return SimpleStreamedResponse.getSingleResponseInstance(DispatchException.INTERNAL_ERROR, 
 					"got duplicated id: \"" + id + "\"", null, id);
 		}
-		SimpleStreamedResponse response = new SimpleStreamedResponse();
+		SimpleStreamedResponse response = new SimpleStreamedResponse(id);
 		responses.put(id, response);
 		
 		FullRequest fullRequest = new FullRequest(request, user, token, client, mode, id);
@@ -78,11 +80,16 @@ public class AsyncDispatcherImpl implements AsyncDispatcher, AsyncTransportListe
 		long startTime = System.currentTimeMillis();
 		log.debug("starting synchronous dispatch for request to " + request.getMethod());
 		StreamedResponse sr = asyncDispatch(request, user, token, client, mode);
-		Response response = sr.getNextResponse();
+		Response response = sr.getNextResponse(DEFAULT_SYNCHRONOUS_TIMEOUT_MILLIS);
+		if (response == null){
+			log.error("timed out on response to request for " + request.getMethod());
+			return new Response(new DispatchException(DispatchException.TIMEOUT_ERROR, "exceeded response timeout"), sr.getID(), "Selerity Streaming API", false);
+		}
 		long elapsedTime = System.currentTimeMillis() - startTime;
 		log.debug("got synchronous response in " + elapsedTime + " ms for request to " + request.getMethod());
 		if (response.hasMore()){
 			log.error("response may not have been single - remaining responses will be discarded");
+			sr.setWantsNoMore();  // discard subsequent
 		}
 		return response;		
 	}

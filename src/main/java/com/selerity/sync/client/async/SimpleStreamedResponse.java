@@ -38,6 +38,7 @@ public class SimpleStreamedResponse implements StreamedResponse {
 	protected boolean wantsMore = true;
 	
 	protected final int maxSize;
+	protected final String id;
 	
 	
 	/** Creates a new StreamedResponse instance with the given single response.
@@ -46,7 +47,7 @@ public class SimpleStreamedResponse implements StreamedResponse {
 	 * @return
 	 */
 	public static StreamedResponse getSingleResponseInstance(Response response){
-		SimpleStreamedResponse sr = new SimpleStreamedResponse();
+		SimpleStreamedResponse sr = new SimpleStreamedResponse(response.getID());
 		if (response.hasMore()){
 			throw new IllegalArgumentException("cannot create a single response instance for a response which sets 'more' to true");
 		}
@@ -88,13 +89,22 @@ public class SimpleStreamedResponse implements StreamedResponse {
 	}
 	
 	
-	public SimpleStreamedResponse(){
-		this(DEFAULT_MAX_SIZE);
+	public SimpleStreamedResponse(String id){
+		this(id, DEFAULT_MAX_SIZE);
 	}
 	
-	public SimpleStreamedResponse(int maxSize){
+	public SimpleStreamedResponse(String id, int maxSize){
+		this.id = id;
 		this.maxSize = maxSize;
 		responseQueue = new LinkedList<Response>();
+	}
+	
+	/** Gets the ID of the request to which this reponse corresponds.
+	 * 
+	 * @return the ID of the request to which this reponse corresponds.
+	 */
+	public String getID(){
+		return id;
 	}
 	
 	/** Adds another response to this Streamed Response.  Sets the more flag to false if 
