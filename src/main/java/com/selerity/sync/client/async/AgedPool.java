@@ -23,7 +23,7 @@ import java.util.Set;
  * A simple class that manages elements which transition from Active to Retiring to Retired state based on
  * time intervals.
  * 
- * This class is not synchronized - callers must synchronize to avoid unexpected behavior.
+ * This class is thread safe.
  *
  * @param <T>
  */
@@ -43,15 +43,15 @@ public class AgedPool<T> {
 		this.retireTimeLimitMillis = retireTimeLimitMillis;
 	}
 	
-	public int getActiveCount(){
+	public synchronized int getActiveCount(){
 		return activeQueue.size();
 	}
 	
-	public int getRetiringCount(){
+	public synchronized int getRetiringCount(){
 		return retiringQueue.size();
 	}
 	
-	public void addNew(T t){
+	public synchronized void addNew(T t){
 		if (startTimesMillis.containsKey(t)){
 			throw new IllegalArgumentException("cannot add new since element has already been added");
 		}
@@ -59,21 +59,61 @@ public class AgedPool<T> {
 			activeQueue.add(t);
 			startTimesMillis.put(t, System.currentTimeMillis());
 		}
+		notifyAll();
 	}
 	
-	public void returnToActive(T t){
+	public synchronized void returnToActive(T t){
 		if (startTimesMillis.containsKey(t)){
 			activeQueue.add(t);
 		}
 		else{
 			throw new IllegalArgumentException("cannot return since element hasn't been added");
 		}
+		notifyAll();
 	}
 	
-	public T getNextActive(){
+	public synchronized T waitForNextActive(){
+		while (activeQueue.isEmpty()){
+			try{
+				wait();
+			}
+			catch (InterruptedException ix){
+				// ignore
+			}
+		}
+		
+		notifyAll();
+		
+		return activeQueue.remove();
+	}
+	
+	public synchronized T waitForNextActive(long maxWaitTimeMillis){
+		long giveUpTime = System.currentTimeMillis() + maxWaitTimeMillis;
+		while ((System.currentTimeMillis() < giveUpTime) && (activeQueue.isEmpty())){
+			try{
+				wait(giveUpTime - System.currentTimeMillis());
+			}
+			catch (InterruptedException ix){
+				// ignore
+			}
+		}
+		
+		if (activeQueue.isEmpty()){
+			return null; // no change in state, no need to notify
+		}
+		
+		notifyAll();
+		
+		return activeQueue.remove();
+	}
+	
+	public synchronized T getNextActive(){
 		if (activeQueue.isEmpty()){
 			return null;
 		}
+		
+		notifyAll();
+		
 		return activeQueue.remove();
 	}
 	
@@ -83,7 +123,7 @@ public class AgedPool<T> {
 	 * 
 	 * @return
 	 */
-	public Set<T> getRetired(){
+	public synchronized Set<T> getRetired(){
 		long currentTimeMillis = System.currentTimeMillis();
 		
 		// first, check to see which items should be moved from active to retiring
@@ -114,6 +154,8 @@ public class AgedPool<T> {
 				retired.add(t);
 			}
 		}
+		
+		notifyAll();
 		
 		return retired;
 	}

@@ -43,6 +43,8 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
 	protected long checkIntervalMillis;
 	protected long startIntervalMillis;
 	
+	protected long lastStartTimeMillis = 0;
+	
 	
 	AsyncPseudoHTTPTransportPool(String httpAction, String httpResource, String host, int port, int minPoolSize, long activeIntervalMillis, long retirementIntervalMillis){
 		this.httpAction = httpAction;
@@ -74,14 +76,12 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
 	}
 
 	public void asyncDispatch(FullRequest request) throws DispatchException{
-		AsyncPseudoHTTPTransport transport = null;
-		synchronized (transports){
-			transport = transports.getNextActive();
-			while ((transport != null) && (!transport.isConnected())){
-				log.warn("got a disconnected transport " + transport + ", will not put back in pool");
-				transport = transports.getNextActive();
-			}
-		}
+		log.debug("getting next available transport instance...");
+		AsyncPseudoHTTPTransport transport = transports.waitForNextActive(100);
+		while ((transport != null) && (!transport.isConnected())){
+			log.warn("got a disconnected transport " + transport + ", will not put back in pool");
+			transport = transports.waitForNextActive(100);
+		}		
 			
 		log.debug("got transport " + transport + " from pool");
 		
@@ -119,33 +119,31 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
 			// first, check retirement ages of existing transports.  Yes, this stops the world
 			log.debug("checking ages of transports");
 			Set<AsyncPseudoHTTPTransport> retired;
-			synchronized(transports){
-				retired = transports.getRetired();
-			}
+			retired = transports.getRetired();
 			for (AsyncPseudoHTTPTransport transport : retired){
 				transport.close();
 			}
 			log.debug("retired " + retired.size() + " old transports");
 			
-			// now see how many we need to start
-			int startCount = 0;
-			synchronized(transports){
-				startCount = (minPoolSize - transports.getActiveCount());
-			}
-			log.debug("need to start " + startCount + " new transports");
-			for (int i = 0; i < startCount; i++){
+			// now see if we need to start any new transports
+			if (transports.getActiveCount() < 1){
+				log.warn("no active transports, need to start one immediately!");
 				startNewTransport();
-				if (i < startCount){
-					try{
-						log.debug("sleeping a while before starting another transport");
-						Thread.sleep(startIntervalMillis);
-					}
-					catch (Exception ex){
-						// ignore
-					}
-				}
 			}
-			log.debug("finished starting new transports, sleeping a while until next check");
+			else if (transports.getActiveCount() < minPoolSize){
+				log.debug("currently have onlt " + transports.getActiveCount() + " transports, pool should have " + minPoolSize);
+				long elapsedSinceLastStart = System.currentTimeMillis() - lastStartTimeMillis;
+				if (elapsedSinceLastStart >= startIntervalMillis){
+					log.debug("enough time has passed, starting another transport");
+					startNewTransport();
+				}
+				else{
+					log.debug("only " + elapsedSinceLastStart + " ms have passed since last start, need to wait a while");
+				}
+			}			
+			
+		
+			log.debug("sleeping a while until next check");
 			try{
 				Thread.sleep(checkIntervalMillis);
 			}
@@ -156,24 +154,26 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
 	}
 	
 
-	protected synchronized void startNewTransport(){
-		int transportNumber = nextTransportNumber++;
+	protected void startNewTransport(){
+		int transportNumber = getNextTransportNumber();
 		AsyncPseudoHTTPTransport transport = new AsyncPseudoHTTPTransport(httpAction, httpResource,
 				host, port, host + ":" + port + ":" + transportNumber);
 		transport.addAsyncTransportListener(this);
 		try{
 			log.debug("starting transport " + transport + "...");
 			transport.start();
-			synchronized(transports){
-				transports.addNew(transport);
-			}
+			transports.addNew(transport);
+			lastStartTimeMillis = System.currentTimeMillis();
 			log.debug("transport " + transport + " started");
 		}
 		catch (Exception ex){
 			log.error("caught " + ex + " while trying to start transport " + transport + "; giving up");
 			transport.close();
-		}
-		
+		}		
+	}
+	
+	protected synchronized int getNextTransportNumber(){
+		return nextTransportNumber++;
 	}
 	
 	
