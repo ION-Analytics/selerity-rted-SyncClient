@@ -13,18 +13,19 @@ import com.google.gson.JsonElement;
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be 
  * removed from the software by any user thereof. 
  * 
- * An abstract class for building clients of the Selerity Sync API.
+ * An abstract class for building clients of a Narwhal-based service.
  *
  */
 
-public abstract class AbstractSyncClient {
-
-	protected final String clientAppName;
-	protected final Dispatcher dispatcher;
+public class AbstractNarwhalClient {
+	
+	
+	protected final NarwhalService service;
 	protected final String user;
 	protected final String password;
+	protected final String clientAppName;
 	
-	/** Initialize the dispatcher and start a session.
+	/** 
 	 * 
 	 * @param host
 	 * @param port
@@ -32,14 +33,13 @@ public abstract class AbstractSyncClient {
 	 * @param password
 	 * @throws Exception 
 	 */
-	public AbstractSyncClient(TransportFactory transportFactory, String user, String password, String clientAppName) throws Exception{
-		// initialized the transport and method dispatcher
-		Transport transport = transportFactory.getInstance();
-		dispatcher = new RhinoDispatcher(transport);
+	public AbstractNarwhalClient(NarwhalService service, String user, String password, String clientAppName) throws Exception{
+		this.service = service;
 		
-		this.clientAppName = clientAppName;
 		this.user = user;
 		this.password = password;
+		
+		this.clientAppName = clientAppName;
 	}
 
 
@@ -50,7 +50,7 @@ public abstract class AbstractSyncClient {
 	 * @throws DispatchException
 	 */
 	public JsonElement dispatch(Request request, Session session) throws DispatchException{
-		return dispatcher.dispatch(request, session); 	
+		return service.dispatch(request, session); 	
 	}
 	
 	/** Create a paginated response iterator using the current session.  Requires the name of the parameter object that
@@ -61,17 +61,7 @@ public abstract class AbstractSyncClient {
 	 * @throws DispatchException
 	 */
 	public PaginatedResponseIterator paginatedDispatch(Request request, Session session, String optionObjectName, int limit) throws DispatchException{
-		return new PaginatedResponseIteratorImpl(dispatcher, session, request, optionObjectName, limit);
-	}
-	
-	/** Dispatch the array of requests as a single boxcar using the current session.
-	 * 
-	 * @param requests
-	 * @return
-	 * @throws DispatchException
-	 */
-	public Response[] boxcarDispatch(Request[] requests, Session session) throws DispatchException{
-		return dispatcher.boxcarDispatch(requests, session); 	
+		return new NarwhalPaginatedResponseInteratorImpl(service, session, request, optionObjectName, limit);
 	}
 
 	
@@ -82,7 +72,7 @@ public abstract class AbstractSyncClient {
 	 * @throws DispatchException
 	 */
 	public Session startSession() throws DispatchException{
-		return new RhinoSessionFactory().getInstance(dispatcher,
+		return new NarwhalSessionFactory().getInstance(service,
 				clientAppName, null, user, password);
 	}
 	
@@ -93,7 +83,7 @@ public abstract class AbstractSyncClient {
 	 * @throws DispatchException
 	 */
 	public Session startSession(String mode) throws DispatchException{
-		return new RhinoSessionFactory().getInstance(dispatcher,
+		return new NarwhalSessionFactory().getInstance(service,
 				clientAppName, mode, user, password);
 	}
 	
@@ -104,7 +94,7 @@ public abstract class AbstractSyncClient {
 	 * @throws DispatchException
 	 */
 	public Session startSessionExtensionMode() throws DispatchException{
-		return new RhinoSessionFactory().getInstance(dispatcher,
+		return new NarwhalSessionFactory().getInstance(service,
 				clientAppName, "extension", user, password);
 	}
 	
@@ -126,5 +116,4 @@ public abstract class AbstractSyncClient {
 		Request logoutRequest = new Request("AuthenticationHandler.invalidate");
 		dispatch(logoutRequest, session);
 	}
-	
 }

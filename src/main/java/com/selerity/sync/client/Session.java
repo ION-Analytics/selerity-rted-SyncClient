@@ -14,7 +14,6 @@ package com.selerity.sync.client;
  *  A Session abstracts a set of header parameters which may be reused across many method dispatches.  
  *  These parameters are generally determined via an authentication method invocation.
  * 
- * @author andrewbrook
  *
  */
 public interface Session {

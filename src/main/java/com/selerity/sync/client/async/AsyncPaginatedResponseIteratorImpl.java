@@ -29,7 +29,6 @@ import com.selerity.sync.client.Session;
  * Note also that this class assumes object (map) style parameters -- it cannot be used with array-style
  * parameters.
  * 
- * @author andrewbrook
  *
  */
 public class AsyncPaginatedResponseIteratorImpl implements PaginatedResponseIterator {

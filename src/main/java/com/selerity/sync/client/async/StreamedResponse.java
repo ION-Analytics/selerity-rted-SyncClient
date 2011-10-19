@@ -23,7 +23,6 @@ import com.selerity.sync.client.Response;
  * stop.
  * 
  * 
- * @author andrewbrook
  *
  */
 

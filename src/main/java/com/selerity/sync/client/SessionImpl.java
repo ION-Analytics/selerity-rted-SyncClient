@@ -1,4 +1,7 @@
-package com.selerity.sync.client.async;
+package com.selerity.sync.client;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /** 
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code is confidential 
@@ -11,25 +14,26 @@ package com.selerity.sync.client.async;
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be 
  * removed from the software by any user thereof. 
  * 
+ *  A simple implementation of a Session which imposes no structure or limitation on the parameters.
+ *  Basically just a wrapper for a Map<String,String>.
+ * 
  *
  */
 
-public class AsyncPseudoHTTPTransportFactory implements AsyncTransportFactory{
+public class SessionImpl implements Session{
 
-	protected final String host;
-	protected final int port;
+	protected final Map<String,String> parameters = new HashMap<String,String>();
 	
-	public AsyncPseudoHTTPTransportFactory(String host, int port) {
-		this.host = host;
-		this.port = port;
+	public SessionImpl(){
+		
 	}
-
-	public AsyncTransport getInstance() throws Exception{
-		AsyncPseudoHTTPTransport transport = new AsyncPseudoHTTPTransport(
-				AsyncPseudoHTTPTransport.DEFAULT_HTTP_ACTION, 
-				AsyncPseudoHTTPTransport.DEFAULT_HTTP_RESOURCE, host, port, host + ":" + port);
-		transport.start();
-		return transport;
+	
+	public void setHeaderParameter(String parameterName, String parameterValue){
+		parameters.put(parameterName, parameterValue);
+	}
+	
+	public String getHeaderParameter(String parameterName){
+		return parameters.get(parameterName);
 	}
 	
 }

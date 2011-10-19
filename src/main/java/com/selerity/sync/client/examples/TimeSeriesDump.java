@@ -3,8 +3,11 @@ package com.selerity.sync.client.examples;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -161,6 +164,87 @@ public class TimeSeriesDump extends AbstractSyncClient{
 		return offsetElem.getAsInt();
 	}
 	
+	/** Gets the value of the tag with the given UUID
+	 * 
+	 * @param session
+	 * @param tagUUID
+	 * @return
+	 * @throws DispatchException
+	 */
+	public String getTagValue(Session session, String tagUUID) throws DispatchException{
+		Request tagValueRequest = new Request("TagHandler.findById");
+		tagValueRequest.setMethodParameter("tagId", tagUUID);
+		JsonElement tagElement = dispatch(tagValueRequest, session);
+		if ((tagElement == null) || tagElement.isJsonNull()){
+			throw new NullPointerException("tag " + tagUUID + " does not exist");
+		}
+		JsonObject tag = tagElement.getAsJsonObject();
+		return MiscUtils.getString(tag, "value", null);
+	}
+	
+	/** Gets all specs which are valid for the given timeseries and any one of the given content sets.  Returns in the
+	 *  form of a map from swordfishID to spec.
+	 * 
+	 * @param session
+	 * @param contentSetUUIDs
+	 * @param timeSeriesUUID
+	 * @return
+	 * @throws DispatchException
+	 */
+	public Map<Long,JsonObject> getObsSpecsForTimeSeries(Session session, Collection<String> contentSetUUIDs, String timeSeriesUUID) throws DispatchException{
+		Map<Long,JsonObject> specMap = new HashMap<Long,JsonObject>();
+	
+		for (String contentSetUUID : contentSetUUIDs){
+			Request obsSpecTSRequest = new Request("ObservationSpecHandler.getObservationSpecsForTimeseries");
+			obsSpecTSRequest.setMethodParameter("timeseriesId", timeSeriesUUID);
+			obsSpecTSRequest.setMethodParameter("contentSetId", contentSetUUID);
+			JsonElement obsSpecElem = dispatch(obsSpecTSRequest, session);
+			if ((obsSpecElem != null) && (!obsSpecElem.isJsonNull())){
+				JsonArray obsSpecArray = obsSpecElem.getAsJsonArray();
+				for (int i = 0; i < obsSpecArray.size(); i++){
+					JsonObject obsSpec = obsSpecArray.get(i).getAsJsonObject();
+					long swordfishID = MiscUtils.getLong(obsSpec, "legacyId", 0);
+					specMap.put(swordfishID, obsSpec);
+				}
+			}
+		}
+		
+		return specMap;
+	}
+	
+	/** Get all specs which are valid for the given observable and any on the given content sets.  Returns in the
+	 *  form of a map from swordfishID to spec.
+	 * 
+	 * @param session
+	 * @param contentSetUUIDs
+	 * @param observableUUID
+	 * @return
+	 * @throws DispatchException
+	 */
+	public Map<Long,JsonObject> getObsSpecsForObservable(Session session, Collection<String> contentSetUUIDs, String observableUUID) throws DispatchException{
+		Map<Long,JsonObject> specMap = new HashMap<Long,JsonObject>();
+		
+		for (String contentSetUUID : contentSetUUIDs){
+			Request obsSpecOBRequest = new Request("ObservationSpecHandler.getObservationSpecsForObservable");
+			// variant for object (map) style parames)
+			obsSpecOBRequest.setMethodParameter("observableId", observableUUID);
+			obsSpecOBRequest.setMethodParameter("contentSetId", contentSetUUID);
+			JsonElement obsSpecElem = dispatch(obsSpecOBRequest, session);
+			if ((obsSpecElem != null) && (!obsSpecElem.isJsonNull())){
+				JsonArray obsSpecArray = obsSpecElem.getAsJsonArray();
+				for (int i = 0; i < obsSpecArray.size(); i++){
+					JsonObject obsSpec = obsSpecArray.get(i).getAsJsonObject();
+					long swordfishID = MiscUtils.getLong(obsSpec, "legacyId", 0);
+					specMap.put(swordfishID, obsSpec);
+				}
+			}
+		
+		}
+		
+		return specMap;
+	}
+	
+	
 	/** 
 	 * @param args
 	 */
@@ -202,6 +286,8 @@ public class TimeSeriesDump extends AbstractSyncClient{
 			Session session = dumper.startSession();
 			
 			
+			
+			
 			// look up the time series
 			JsonObject timeseries = dumper.getTimeSeriesByID(session, timeSeriesUUID);	
 			if (timeseries == null){
@@ -212,25 +298,33 @@ public class TimeSeriesDump extends AbstractSyncClient{
 			String timeseriesName = timeseries.get("name").getAsString();
 			log.debug("timeseries name = " + timeseriesName);
 			
+			// look up some tag information from the timeseries
+			String measureTagUUID = MiscUtils.getString(timeseries, "measureTagId", null);
+			String measure = dumper.getTagValue(session, measureTagUUID);
+			log.debug("measure = " + measure);
+			
+			String periodRelativity = MiscUtils.getString(timeseries, "periodRelativity", null);
+			log.debug("periodRelativity = " + periodRelativity);
+			
 			
 			// look up next observable in the series
 			JsonObject nextObservable = dumper.getNextObservableInTimeSeries(session, timeSeriesUUID);
 			log.debug("got next observable: " + nextObservable);
 			
-			// if there is no next observable then give up
+			String eventID = null;
+			String observableID = null;
+			String period = null;
 			if (nextObservable == null){
-				log.warn("found no subsequent observable in the time series with this UUID: " + timeSeriesUUID + ", quitting");
-				dumper.closeSession(session);
-				return;
+				log.info("no observable in this timeseries, it may be for an unschedule event series");
 			}
-			
-			// pull a bunch of data out of the observable
-			String eventID = nextObservable.get("eventId").getAsString();
-			String observableID = nextObservable.get("observableId").getAsString();
-			String measure = nextObservable.get("measure").getAsString();
-			String period = nextObservable.get("period").getAsString();
-			log.debug("measure = " + measure);
-			log.debug("period = " + period);
+			else{
+				// pull a bunch of data out of the observable
+				eventID = nextObservable.get("eventId").getAsString();
+				observableID = nextObservable.get("observableId").getAsString();
+				period = nextObservable.get("period").getAsString();
+				
+				log.debug("period = " + period);
+			}
 			
 			
 			// look up the content sets to which this user is entitled
@@ -244,79 +338,86 @@ public class TimeSeriesDump extends AbstractSyncClient{
 			BufferedWriter out = null; // only open the output file if there's something to write
 			int specCount = 0;
 			
+			// now get the specs
+			Map<Long,JsonObject> obsSpecMap = dumper.getObsSpecsForTimeSeries(session, contentSetUUIDList, timeSeriesUUID);
+			if (observableID != null){
+				obsSpecMap.putAll(dumper.getObsSpecsForObservable(session, contentSetUUIDList, observableID));
+			}
+			
+			log.info("found " + obsSpecMap.size() + " unique matching obs spec(s)");
+			
 			// Loop through the remaining sections by content set
-			for (String contentSetUUID : contentSetUUIDList){
+			for (JsonObject obsSpec : obsSpecMap.values()){			
+				log.debug("obsSpec = " + obsSpec);
+				// get the swordfish obs spec id
+				long swordfishObsSpecID = obsSpec.get("legacyId").getAsLong(); 
+				log.debug("swordfishObsSpecID = " + swordfishObsSpecID);
 				
-				// look up the spec for that observable
-				Request obsSpecRequest = new Request("ObservationSpecHandler.getCurrentObservationSpecForObservable");
-				// variant for object (map) style parames)
-				//obsSpecRequest.setMethodParameter("observableId", observableID);
-				//obsSpecRequest.setMethodParameter("contentSetId", contentSetUUID);
-				// array variant of same
-				obsSpecRequest.addMethodParameter(observableID);
-				obsSpecRequest.addMethodParameter(contentSetUUID);
-				JsonElement obsSpecElem = dumper.dispatch(obsSpecRequest, session);
-				if ((obsSpecElem == null) || (obsSpecElem.isJsonNull())){
-					log.warn("no observation specification available for content set UUID " + contentSetUUID + ", trying next one");
+				// look up some offset and data type info for the measurement field
+				JsonObject measurementField = dumper.getFieldByName(obsSpec, "Measurement");
+				if (measurementField == null){
+					log.error("couldn't find measurement field for spec " + swordfishObsSpecID);
 				}
-				else{					
-					JsonObject obsSpec = obsSpecElem.getAsJsonObject();		
-					log.debug("obsSpec = " + obsSpec);
-					// get the legacy obs spec id
-					long legacyObsSpecID = obsSpec.get("legacyId").getAsLong(); 
-					log.debug("legacyObsSpecID = " + legacyObsSpecID);
-					
-					// look up some offset and data type info for the measurement field
-					JsonObject measurementField = dumper.getFieldByName(obsSpec, "Measurement");
-					if (measurementField == null){
-						log.error("couldn't find measurement field for spec " + legacyObsSpecID);
-					}
-					int measurementOffset = dumper.getOffsetForField(measurementField);
-					String measurementDataType = dumper.getDataTypeForField(measurementField);
-					
-					// and get the offset for the observation status field
-					JsonObject obsStatusField = dumper.getFieldByName(obsSpec, "ObservationStatus");
-					if (obsStatusField == null){
-						log.error("couldn't find observation status field for spec " + legacyObsSpecID);
-					}
-					int obsStatusOffset = dumper.getOffsetForField(obsStatusField);
-					
-					// look up the event for that observable
+				int measurementOffset = dumper.getOffsetForField(measurementField);
+				String measurementDataType = dumper.getDataTypeForField(measurementField);
+				
+				// and get the offset for the observation status field
+				JsonObject obsStatusField = dumper.getFieldByName(obsSpec, "ObservationStatus");
+				if (obsStatusField == null){
+					log.error("couldn't find observation status field for spec " + swordfishObsSpecID);
+				}
+				int obsStatusOffset = dumper.getOffsetForField(obsStatusField);
+				
+				JsonObject correlationIDField = dumper.getFieldByName(obsSpec, "CorrelationID");
+				int correlationIDOffset = -1;
+				if (correlationIDField == null){
+					log.info("could't find correlationID field for spec " + swordfishObsSpecID);
+				}
+				else{
+					correlationIDOffset = dumper.getOffsetForField(correlationIDField);
+				}
+				
+				// look up the event info if this is for a scheduled event
+				String expectedStart = null;
+				if (eventID != null){
 					Request eventRequest = new Request("EventHandler.findById");
 					eventRequest.setMethodParameter("eventId", eventID);
 					eventRequest.setMethodParameter("timeZoneId", timeZoneID);
-					eventRequest.setMethodParameter("contentSetId", contentSetUUID);
 					JsonObject event = dumper.dispatch(eventRequest, session).getAsJsonObject();		
 					log.debug("event = " + event);
 					
 					// get the expected start time of the event
-					String expectedStart = event.get("expectedStart").getAsString();
+					expectedStart = event.get("expectedStart").getAsString();
 					log.debug("expectedStart = " + expectedStart);
-					
-					// now write out the results to a file
-					if (out == null){
-						// if it wasn't opened already then open it and write the header first
-						out = new BufferedWriter(new FileWriter(outputFileName));
-						out.write("expectedStartTime (" + timeZoneID + ")" 
-								+ fieldSeparator + "measure" 
-								+ fieldSeparator + "period" 
-								+ fieldSeparator + "legacyObsSpecID" 
-								 + fieldSeparator + "measurement offset" 
-								 + fieldSeparator + "observation status offset" 
-								 + fieldSeparator + "measurement data type\n");
-					}
-					out.write(expectedStart 
-							+ fieldSeparator + measure 
-							+ fieldSeparator + period 
-							+ fieldSeparator + legacyObsSpecID
-							+ fieldSeparator + measurementOffset
-							+ fieldSeparator + obsStatusOffset
-							+ fieldSeparator + measurementDataType
-							+ "\n");
-					specCount++;
 				}
-			
+				
+				// now write out the results to a file
+				if (out == null){
+					// if it wasn't opened already then open it and write the header first
+					out = new BufferedWriter(new FileWriter(outputFileName));
+					out.write("expectedStartTime (" + timeZoneID + ")" 
+							+ fieldSeparator + "measure" 
+							+ fieldSeparator + "period relativity"
+							+ fieldSeparator + "period" 
+							+ fieldSeparator + "swordfishObsSpecID" 
+							 + fieldSeparator + "measurement offset" 
+							 + fieldSeparator + "observation status offset" 
+							 + fieldSeparator + "correlationID offset"
+							 + fieldSeparator + "measurement data type\n");
+				}
+				out.write((expectedStart == null ? "unscheduled" : expectedStart)
+						+ fieldSeparator + measure 
+						+ fieldSeparator + periodRelativity
+						+ fieldSeparator + period 
+						+ fieldSeparator + swordfishObsSpecID
+						+ fieldSeparator + measurementOffset
+						+ fieldSeparator + obsStatusOffset
+						+ fieldSeparator + correlationIDOffset
+						+ fieldSeparator + measurementDataType
+						+ "\n");
+				specCount++;
 			}
+			
 			
 			// close the output file if it was opened
 			if (out != null){

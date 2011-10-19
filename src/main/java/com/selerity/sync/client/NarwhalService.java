@@ -1,4 +1,7 @@
-package com.selerity.sync.client.async;
+package com.selerity.sync.client;
+
+import com.google.gson.JsonElement;
+import com.google.gson.stream.JsonReader;
 
 /** 
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code is confidential 
@@ -11,25 +14,18 @@ package com.selerity.sync.client.async;
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be 
  * removed from the software by any user thereof. 
  * 
+ * An abstract interface for accessing a Narwhal-based service.
  *
  */
 
-public class AsyncPseudoHTTPTransportFactory implements AsyncTransportFactory{
+public interface NarwhalService {
 
-	protected final String host;
-	protected final int port;
+	public String getName();
 	
-	public AsyncPseudoHTTPTransportFactory(String host, int port) {
-		this.host = host;
-		this.port = port;
-	}
-
-	public AsyncTransport getInstance() throws Exception{
-		AsyncPseudoHTTPTransport transport = new AsyncPseudoHTTPTransport(
-				AsyncPseudoHTTPTransport.DEFAULT_HTTP_ACTION, 
-				AsyncPseudoHTTPTransport.DEFAULT_HTTP_RESOURCE, host, port, host + ":" + port);
-		transport.start();
-		return transport;
-	}
+	public JsonElement dispatch(Request request, Session session) throws DispatchException;
+	
+	public Response dispatchWithResponse(Request request, Session session) throws DispatchException;
+	
+	public JsonReader dispatch(FullRequest request) throws Exception;
 	
 }

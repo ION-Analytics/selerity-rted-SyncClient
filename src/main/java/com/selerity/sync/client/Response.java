@@ -21,11 +21,10 @@ import com.google.gson.JsonSerializer;
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be 
  * removed from the software by any user thereof. 
  * 
- *  Encapsulates a response to a mathod call including both the result and the exception.  Note that in the case 
+ *  Encapsulates a response to a Narwhal service call including both the result and the exception.  Note that in the case 
  *  of success the exception field will be null while in the case of an error the result may (or may not) be 
  *  null.
  * 
- * @author andrewbrook
  *
  */
 public class Response {

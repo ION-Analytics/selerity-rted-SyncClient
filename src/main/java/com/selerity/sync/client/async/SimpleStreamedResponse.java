@@ -24,7 +24,6 @@ import com.selerity.sync.client.Response;
  * A simple implementation of the StreamedResponse interface.  Stores responses in a queue without
  * size limits.
  * 
- * @author andrewbrook
  *
  */
 public class SimpleStreamedResponse implements StreamedResponse {

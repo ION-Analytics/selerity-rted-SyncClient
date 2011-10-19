@@ -11,7 +11,6 @@ package com.selerity.sync.client.async;
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be 
  * removed from the software by any user thereof. 
  * 
- * @author andrewbrook
  *
  */
 

@@ -27,10 +27,9 @@ import com.google.gson.JsonParser;
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be 
  * removed from the software by any user thereof. 
  * 
- * The transport used by Selerity's 'Rhino' server implementation exposed via HTTP (running in a Glassfish container).  Rhino 
+ * The transport used by Selerity's 'Rhino' server implementation exposed via HTTP.  Rhino 
  * supports both URL encoding or the application/x-json content type.  It does not (currently) support compression.  
  * 
- * @author andrewbrook
  *
  */
 public class RhinoHTTPTransport implements Transport{

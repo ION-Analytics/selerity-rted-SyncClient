@@ -13,7 +13,6 @@ import com.selerity.sync.client.Response;
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be 
  * removed from the software by any user thereof. 
  * 
- * @author andrewbrook
  *
  */
 

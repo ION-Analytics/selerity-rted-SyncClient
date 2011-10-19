@@ -20,7 +20,6 @@ import com.google.gson.JsonPrimitive;
  *  caused by an error on the client side or the server.  A set of defined error codes is included as
  *  public constants.
  * 
- * @author andrewbrook
  *
  */
 public class DispatchException extends Exception{
@@ -40,7 +39,7 @@ public class DispatchException extends Exception{
 	public static final int METHOD_NOT_FOUND = -32601;
 	public static final int INVALID_PARAMETERS_ERROR = -32602;
 	public static final int INTERNAL_ERROR = -32603;
-	public static final int TIMEOUT_ERROR = -32603;
+	public static final int TIMEOUT_ERROR = -32604;
 	
 	
 	private int code;

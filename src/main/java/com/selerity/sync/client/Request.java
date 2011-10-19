@@ -16,12 +16,10 @@ import com.google.gson.JsonPrimitive;
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be 
  * removed from the software by any user thereof. 
  * 
- *  Represents a generic JSON-RPC request separate from other header and invocation details.  This 
+ *  Represents a generic Narwhal request separate from other header and invocation details.  This 
  *  consists of the name of the method to call and a map of method parameters.  The method parameters
  *  can be any object type that GSON knows how to serialize.  
  *    
- * 
- * @author andrewbrook
  *
  */
 

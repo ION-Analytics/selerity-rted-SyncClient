@@ -26,7 +26,6 @@ import com.google.gson.JsonElement;
  *  Note that for single request dispatching, the result is parsed out of the response whereas for the boxcar dispatching the response is returned as an object (containing the 
  *  result and exception) since it's possible for some requests to succeed and some to fail.
  * 
- * @author andrewbrook
  *
  */
 public interface Dispatcher {

@@ -18,10 +18,9 @@ import com.google.gson.JsonElement;
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be 
  * removed from the software by any user thereof. 
  * 
- * A dispatcher which knows how to format JSON-RPC requests for Selerity's 'Rhino' server implementation and runs on
+ * A dispatcher which knows how to format Narwhal requests for Selerity's 'Rhino' server implementation and runs on
  * a synchronous transport.
  * 
- * @author andrewbrook
  *
  */
 public class RhinoDispatcher implements Dispatcher{
@@ -64,7 +63,9 @@ public class RhinoDispatcher implements Dispatcher{
 			}
 		}
 		else{
-			log.warn("DISPATCHTIME: " + elapsedTime + " ms after " + request.getMethod() + "; got response: " + gson.toJson(response, Response.class));
+			if (log.isWarnEnabled()){
+				log.warn("DISPATCHTIME: " + elapsedTime + " ms after " + request.getMethod() + "; got response: " + gson.toJson(response, Response.class));
+			}
 		}
 		
 		if (response.isError()){

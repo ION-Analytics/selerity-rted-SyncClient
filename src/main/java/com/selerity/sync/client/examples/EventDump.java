@@ -205,7 +205,7 @@ public class EventDump  extends AbstractSyncClient{
 	
 		// now look up events for each content set
 		Session session = startSession();
-		List<JsonObject> events = getEventsForContentSet(session, contentSetUUID, startTimeStr, endTimeStr, REQUEST_LIMIT, UTC);
+		List<JsonObject> events = getEventsForContentSet(session, contentSetUUID, startTimeStr, endTimeStr, REQUEST_LIMIT, UTC, false);
 		closeSession(session);
 		log.debug("found " + events.size() + " events");
 		
@@ -308,7 +308,7 @@ public class EventDump  extends AbstractSyncClient{
 	 * @return
 	 * @throws DispatchException
 	 */
-	protected List<JsonObject> getEventsForContentSet(Session session, String contentSetUUID, String startTime, String endTime, int limit, String timezone) throws DispatchException{
+	protected List<JsonObject> getEventsForContentSet(Session session, String contentSetUUID, String startTime, String endTime, int limit, String timezone, boolean overlap) throws DispatchException{
 	
 		List<JsonObject> events = new ArrayList<JsonObject>();
 		
@@ -329,6 +329,7 @@ public class EventDump  extends AbstractSyncClient{
 		// limit to events which fall into this time range (expressed in UTC)
 		searchOptions.addProperty("timeIntervalStart", startTime); 
 		searchOptions.addProperty("timeIntervalEnd", endTime); 
+		searchOptions.addProperty("timeIntervalOverlappingAlgorithm", overlap);
 		searchOptions.addProperty("timeIntervalTimeZoneId", timezone); 
 		
 		// offset and limit are used to page through large sets of results but they're handled bu the paginated result iterator
@@ -374,6 +375,42 @@ public class EventDump  extends AbstractSyncClient{
 		double maxScore = Double.MIN_VALUE;
 		String maxValue = null;
 		JsonArray tags = event.get("tagSummaries").getAsJsonArray();
+		for (int i = 0; i < tags.size(); i++){
+			JsonObject tag = tags.get(i).getAsJsonObject();
+			String name = tag.get("name").getAsString();
+			if (name.equalsIgnoreCase("Category")){
+				double score = tag.get("relevanceScore").getAsDouble();
+				if (score > maxScore){
+					maxScore = score;
+					maxValue = tag.get("value").getAsString();
+				}
+			}
+		}
+		return maxValue;		
+	}
+	
+	protected String getPrimaryEntityForEventSeries(JsonObject event){
+		double maxScore = Double.MIN_VALUE;
+		String maxValue = null;
+		JsonArray tags = event.get("tags").getAsJsonArray();
+		for (int i = 0; i < tags.size(); i++){
+			JsonObject tag = tags.get(i).getAsJsonObject();
+			String name = tag.get("name").getAsString();
+			if (name.equalsIgnoreCase("Entity")){
+				double score = tag.get("relevanceScore").getAsDouble();
+				if (score > maxScore){
+					maxScore = score;
+					maxValue = tag.get("value").getAsString();
+				}
+			}
+		}
+		return maxValue;		
+	}
+	
+	protected String getPrimaryCategoryForEventSeries(JsonObject event){
+		double maxScore = Double.MIN_VALUE;
+		String maxValue = null;
+		JsonArray tags = event.get("tags").getAsJsonArray();
 		for (int i = 0; i < tags.size(); i++){
 			JsonObject tag = tags.get(i).getAsJsonObject();
 			String name = tag.get("name").getAsString();

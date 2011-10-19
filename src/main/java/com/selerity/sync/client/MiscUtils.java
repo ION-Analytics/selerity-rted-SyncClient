@@ -34,7 +34,6 @@ import com.google.gson.JsonPrimitive;
  * 
  * Some misc utility methods that are used elsewhere, mainly as convenience functions to support debugging
  * 
- * @author andrewbrook
  *
  */
 public class MiscUtils {

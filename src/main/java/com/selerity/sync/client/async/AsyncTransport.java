@@ -14,7 +14,8 @@ import com.selerity.sync.client.FullRequest;
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be 
  * removed from the software by any user thereof. 
  * 
- * @author andrewbrook
+ * A transport that suppots an explicitly asynchronous call/response model with callbacks to an
+ * AsyncTransportListener for responses.
  *
  */
 

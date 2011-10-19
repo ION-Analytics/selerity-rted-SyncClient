@@ -11,10 +11,10 @@ package com.selerity.sync.client;
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be 
  * removed from the software by any user thereof. 
  * 
- *  A Transport is an abstraction of the mechanism for carrying a JSON-RPC request from the client to the server and then bringing the response back.  The
- *  transport abstracts away issues like physical connectivity, text encoding, compression, etc.
+ *  A Transport is an abstraction of the mechanism for carrying a Narwhal request from the client 
+ *  to the server and then bringing the response back.  The transport abstracts away issues like
+ *  physical connectivity, text encoding, compression, etc.
  * 
- * @author andrewbrook
  *
  */
 public interface Transport {

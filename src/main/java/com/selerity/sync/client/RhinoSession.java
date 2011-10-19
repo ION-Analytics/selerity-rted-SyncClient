@@ -1,7 +1,5 @@
 package com.selerity.sync.client;
 
-import java.util.HashMap;
-import java.util.Map;
 
 /** 
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code is confidential 
@@ -23,23 +21,21 @@ import java.util.Map;
  *  token - a security token generated during the authentication process (optional for some methods)
  *  mode - optional, can be used to indicate usage of certain non-standard packages (e.g. "extension")
  * 
- * @author andrewbrook
  *
  */
-public class RhinoSession implements Session {
+public class RhinoSession extends SessionImpl {
 
 	public static final String USER = "user";
 	public static final String CLIENT = "client";
 	public static final String TOKEN = "token";
 	public static final String MODE = "mode";
 	
-	protected Map<String,String> parameters = new HashMap<String,String>();
 	
 	public RhinoSession(String user, String client, String token, String mode){
-		parameters.put(USER, user);
-		parameters.put(CLIENT, client);
-		parameters.put(TOKEN, token);
-		parameters.put(MODE, mode);
+		setHeaderParameter(USER, user);
+		setHeaderParameter(CLIENT, client);
+		setHeaderParameter(TOKEN, token);
+		setHeaderParameter(MODE, mode);
 	}
 	
 	public String getUser(){
@@ -58,9 +54,7 @@ public class RhinoSession implements Session {
 		return parameters.get(MODE);
 	}
 	
-	public String getHeaderParameter(String parameterName){
-		return parameters.get(parameterName);
-	}
+	
 	
 	
 

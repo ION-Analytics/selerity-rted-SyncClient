@@ -18,22 +18,17 @@ import com.google.gson.JsonObject;
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be 
  * removed from the software by any user thereof. 
  * 
- * An iterator over the responses of a pages request.  Note that it actually makes requests on demand
- * so calls to hasNextResult() or nextResult() can block.  An asynchronous, parallel version of this 
- * class might be useful.
- * 
- * Note also that this class assumes object (map) style parameters -- it cannot be used with array-style
- * parameters.
- * 
+ * A utility class that enables easy iteration over services which implement a pagination option (combination of limit and offset).
  *
  */
-public class PaginatedResponseIteratorImpl implements PaginatedResponseIterator {
-	private static final Log log = LogFactory.getLog (PaginatedResponseIteratorImpl.class);
+
+public class NarwhalPaginatedResponseInteratorImpl implements PaginatedResponseIterator{
+	private static final Log log = LogFactory.getLog (NarwhalPaginatedResponseInteratorImpl.class);
 
 	protected static final String DEFAULT_LIMIT_FIELD_NAME = "limit";
 	protected static final String DEFAULT_OFFSET_FIELD_NAME = "offset";
 	
-	protected final Dispatcher dispatcher;
+	protected final NarwhalService service;
 	protected final Session session;
 	protected final Request request;
 	protected final String optionObjectName;
@@ -57,9 +52,9 @@ public class PaginatedResponseIteratorImpl implements PaginatedResponseIterator 
 	 * @param offsetFieldName
 	 * @param limit
 	 */
-	public PaginatedResponseIteratorImpl(Dispatcher dispatcher, Session session,
+	public NarwhalPaginatedResponseInteratorImpl(NarwhalService service, Session session,
 			Request request, String optionObjectName, int limit) {
-		this.dispatcher = dispatcher;
+		this.service = service;
 		this.session = session;
 		this.request = request;
 		this.optionObjectName = optionObjectName;
@@ -78,9 +73,9 @@ public class PaginatedResponseIteratorImpl implements PaginatedResponseIterator 
 	 * @param offsetFieldName
 	 * @param limit
 	 */
-	public PaginatedResponseIteratorImpl(Dispatcher dispatcher, Session session,
+	public NarwhalPaginatedResponseInteratorImpl(NarwhalService service, Session session,
 			Request request, String optionObjectName, String limitFieldName, String offsetFieldName, int limit) {
-		this.dispatcher = dispatcher;
+		this.service = service;
 		this.session = session;
 		this.request = request;
 		this.optionObjectName = optionObjectName;
@@ -123,7 +118,7 @@ public class PaginatedResponseIteratorImpl implements PaginatedResponseIterator 
 	 * @throws DispatchException
 	 */
 	protected synchronized void loadNextPage() throws DispatchException{
-		log.info("loading next page for " + request.getMethod() + ", from offset " + nextOffset + " with limit " + limit);
+		log.debug("loading next page for " + request.getMethod() + ", from offset " + nextOffset + " with limit " + limit);
 		results = null;
 		index = 0;
 		
@@ -158,11 +153,11 @@ public class PaginatedResponseIteratorImpl implements PaginatedResponseIterator 
 		}
 		
 		// now dispatch as normal, expecting an array of results
-		JsonElement resultArray = dispatcher.dispatch(request, session);
+		JsonElement resultArray = service.dispatch(request, session);
 		if ((resultArray != null) && (!resultArray.isJsonNull())){
 			if (resultArray.isJsonArray()){
 				results = resultArray.getAsJsonArray();  // convert the result into an array
-				log.info("got " + results.size() + " results for " + request.getMethod());
+				log.debug("got " + results.size() + " results for " + request.getMethod());
 				nextOffset += limit;  // compute the new offset for the next request
 			}
 			else{
@@ -170,10 +165,9 @@ public class PaginatedResponseIteratorImpl implements PaginatedResponseIterator 
 			}
 		}
 		else{
-			log.info("done with " + request.getMethod());
+			log.debug("done with " + request.getMethod());
 			done = true;
 		}
 		
 	}
-	
 }

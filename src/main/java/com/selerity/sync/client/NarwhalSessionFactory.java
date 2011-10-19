@@ -5,7 +5,6 @@ import org.apache.commons.logging.LogFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.selerity.sync.client.async.AsyncDispatcher;
 
 /** 
  * © Copyrights Selerity, Inc. 2009-2011. All rights reserved. This source code is confidential 
@@ -18,14 +17,15 @@ import com.selerity.sync.client.async.AsyncDispatcher;
  * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be 
  * removed from the software by any user thereof. 
  * 
- *  A factory class which creates a Session by authenticating a user.  The Session returned will be a RhinoSession, suitable for use
- *  with a RhinoDispatcher.
- * 
+ * A utility function for constructing session objects for use with Narwhal services.  The session
+ * is used to hold fields across service calls which are passed in the request header.  These may
+ * include a security token, an access mode, etc.
  *
  */
-public class RhinoSessionFactory{
-	
-	private static final Log log = LogFactory.getLog (RhinoDispatcher.class);
+
+public class NarwhalSessionFactory {
+
+private static final Log log = LogFactory.getLog (NarwhalSessionFactory.class);
 	
 	private final Gson gson = new GsonBuilder().serializeNulls().create(); 
 	
@@ -42,11 +42,14 @@ public class RhinoSessionFactory{
 	 * @return
 	 * @throws DispatchException
 	 */
-	public Session getInstance(Dispatcher dispatcher, String client, String mode, String user, String password) throws DispatchException{
+	public Session getInstance(NarwhalService service, String client, String mode, String user, String password) throws DispatchException{
 		Request authRequest = new Request("AuthenticationHandler.authenticate");
 		authRequest.setMethodParameter("user", user);
 		authRequest.setMethodParameter("password", password);
-		String token = gson.fromJson(dispatcher.dispatch(authRequest, user, null, client, mode), String.class);
+		SessionImpl session = new SessionImpl();
+		session.setHeaderParameter("client", client);
+		session.setHeaderParameter("mode", mode);
+		String token = gson.fromJson(service.dispatch(authRequest, session), String.class);
 		log.debug("got token " + token + " for user " + user);
 		return new RhinoSession(user, client, token, mode);
 	}
@@ -59,7 +62,7 @@ public class RhinoSessionFactory{
 	 * @return
 	 * @throws DispatchException
 	 */
-	public Session getInstance(Dispatcher dispatcher, String client, String mode) throws DispatchException{
+	public Session getInstance(NarwhalService service, String client, String mode) throws DispatchException{
 		String user = System.getProperty(SYNC_USER_PROPERTY_NAME);
 		String password = System.getProperty(SYNC_PASSWORD_PROPERTY_NAME);
 		if (user == null){
@@ -69,51 +72,8 @@ public class RhinoSessionFactory{
 			throw new NullPointerException("password cannot be null, try setting property " + SYNC_PASSWORD_PROPERTY_NAME);
 		}
 
-		return getInstance(dispatcher, client, mode, user, password);
+		return getInstance(service, client, mode, user, password);
 	}
 	
-	/** Gets an instance with the provided user and password.
-	 * 
-	 * @param dispatcher
-	 * @param client
-	 * @param mode
-	 * @param user
-	 * @param password
-	 * @return
-	 * @throws DispatchException
-	 */
-	public Session getInstance(AsyncDispatcher dispatcher, String client, String mode, String user, String password) throws DispatchException{
-		Request authRequest = new Request("AuthenticationHandler.authenticate");
-		authRequest.setMethodParameter("user", user);
-		authRequest.setMethodParameter("password", password);
-		Response response = dispatcher.syncDispatch(authRequest, user, null, client, mode);
-		if (response.isError()){
-			throw response.getError();
-		}
-		String token = gson.fromJson(response.getResult(), String.class);
-		log.debug("got token " + token + " for user " + user);
-		return new RhinoSession(user, client, token, mode);
-	}
-	
-	/** Gets a session using the user and password set in the system properties.
-	 * 
-	 * @param dispatcher
-	 * @param client
-	 * @param mode
-	 * @return
-	 * @throws DispatchException
-	 */
-	public Session getInstance(AsyncDispatcher dispatcher, String client, String mode) throws DispatchException{
-		String user = System.getProperty(SYNC_USER_PROPERTY_NAME);
-		String password = System.getProperty(SYNC_PASSWORD_PROPERTY_NAME);
-		if (user == null){
-			throw new NullPointerException("user cannot be null, try setting property " + SYNC_USER_PROPERTY_NAME);
-		}
-		if (password == null){
-			throw new NullPointerException("password cannot be null, try setting property " + SYNC_PASSWORD_PROPERTY_NAME);
-		}
-
-		return getInstance(dispatcher, client, mode, user, password);
-	}
 
 }
