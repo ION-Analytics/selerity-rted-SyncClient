@@ -94,21 +94,36 @@ public class NarwhalMetaServiceImpl extends AbstractNawhalServiceImpl {
 	 */
 	public void addServices(String urls) throws MalformedURLException, DispatchException{
 		String[] urlStringArray = urls.split(";");
+		DispatchException lastDispatchException = null;
+		boolean anySuccess = false;
 		for (String urlString : urlStringArray){
-			NarwhalService service = new NarwhalHTTPServiceImpl(new URL(urlString));
-			addService(service);
+			try{
+				NarwhalService service = new NarwhalHTTPServiceImpl(new URL(urlString));
+				if (addService(service) > 0){
+					anySuccess = true;
+				}
+			}
+			catch (DispatchException ex){
+				lastDispatchException = ex;
+				log.warn("caught " + ex + " while trying to register service for " + urlString, ex);
+			}
+		}
+		if (!anySuccess){
+			log.error("failed to successfully connect to any Narwhal services, throwing last exception: " + lastDispatchException, lastDispatchException);
+			throw lastDispatchException;
 		}
 	}
 	
-	public void addService(NarwhalService service) throws MalformedURLException, DispatchException{
+	public int addService(NarwhalService service) throws MalformedURLException, DispatchException{
 		Request request = new Request("IntrospectionHandler.getAllServices");
 		Session session = new SessionImpl();
 		JsonElement serviceListElem = service.dispatch(request, session); // should be no session header info needed for this call
 		if (serviceListElem == null || serviceListElem.isJsonNull()){
 			log.warn("no services defined");
-			return;
+			return 0;
 		}
 		JsonArray serviceArray = serviceListElem.getAsJsonArray();
+		int serviceCount = 0;
 		for (JsonElement serviceEntryElem : serviceArray){
 			JsonObject serviceEntry = serviceEntryElem.getAsJsonObject();
 			String methodName = serviceEntry.get("name").getAsString();
@@ -119,6 +134,7 @@ public class NarwhalMetaServiceImpl extends AbstractNawhalServiceImpl {
 			}
 			serviceList.add(service);
 			log.debug("registered service " + service.getName() + " for method " + methodName);
+			serviceCount++;
 		}
 		if (serviceName == null){
 			serviceName = service.getName();
@@ -126,6 +142,7 @@ public class NarwhalMetaServiceImpl extends AbstractNawhalServiceImpl {
 		else{
 			serviceName = serviceName + ":" + service.getName();
 		}
+		return serviceCount;
 	}
 
 	public JsonElement dispatch(final Request request, final Session session) throws DispatchException{
