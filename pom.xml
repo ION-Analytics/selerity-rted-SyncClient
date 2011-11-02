@@ -11,7 +11,7 @@
     <artifactId>SyncClient</artifactId>
     <packaging>jar</packaging>
     <name>SyncClient</name>
-    <version>1.0.0</version>
+    <version>1.0.1-SNAPSHOT</version>
     <description>Client code for SeleritySyncAPI</description>
 
     <dependencies>
