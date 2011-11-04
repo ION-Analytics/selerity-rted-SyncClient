@@ -91,9 +91,7 @@
                     <configuration>
                         <source>1.6</source>
                         <target>1.6</target>
-                        <!--  Oh no, looks like we have some non-UTF-8 characters in the source somehow...  Need to comment this out until they can be removed.
-                            <encoding>UTF-8</encoding>
-                        -->
+                        <encoding>UTF-8</encoding>
                     </configuration>
                 </plugin>
 
