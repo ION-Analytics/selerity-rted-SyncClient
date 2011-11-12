@@ -27,7 +27,7 @@ import com.google.gson.GsonBuilder;
 
 public class NarwhalSessionFactory {
 
-private static final Log log = LogFactory.getLog (NarwhalSessionFactory.class);
+	private static final Log log = LogFactory.getLog (NarwhalSessionFactory.class);
 	
 	private final Gson gson = new GsonBuilder().serializeNulls().create(); 
 	

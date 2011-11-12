@@ -1,6 +1,7 @@
 package com.selerity.sync.client;
 
 import com.google.gson.JsonElement;
+import com.google.gson.stream.JsonReader;
 
 /** 
  * (C) Copyright Selerity, Inc. 2009-2011. All rights reserved. This source code
@@ -45,7 +46,8 @@ public class AbstractNarwhalClient {
 	}
 
 
-	/** Dispatch the request using the current session.
+	/** 
+	 * Dispatch the request using the current session.
 	 * 
 	 * @param request
 	 * @return
@@ -53,6 +55,18 @@ public class AbstractNarwhalClient {
 	 */
 	public JsonElement dispatch(Request request, Session session) throws DispatchException{
 		return service.dispatch(request, session); 	
+	}
+	
+	/**
+	 * Dispatch the request (assumes all header fields are filled in) and returns a reader.
+	 * The reader may be used to read in one or more responses asynchronously.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws Exception 
+	 */
+	public JsonReader dispatch(FullRequest request) throws Exception{
+		return service.dispatch(request);
 	}
 	
 	/** Create a paginated response iterator using the current session.  Requires the name of the parameter object that

@@ -94,6 +94,17 @@ public class FullRequest {
 		header.addProperty(RhinoSession.MODE, mode);
 		this.id = id;
 	}
+	
+	public FullRequest(Request partialRequest, Session session, String id){
+		this.method = partialRequest.getMethod();
+		this.params = partialRequest.getMethodParameters();
+		this.header = new JsonObject();
+		header.addProperty(RhinoSession.USER, session.getHeaderParameter(RhinoSession.USER));
+		header.addProperty(RhinoSession.TOKEN, session.getHeaderParameter(RhinoSession.TOKEN));
+		header.addProperty(RhinoSession.CLIENT, session.getHeaderParameter(RhinoSession.CLIENT));
+		header.addProperty(RhinoSession.MODE, session.getHeaderParameter(RhinoSession.MODE));
+		this.id = id;
+	}
 
 	public String getMethod() {
 		return method;

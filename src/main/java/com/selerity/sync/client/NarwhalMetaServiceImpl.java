@@ -3,6 +3,7 @@ package com.selerity.sync.client;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,7 @@ public class NarwhalMetaServiceImpl extends AbstractNawhalServiceImpl {
 
 	private static final Log log = LogFactory.getLog (NarwhalMetaServiceImpl.class);
 
+	protected final List<NarwhalService> serviceEndpoints = new ArrayList<NarwhalService>();
 	protected final Map<String,List<NarwhalService>> serviceMap = new HashMap<String,List<NarwhalService>>();
 	
 	
@@ -116,6 +118,16 @@ public class NarwhalMetaServiceImpl extends AbstractNawhalServiceImpl {
 		}
 	}
 	
+	/**
+	 * Adds a specific service endpoint to the list of service adapters.
+	 * 
+	 * Returns the number of services supported.
+	 * 
+	 * @param service
+	 * @return
+	 * @throws MalformedURLException
+	 * @throws DispatchException
+	 */
 	public int addService(NarwhalService service) throws MalformedURLException, DispatchException{
 		Request request = new Request("IntrospectionHandler.getAllServices");
 		Session session = new SessionImpl();
@@ -146,6 +158,12 @@ public class NarwhalMetaServiceImpl extends AbstractNawhalServiceImpl {
 		}
 		return serviceCount;
 	}
+	
+	
+	public List<NarwhalService> getServiceEndpoints(){
+		return Collections.unmodifiableList(serviceEndpoints);
+	}
+	
 
 	public JsonElement dispatch(final Request request, final Session session) throws DispatchException{
 		List<NarwhalService> serviceList = serviceMap.get(request.getMethod());
