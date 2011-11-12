@@ -156,6 +156,7 @@ public class NarwhalMetaServiceImpl extends AbstractNawhalServiceImpl {
 		else{
 			serviceName = serviceName + ":" + service.getName();
 		}
+		serviceEndpoints.add(service);
 		return serviceCount;
 	}
 	
