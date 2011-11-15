@@ -1,141 +1,166 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
 
-    <prerequisites>
-        <maven>2.0.9</maven>
-    </prerequisites>
+	<prerequisites>
+		<maven>2.0.9</maven>
+	</prerequisites>
 
-    <groupId>com.seleritycorp</groupId>
-    <artifactId>SyncClient</artifactId>
-    <packaging>jar</packaging>
-    <name>SyncClient</name>
-    <version>1.0.1-SNAPSHOT</version>
-    <description>Client code for SeleritySyncAPI</description>
+	<groupId>com.seleritycorp</groupId>
+	<artifactId>SyncClient</artifactId>
+	<packaging>jar</packaging>
+	<name>SyncClient</name>
+	<version>1.0.1-SNAPSHOT</version>
+	<description>Client code for SeleritySyncAPI</description>
 
-    <dependencies>
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>1.6</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-            <version>1.2.14</version>
-        </dependency>
-        <dependency>
-            <groupId>commons-logging</groupId>
-            <artifactId>commons-logging</artifactId>
-            <version>1.1.1</version>
-        </dependency>
-        <dependency>
-            <groupId>commons-logging</groupId>
-            <artifactId>commons-logging-api</artifactId>
-            <version>1.1</version>
-        </dependency>
+	<dependencies>
+		<dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>1.6</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.14</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-logging</groupId>
+			<artifactId>commons-logging</artifactId>
+			<version>1.1.1</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-logging</groupId>
+			<artifactId>commons-logging-api</artifactId>
+			<version>1.1</version>
+		</dependency>
 
-        <!-- Testing -->
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.5</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+		<!-- Testing -->
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.5</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
 
-    <repositories>
-        <repository>
-            <id>gson</id>
-            <url>http://google-gson.googlecode.com/svn/mavenrepo</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-        </repository>
-    </repositories>
+	<repositories>
+		<repository>
+			<id>gson</id>
+			<url>http://google-gson.googlecode.com/svn/mavenrepo</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+		</repository>
+	</repositories>
 
-    <build>
-        <defaultGoal>install</defaultGoal>
-        <pluginManagement>
-            <plugins>
+	<build>
+		<defaultGoal>install</defaultGoal>
 
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <configuration>
-                        <useFile>true</useFile>
-                        <forkMode>once</forkMode>
-                        <childDelegation>false</childDelegation>
-                        <argLine>-Xmx512M</argLine>
-                        <!--<redirectTestOutputToFile>true</redirectTestOutputToFile>-->
-                        <workingDirectory>${basedir}</workingDirectory>
-                        <systemProperties>
-                            <property>
-                                <name>log4j.configuration</name>
-                                <value>log4j-tests.properties</value>
-                            </property>
-                        </systemProperties>
-                    </configuration>
-                </plugin>
+		<plugins>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>2.2.1</version>
+				<configuration>
+					<descriptorRefs>
+						<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
+				</configuration>
+				<executions>
+					<execution>
+						<id>make-assembly</id> <!-- this is used for inheritance merges -->
+						<phase>package</phase> <!-- bind to the packaging phase -->
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
 
-                <!-- COMPILER SETTINGS -->
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <version>2.3.2</version>
-                    <configuration>
-                        <source>1.6</source>
-                        <target>1.6</target>
-                        <encoding>UTF-8</encoding>
-                    </configuration>
-                </plugin>
+		<pluginManagement>
+			<plugins>
 
-                <!-- Releases -->
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-release-plugin</artifactId>
-                    <version>2.1</version>
-                    <configuration>
-                        <tagBase>https://selerity.unfuddle.com/svn/selerity_public/tags</tagBase>
-                    </configuration>
-                </plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<configuration>
+						<useFile>true</useFile>
+						<forkMode>once</forkMode>
+						<childDelegation>false</childDelegation>
+						<argLine>-Xmx512M</argLine>
+						<!--<redirectTestOutputToFile>true</redirectTestOutputToFile> -->
+						<workingDirectory>${basedir}</workingDirectory>
+						<systemProperties>
+							<property>
+								<name>log4j.configuration</name>
+								<value>log4j-tests.properties</value>
+							</property>
+						</systemProperties>
+					</configuration>
+				</plugin>
 
-            </plugins>
-        </pluginManagement>
-    </build>
+				<!-- COMPILER SETTINGS -->
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<version>2.3.2</version>
+					<configuration>
+						<source>1.6</source>
+						<target>1.6</target>
+						<encoding>UTF-8</encoding>
+					</configuration>
+				</plugin>
 
-    <organization>
-        <name>Selerity</name>
-        <url>http://www.seleritycorp.com</url>
-    </organization>
-    <ciManagement>
-        <system>Jenkins</system>
-        <url>http://hudson:8082/jenkins/</url>
-    </ciManagement>
 
-    <distributionManagement>
-        <repository>
-            <id>hudson.seleritycorp.com</id>
-            <name>hudson.seleritycorp.com-releases</name>
-            <url>http://hudson.seleritycorp.com:8081/artifactory/libs-releases-local</url>
-        </repository>
-        <snapshotRepository>
-            <id>hudson.seleritycorp.com</id>
-            <name>hudson.seleritycorp.com-snapshots</name>
-            <url>http://hudson.seleritycorp.com:8081/artifactory/libs-snapshots-local</url>
-        </snapshotRepository>
-    </distributionManagement>
 
-    <scm>
-        <connection>scm:svn:https://selerity.unfuddle.com/svn/selerity_public/SeleritySyncAPI/Java/SyncClient</connection>
-        <developerConnection>scm:svn:https://selerity.unfuddle.com/svn/selerity_cs/SeleritySyncAPI/Java/SyncClient</developerConnection>
-        <url>https://selerity.unfuddle.com/svn/selerity_cs/SeleritySyncAPI/Java/SyncClient</url>
-    </scm>
+				<!-- Releases -->
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-release-plugin</artifactId>
+					<version>2.1</version>
+					<configuration>
+						<tagBase>https://selerity.unfuddle.com/svn/selerity_public/tags</tagBase>
+					</configuration>
+				</plugin>
+
+
+			</plugins>
+		</pluginManagement>
+	</build>
+
+	<organization>
+		<name>Selerity</name>
+		<url>http://www.seleritycorp.com</url>
+	</organization>
+	<ciManagement>
+		<system>Jenkins</system>
+		<url>http://hudson:8082/jenkins/</url>
+	</ciManagement>
+
+	<distributionManagement>
+		<repository>
+			<id>hudson.seleritycorp.com</id>
+			<name>hudson.seleritycorp.com-releases</name>
+			<url>http://hudson.seleritycorp.com:8081/artifactory/libs-releases-local</url>
+		</repository>
+		<snapshotRepository>
+			<id>hudson.seleritycorp.com</id>
+			<name>hudson.seleritycorp.com-snapshots</name>
+			<url>http://hudson.seleritycorp.com:8081/artifactory/libs-snapshots-local</url>
+		</snapshotRepository>
+	</distributionManagement>
+
+	<scm>
+		<connection>scm:svn:https://selerity.unfuddle.com/svn/selerity_public/SeleritySyncAPI/Java/SyncClient</connection>
+		<developerConnection>scm:svn:https://selerity.unfuddle.com/svn/selerity_cs/SeleritySyncAPI/Java/SyncClient</developerConnection>
+		<url>https://selerity.unfuddle.com/svn/selerity_cs/SeleritySyncAPI/Java/SyncClient</url>
+	</scm>
 
 
 </project>
