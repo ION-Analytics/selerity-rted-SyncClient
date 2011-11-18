@@ -123,14 +123,18 @@ public class NarwhalHTTPServiceImpl extends AbstractNawhalServiceImpl{
         	log.debug("preparing to send " + gson.toJson(request, FullRequest.class) + " to " + serviceURL);
         }
     	
-    	URLConnection con = serviceURL.openConnection();
-    	con.setConnectTimeout(CONNECTION_TIMEOUT_MILLIS);
-        con.setReadTimeout(READ_TIMEOUT_MILLIS);
-    	con.addRequestProperty("Accept","text/plain");
-    	con.addRequestProperty("Content-type", "application/x-json");
-    	con.addRequestProperty("User-Agent","Java/NarwhalClient");
-    	con.setDoOutput(true);
-		con.connect();
+    	URLConnection con = null;
+    	synchronized(serviceURL){  // it's not clear if URL.openConnection or URLConnection.connect are threadsafe so just to be sure...
+    		con = serviceURL.openConnection();
+    		con.setConnectTimeout(CONNECTION_TIMEOUT_MILLIS);
+            con.setReadTimeout(READ_TIMEOUT_MILLIS);
+        	con.addRequestProperty("Accept","text/plain");
+        	con.addRequestProperty("Content-type", "application/x-json");
+        	con.addRequestProperty("User-Agent","Java/NarwhalClient");
+        	con.setDoOutput(true);
+    		con.connect();
+    	}
+    	
     	
 		// write the JSON request out
 		

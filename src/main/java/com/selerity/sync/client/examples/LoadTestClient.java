@@ -53,7 +53,7 @@ public class LoadTestClient {
 			
 			
 			log.debug("starting...");
-			for (int i = 0; i < 500; i++){
+			for (int i = 0; i < 5; i++){
 				Request request = new Request("IntrospectionHandler.getVersion");
 				SessionImpl session = new SessionImpl();
 				NarwhalService service = new NarwhalMetaServiceImpl(urls);
