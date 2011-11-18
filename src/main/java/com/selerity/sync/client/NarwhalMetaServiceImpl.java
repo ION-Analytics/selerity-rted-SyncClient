@@ -178,7 +178,7 @@ public class NarwhalMetaServiceImpl extends AbstractNawhalServiceImpl {
 				return result;
 			}
 			catch (DispatchException dx){
-				log.debug("failed request " + request.getMethod() + " with service " + service.getName());
+				log.debug("failed request " + request.getMethod() + " with service " + service.getName(), dx);
 				lastException = dx;
 			}
 		}
@@ -198,7 +198,7 @@ public class NarwhalMetaServiceImpl extends AbstractNawhalServiceImpl {
 				return response;
 			}
 			catch (DispatchException dx){
-				log.debug("failed request " + request.getMethod() + " with service " + service.getName());
+				log.debug("failed request " + request.getMethod() + " with service " + service.getName(), dx);
 				lastException = dx;
 			}
 		}
@@ -218,7 +218,7 @@ public class NarwhalMetaServiceImpl extends AbstractNawhalServiceImpl {
 				return reader;
 			}
 			catch (DispatchException dx){
-				log.debug("failed request " + request.getMethod() + " with service " + service.getName());
+				log.debug("failed request " + request.getMethod() + " with service " + service.getName(), dx);
 				lastException = dx;
 			}
 		}

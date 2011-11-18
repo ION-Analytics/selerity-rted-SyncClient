@@ -98,7 +98,7 @@ public class NarwhalHTTPServiceImpl extends AbstractNawhalServiceImpl{
 					reader.close();
 				}
 				catch (Exception ex){
-					
+					// ignore the exception
 				}
 			}
 		}
