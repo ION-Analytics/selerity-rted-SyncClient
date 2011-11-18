@@ -64,13 +64,14 @@ public class NarwhalHTTPServiceImpl extends AbstractNawhalServiceImpl{
 	public Response dispatchWithResponse(final Request request, final Session session) throws DispatchException{
 				
 		final long startTimeMillis = System.currentTimeMillis();
+		JsonReader reader = null;
 		try{
 			FullRequest fullRequest = new FullRequest(request, 
 					session.getHeaderParameter("user"), session.getHeaderParameter("token"), 
 					session.getHeaderParameter("client"), session.getHeaderParameter("mode"),
 					UUID.randomUUID().toString());
 			
-			JsonReader reader = dispatch(fullRequest);
+			reader = dispatch(fullRequest);
 			Response response = gson.fromJson(reader, Response.class);
 			final long elapsedMillis = System.currentTimeMillis() - startTimeMillis;
 			if (elapsedMillis > WARN_DISPATCH_TIME_MILLIS){
@@ -90,10 +91,24 @@ public class NarwhalHTTPServiceImpl extends AbstractNawhalServiceImpl{
 			log.error("caught " + ex + " while dispatching to service " + serviceName, ex);
 			throw new DispatchException(DispatchException.INTERNAL_ERROR, "caught " + ex + " while dispatching to service " + serviceName, ex.toString());
 		}
+		finally{
+			if (reader != null){
+				try{
+					// this is important - without it, the socket sometimes gets left open indefinitely.
+					reader.close();
+				}
+				catch (Exception ex){
+					
+				}
+			}
+		}
 	}
 	
 	/**
      * Dispatches a request to Narwhal server using a JSON request string and returns the response.
+     * 
+     * Note that it is the responsibility of the caller to close the reader when finished reading - otherwise 
+     * a connection to the server may remain open indefinitely.
      *
      * @param request request to dispatch
      * @param url URL of RPC server
