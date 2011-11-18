@@ -20,6 +20,7 @@ import java.net.MalformedURLException;
  * @author andrewbrook
  *
  */
+@Deprecated
 public class RhinoHTTPTransportFactory implements TransportFactory {
 
 	public final static String RHINO_RPC_RESOURCE = "rhino-1.0-SNAPSHOT/rpc.do";

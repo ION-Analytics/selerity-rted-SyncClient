@@ -35,6 +35,9 @@ public class NarwhalHTTPServiceImpl extends AbstractNawhalServiceImpl{
 
 	private static final Log log = LogFactory.getLog (NarwhalHTTPServiceImpl.class);
 	
+	private static final int CONNECTION_TIMEOUT_MILLIS = 30000; 
+	private static final int READ_TIMEOUT_MILLIS = 30000; 
+	
 	protected final URL serviceURL;
 	
 	
@@ -121,11 +124,12 @@ public class NarwhalHTTPServiceImpl extends AbstractNawhalServiceImpl{
         }
     	
     	URLConnection con = serviceURL.openConnection();
+    	con.setConnectTimeout(CONNECTION_TIMEOUT_MILLIS);
+        con.setReadTimeout(READ_TIMEOUT_MILLIS);
     	con.addRequestProperty("Accept","text/plain");
     	con.addRequestProperty("Content-type", "application/x-json");
     	con.addRequestProperty("User-Agent","Java/NarwhalClient");
     	con.setDoOutput(true);
-		con.setDoInput(true);
 		con.connect();
     	
 		// write the JSON request out
@@ -136,7 +140,7 @@ public class NarwhalHTTPServiceImpl extends AbstractNawhalServiceImpl{
 		writer.close();
 		
 		// read in a JSON reader
-		return new JsonReader(new InputStreamReader(con.getInputStream()));
+		return new JsonReader(new InputStreamReader(con.getInputStream(), "UTF-8"));
     }
 
 	

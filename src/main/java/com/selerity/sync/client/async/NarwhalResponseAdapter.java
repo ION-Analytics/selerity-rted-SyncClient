@@ -6,7 +6,6 @@ import org.apache.commons.logging.LogFactory;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.stream.JsonReader;
-import com.selerity.sync.client.FullRequest;
 import com.selerity.sync.client.Response;
 
 /** 

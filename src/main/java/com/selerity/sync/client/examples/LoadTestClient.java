@@ -1,9 +1,14 @@
 package com.selerity.sync.client.examples;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.google.gson.JsonElement;
+import com.google.gson.stream.JsonReader;
+import com.selerity.sync.client.FullRequest;
 import com.selerity.sync.client.NarwhalMetaServiceImpl;
 import com.selerity.sync.client.NarwhalService;
 import com.selerity.sync.client.Request;
@@ -32,8 +37,9 @@ public class LoadTestClient {
 	
 	
 	public static void main(String[] args){
+		Set<JsonReader> readers = new HashSet<JsonReader>();
 		try {
-
+			
 			if (args.length < 3) {
 				System.err.println("arguments: urls user password");
 				System.exit(1);
@@ -44,18 +50,22 @@ public class LoadTestClient {
 			//String user = args[1];
 			//String password = args[2];
 			
-
-			NarwhalService service = new NarwhalMetaServiceImpl(urls);
 			
-			for (int i = 0; i < 1000; i++){
+			
+			log.debug("starting...");
+			for (int i = 0; i < 500; i++){
 				Request request = new Request("IntrospectionHandler.getVersion");
 				SessionImpl session = new SessionImpl();
-				log.debug("about to send request: " + request.getMethod());
-				JsonElement resultElem = service.dispatch(request, session);
-				String version = resultElem.getAsString();
-				log.debug("got version " + version);
-				//Thread.sleep(1000);
+				NarwhalService service = new NarwhalMetaServiceImpl(urls);
+				//log.debug("about to send request: " + request.getMethod());
+				//JsonElement resultElem = service.dispatch(request, session);
+				JsonReader reader = service.dispatch(new FullRequest(request, session, UUID.randomUUID().toString()));
+				readers.add(reader);
+				//String version = resultElem.getAsString();
+				//log.debug("got version " + version);
+				//Thread.sleep(1);
 			}
+			log.debug("done sending, sleeping");
 			
 			
 			while (true){
@@ -66,6 +76,18 @@ public class LoadTestClient {
 		}
 		catch (Exception ex){
 			log.error("caught exception " + ex + " in main loop, exiting", ex);
+		}
+		
+		// this allows GC
+		readers.clear();
+		
+		try{
+			while (true){
+				Thread.sleep(1000);
+			}
+		}
+		catch (Exception ex2){
+			log.error("caught exception " + ex2 + " in main loop, exiting", ex2);
 		}
 	}
 	

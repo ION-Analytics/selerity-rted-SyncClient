@@ -75,6 +75,9 @@ public interface NarwhalService {
 	 * This method is particularly useful in situations where the service is capable of sending multiple responses for a
 	 * single request, i.e. a method that supports streaming responses.
 	 * 
+	 * Note that the caller is responsible for closing the reader.  If it's not closed then the underlying socket may
+	 * be left open.
+	 * 
 	 * @param request
 	 * @return a reader for the stream of responses.
 	 * @throws Exception

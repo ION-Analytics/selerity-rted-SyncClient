@@ -34,6 +34,7 @@ import com.google.gson.JsonParser;
  * 
  *
  */
+@Deprecated
 public class RhinoHTTPTransport implements Transport{
 	
 	private static final Log log = LogFactory.getLog (RhinoHTTPTransport.class);

@@ -32,7 +32,7 @@ import com.selerity.sync.client.Response;
  * 
  *
  */
-
+@Deprecated
 public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable{
 
 	private static final Log log = LogFactory.getLog (AsyncPseudoHTTPTransport.class);

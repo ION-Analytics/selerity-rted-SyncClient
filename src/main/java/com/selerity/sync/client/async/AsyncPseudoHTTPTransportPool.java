@@ -24,7 +24,7 @@ import com.selerity.sync.client.Response;
  * 
  *
  */
-
+@Deprecated
 public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, AsyncTransportListener{
 	
 	private static final Log log = LogFactory.getLog (AsyncPseudoHTTPTransportPool.class);
