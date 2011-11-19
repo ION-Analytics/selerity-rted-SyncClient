@@ -2,13 +2,11 @@ package com.selerity.sync.client.examples;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.google.gson.stream.JsonReader;
-import com.selerity.sync.client.FullRequest;
 import com.selerity.sync.client.NarwhalMetaServiceImpl;
 import com.selerity.sync.client.NarwhalService;
 import com.selerity.sync.client.Request;
@@ -35,39 +33,54 @@ public class LoadTestClient {
 	
 	private static final Log log = LogFactory.getLog(LoadTestClient.class);
 	
+	protected static void startTestingThread(final NarwhalService service, final int requestCount){
+		Thread th = new Thread(){
+			public void run(){
+				log.debug("starting...");
+				
+				for (int i = 0; i < requestCount; i++) {
+					try {
+						Request request = new Request("IntrospectionHandler.getVersion");
+						SessionImpl session = new SessionImpl();
+						// log.debug("about to send request: " +
+						// request.getMethod());
+						service.dispatch(request, session);
+						// String version = resultElem.getAsString();
+						// log.debug("got version " + version);
+						// Thread.sleep(1);
+					}
+					catch (Exception ex) {
+						log.error("caught " + ex + " in testing thread, skipping", ex);
+					}
+				}
+				
+				log.debug("done sending, sleeping");
+			}
+		};
+		th.start();
+	}
+	
 	
 	public static void main(String[] args){
 		Set<JsonReader> readers = new HashSet<JsonReader>();
 		try {
 			
 			if (args.length < 3) {
-				System.err.println("arguments: urls user password");
+				System.err.println("arguments: urls threadCount requestCount");
 				System.exit(1);
 			}
 
 			// read in the arguments
 			String urls = args[0];
-			//String user = args[1];
-			//String password = args[2];
+			int threadCount = Integer.parseInt(args[1]);
+			int requestCount = Integer.parseInt(args[2]);
 			
+			NarwhalService service = new NarwhalMetaServiceImpl(urls);
 			
-			
-			log.debug("starting...");
-			for (int i = 0; i < 5; i++){
-				Request request = new Request("IntrospectionHandler.getVersion");
-				SessionImpl session = new SessionImpl();
-				NarwhalService service = new NarwhalMetaServiceImpl(urls);
-				//log.debug("about to send request: " + request.getMethod());
-				//JsonElement resultElem = service.dispatch(request, session);
-				JsonReader reader = service.dispatch(new FullRequest(request, session, UUID.randomUUID().toString()));
-				readers.add(reader);
-				//String version = resultElem.getAsString();
-				//log.debug("got version " + version);
-				//Thread.sleep(1);
+			for (int i = 1; i <= threadCount; i++){
+				log.debug("starting thread " + i + " of  " + threadCount);
+				startTestingThread(service, requestCount);
 			}
-			log.debug("done sending, sleeping");
-			
-			
 			while (true){
 				Thread.sleep(1000);
 			}
