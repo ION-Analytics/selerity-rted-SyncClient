@@ -122,9 +122,12 @@ public class RhinoHTTPTransport implements Transport{
 		requestBuf.append(']');
 		
 		try{
-			log.debug("about to dispatch boxcar with " + requests.length + " requests");
+		    if (log.isDebugEnabled()){
+		        log.debug("about to dispatch boxcar with " + requests.length + " requests");
+		    }
 			String responseString = dispatch(requestBuf.toString());
 			log.debug("got response to boxcar request");
+			
 			JsonArray responseArray = jsonParser.parse(responseString).getAsJsonArray();
 			if (responseArray.size() != requests.length){
 				log.error("sent " + requests.length + " requests but got " + responseArray.size() + " responses");

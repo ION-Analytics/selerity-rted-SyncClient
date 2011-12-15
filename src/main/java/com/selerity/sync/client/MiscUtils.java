@@ -4,6 +4,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -12,9 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TimeZone;
-import java.util.TreeSet;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -310,14 +309,18 @@ public class MiscUtils {
 	public static String collapseSet(Set<String> strings){
 		if ((strings == null) || (strings.size() < 1)){
 			return "";
+		} else if (strings.size() == 1) {
+		    return strings.iterator().next();
 		}
-		SortedSet<String> sortedStrings = new TreeSet<String>(strings);
+
+		String[] sortedStrings = strings.toArray(new String[strings.size()]);
+		Arrays.sort(sortedStrings);
+
 		StringBuffer buf = new StringBuffer();
 		for (String string : sortedStrings){
-			buf.append(',');		
-			buf.append(string);
+			buf.append(',').append(string);
 		}
-		
+
 		return buf.substring(1);  // trims off the first comma
 	}
 

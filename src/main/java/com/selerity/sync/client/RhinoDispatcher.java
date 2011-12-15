@@ -115,7 +115,9 @@ public class RhinoDispatcher implements Dispatcher{
 		String baseID = getNextID();
 		for (int i = 0; i < requestCount; i++){
 			String id = baseID + "_" + i;
-			log.debug("setting ID for sub-request " + i + " of " + requestCount + " as " + id);
+			if(log.isDebugEnabled()) {
+			    log.debug("setting ID for sub-request " + i + " of " + requestCount + " as " + id);
+			}
 			fullRequests[i] = new FullRequest(requests[i], user, token, client, mode, id);
 		}
 		
