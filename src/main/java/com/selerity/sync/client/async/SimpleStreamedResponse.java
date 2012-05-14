@@ -118,8 +118,22 @@ public class SimpleStreamedResponse implements StreamedResponse {
 	 * @param response
 	 */
 	public synchronized void add(Response response){
+		add(response, true);  // note, discards the return value
+	}
+	
+	/** Adds another response to this Streamed Response.  Sets the more flag to false if 
+	 *  this response's hasMore() method returns false.
+	 *  
+	 *  Note, this method may block if the response queue is full and block is set to true.
+	 *  If the queue is full and block is false then it will discard the response.
+	 * 
+	 * 
+	 * @throws IllegalArgumentException if the 'more' flag is already set to false.
+	 * @param response
+	 */
+	public synchronized boolean add(Response response, boolean block){
 		//log.debug("adding to " + response.getID());
-		while (wantsMore && hasMore && (responseQueue.size() >= maxSize)){
+		while (block && wantsMore && hasMore && (responseQueue.size() >= maxSize)){
 			// the queue is full
 			try{
 				//log.debug("waiting to add to " + response.getID());
@@ -130,9 +144,13 @@ public class SimpleStreamedResponse implements StreamedResponse {
 			}
 			//log.debug("done waiting to add to " + response.getID());
 		}
+		if (responseQueue.size() >= maxSize){
+			log.warn("discarding response because queue is full");
+			return false;
+		}
 		if (!wantsMore){
 			log.info("discarding response because consumer doesn't want any more");
-			return;
+			return false;
 		}
 		if (!hasMore){
 			throw new IllegalArgumentException("cannot add a response after more has been set to false");
@@ -145,6 +163,7 @@ public class SimpleStreamedResponse implements StreamedResponse {
 		//log.debug("added to " + response.getID());
 		notifyAll();
 		//log.debug("notifying after adding to " + response.getID());
+		return true;
 	}
 	
 	
