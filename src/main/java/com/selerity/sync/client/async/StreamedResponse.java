@@ -30,10 +30,10 @@ import com.selerity.sync.client.Response;
 
 public interface StreamedResponse {
 
-	
-	/** Gets the ID of the request to which this reponse corresponds.
+
+	/** Gets the ID of the request to which this response corresponds.
 	 * 
-	 * @return the ID of the request to which this reponse corresponds.
+	 * @return the ID of the request to which this response corresponds.
 	 */
 	public String getID();
 	
@@ -79,7 +79,7 @@ public interface StreamedResponse {
 	public Response getNextResponse();
 
 	/** Blocks until the next response is available.  Returns null if no more responses are coming.
-	 *  May time out and return null if the wait time is exceeeded.
+	 *  May time out and return null if the wait time is exceeded.
 	 * 
 	 * @return
 	 */

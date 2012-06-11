@@ -48,14 +48,28 @@ public class SimpleStreamedResponse implements StreamedResponse {
 	 * @return
 	 */
 	public static StreamedResponse getSingleResponseInstance(Response response){
-		SimpleStreamedResponse sr = new SimpleStreamedResponse(response.getID());
+		return getSingleResponseInstance(response, null);
+	}
+
+    /** Creates a new StreamedResponse instance with the given single response and a given id.
+	 *
+	 * @param response
+	 * @return
+	 */
+	public static StreamedResponse getSingleResponseInstance(Response response, String id){
+		SimpleStreamedResponse sr;
+        if(id == null || id == "") {
+            sr = new SimpleStreamedResponse(response.getID());
+        } else {
+            sr = new SimpleStreamedResponse(id);
+        }
 		if (response.hasMore()){
 			throw new IllegalArgumentException("cannot create a single response instance for a response which sets 'more' to true");
 		}
 		sr.add(response);
 		return sr;
 	}
-	
+
 	/** Creates a new StreamedResponse instance with a single successful response using the given result.
 	 * 
 	 * @param result
@@ -99,7 +113,7 @@ public class SimpleStreamedResponse implements StreamedResponse {
 		this.maxSize = maxSize;
 		responseQueue = new LinkedList<Response>();
 	}
-	
+
 	/** Gets the ID of the request to which this reponse corresponds.
 	 * 
 	 * @return the ID of the request to which this reponse corresponds.
