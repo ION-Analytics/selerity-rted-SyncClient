@@ -74,8 +74,6 @@ public class NarwhalMetaServiceImpl extends AbstractNawhalServiceImpl {
 	 * @param host
 	 * @param port
 	 * @param resource
-	 * @param introspectionUser
-	 * @param introspectionPassword
 	 * @throws MalformedURLException
 	 * @throws DispatchException
 	 */

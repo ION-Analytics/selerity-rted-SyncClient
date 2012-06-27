@@ -1,43 +1,33 @@
+/*
+ * (c) Copyright Selerity, Inc. 2009-2012. All rights reserved. This source code is confidential
+ * and proprietary information of Selerity Inc. and may be used only by a recipient designated
+ * by and for the purposes permitted by Selerity Inc. in writing.  Reproduction of, dissemination
+ * of, modifications to or creation of derivative works from this source code, whether in source
+ * or binary forms, by any means and in any form or manner, is expressly prohibited, except with
+ * the prior written permission of Selerity Inc..  THIS CODE AND INFORMATION ARE PROVIDED "AS IS"
+ * WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be
+ * removed from the software by any user thereof.
+ */
+
 package com.selerity.sync.client.async;
-
-import java.util.LinkedList;
-import java.util.Queue;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import com.google.gson.JsonElement;
 import com.selerity.sync.client.DispatchException;
 import com.selerity.sync.client.Response;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
-/** 
- * (C) Copyright Selerity, Inc. 2009-2011. All rights reserved. This source code
- * is confidential and proprietary information of Selerity Inc. and may be used
- * only by a recipient designated by and for the purposes permitted by Selerity
- * Inc. in writing. Reproduction of, dissemination of, modifications to or
- * creation of derivative works from this source code, whether in source or
- * binary forms, by any means and in any form or manner, is expressly
- * prohibited, except with the prior written permission of Selerity Inc.. THIS
- * CODE AND INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND,
- * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may
- * not be removed from the software by any user thereof.
- * 
- * A simple implementation of the StreamedResponse interface.  Stores responses in a queue without
- * size limits.
- * 
- *
- */
+import java.util.LinkedList;
+import java.util.Queue;
+
 public class SimpleStreamedResponse implements StreamedResponse {
-	
-	private static final Log log = LogFactory.getLog (SimpleStreamedResponse.class);
+    public static final int DEFAULT_MAX_SIZE = 100;
+	private static final Log LOG = LogFactory.getLog (SimpleStreamedResponse.class);
 
-	public static final int DEFAULT_MAX_SIZE = 100;
-	
 	protected final Queue<Response> responseQueue;
 	protected boolean hasMore = true;
 	protected boolean wantsMore = true;
-	
 	protected final int maxSize;
 	protected final String id;
 	
@@ -66,6 +56,7 @@ public class SimpleStreamedResponse implements StreamedResponse {
 		if (response.hasMore()){
 			throw new IllegalArgumentException("cannot create a single response instance for a response which sets 'more' to true");
 		}
+        response.setId(sr.getID());
 		sr.add(response);
 		return sr;
 	}
@@ -83,9 +74,7 @@ public class SimpleStreamedResponse implements StreamedResponse {
 	
 	/** Creates a new StreamedResponse instance with a single error response using the given exception.
 	 * 
-	 * @param result
 	 * @param id
-	 * @param resultType
 	 * @return
 	 */
 	public final static StreamedResponse getSingleResponseInstance(DispatchException error, String id){
@@ -94,9 +83,7 @@ public class SimpleStreamedResponse implements StreamedResponse {
 	
 	/** Creates a new StreamedResponse instance with a single error response constructed from the code, messagage and data fields.
 	 * 
-	 * @param result
 	 * @param id
-	 * @param resultType
 	 * @return
 	 */
 	public final static StreamedResponse getSingleResponseInstance(int errorCode, String errorMessage, JsonElement errorData, String id){
@@ -146,37 +133,37 @@ public class SimpleStreamedResponse implements StreamedResponse {
 	 * @param response
 	 */
 	public synchronized boolean add(Response response, boolean block){
-		//log.debug("adding to " + response.getID());
+		//LOG.debug("adding to " + response.getID());
 		while (block && wantsMore && hasMore && (responseQueue.size() >= maxSize)){
 			// the queue is full
 			try{
-				//log.debug("waiting to add to " + response.getID());
+				//LOG.debug("waiting to add to " + response.getID());
 				wait();
 			}
 			catch (InterruptedException ix){
 				// ignore
 			}
-			//log.debug("done waiting to add to " + response.getID());
+			//LOG.debug("done waiting to add to " + response.getID());
 		}
 		if (responseQueue.size() >= maxSize){
-			log.warn("discarding response because queue is full");
+			LOG.warn("discarding response because queue is full");
 			return false;
 		}
 		if (!wantsMore){
-			log.info("discarding response because consumer doesn't want any more");
+			LOG.info("discarding response because consumer doesn't want any more");
 			return false;
 		}
 		if (!hasMore){
 			throw new IllegalArgumentException("cannot add a response after more has been set to false");
 		}
 		if (!response.hasMore()){
-			//log.debug("setting hasMore = false for " + response.getID());
+			//LOG.debug("setting hasMore = false for " + response.getID());
 			hasMore = false;
 		}
 		responseQueue.add(response);
-		//log.debug("added to " + response.getID());
+		//LOG.debug("added to " + response.getID());
 		notifyAll();
-		//log.debug("notifying after adding to " + response.getID());
+		//LOG.debug("notifying after adding to " + response.getID());
 		return true;
 	}
 	
@@ -205,7 +192,7 @@ public class SimpleStreamedResponse implements StreamedResponse {
 	 * 
 	 */
 	public synchronized void setHasNoMore(){
-		//log.debug("setting has no more");
+		//LOG.debug("setting has no more");
 		hasMore = false;
 		notifyAll();
 	}
@@ -224,7 +211,7 @@ public class SimpleStreamedResponse implements StreamedResponse {
 	 * 
 	 */
 	public synchronized void setWantsNoMore(){
-		//log.debug("setting wants no more");
+		//LOG.debug("setting wants no more");
 		wantsMore = false;
 		notifyAll();
 	}
@@ -239,32 +226,32 @@ public class SimpleStreamedResponse implements StreamedResponse {
 	 */
 	public synchronized Response getNextResponse(){
 		while (true){
-			//log.debug("in next response loop");
+			//LOG.debug("in next response loop");
 			if (!wantsMore){
-				log.error("wantsMore already set to false, cannot get next response (" + responseQueue.size() + " waiting in queue)");
+				LOG.error("wantsMore already set to false, cannot get next response (" + responseQueue.size() + " waiting in queue)");
 				notifyAll();
 				return null;
 			}
-			//log.debug("polling queue");
+			//LOG.debug("polling queue");
 			Response response = responseQueue.poll();
 			if (response != null){
-				//log.debug("returning response");
+				//LOG.debug("returning response");
 				notifyAll();
 				return response;
 			}
-			//log.debug("polled a null");
+			//LOG.debug("polled a null");
 			if (hasMore){
 				try{
-					//log.debug("waiting while we have more");
+					//LOG.debug("waiting while we have more");
 					wait();
 				}
 				catch (InterruptedException ix){
 					// ignore
 				}
-				//log.debug("done waiting after has more");
+				//LOG.debug("done waiting after has more");
 			}
 			else{
-				//log.debug("has no more and polled null so returning null");
+				//LOG.debug("has no more and polled null so returning null");
 				notifyAll();
 				return null; // queue is no more available
 			}
@@ -279,38 +266,38 @@ public class SimpleStreamedResponse implements StreamedResponse {
 	public synchronized Response getNextResponse(long timeoutMillis){
 		long timeoutTime = System.currentTimeMillis() + timeoutMillis;
 		while (timeoutTime > (System.currentTimeMillis())){
-			//log.debug("in next response loop (timed)");
+			//LOG.debug("in next response loop (timed)");
 			if (!wantsMore){
-				log.error("wantsMore already set to false, cannot get next response (" + responseQueue.size() + " waiting in queue)");
+				LOG.error("wantsMore already set to false, cannot get next response (" + responseQueue.size() + " waiting in queue)");
 				notifyAll();
 				return null;
 			}
-			//log.debug("polling queue (timed)");
+			//LOG.debug("polling queue (timed)");
 			Response response = responseQueue.poll();
 			if (response != null){
-				//log.debug("polling a value, returning (timed)");
+				//LOG.debug("polling a value, returning (timed)");
 				notifyAll();
 				return response;
 			}
-			//log.debug("polling a null (timed)");
+			//LOG.debug("polling a null (timed)");
 			if (hasMore){
 				try{
 					long waitTimeMillis = timeoutTime - System.currentTimeMillis();
-					//log.debug("waiting up to " + waitTimeMillis + " while we have more (timed)");
+					//LOG.debug("waiting up to " + waitTimeMillis + " while we have more (timed)");
 					wait(waitTimeMillis);
 				}
 				catch (InterruptedException ix){
 					// ignore
 				}
-				//log.debug("done waiting after has more (timed)");
+				//LOG.debug("done waiting after has more (timed)");
 			}
 			else{
-				//log.debug("has no more and polled null so returning null (timed)");
+				//LOG.debug("has no more and polled null so returning null (timed)");
 				notifyAll();
 				return null; // queue is no more available
 			}
 		}
-		//log.debug("time ran out so returning null (timed)");
+		//LOG.debug("time ran out so returning null (timed)");
 		notifyAll();
 		return null;
 	}
