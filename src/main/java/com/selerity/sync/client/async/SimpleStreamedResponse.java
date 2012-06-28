@@ -48,7 +48,7 @@ public class SimpleStreamedResponse implements StreamedResponse {
 	 */
 	public static StreamedResponse getSingleResponseInstance(Response response, String id){
 		SimpleStreamedResponse sr;
-        if(id == null || id == "") {
+        if(id == null || id.isEmpty()) {
             sr = new SimpleStreamedResponse(response.getID());
         } else {
             sr = new SimpleStreamedResponse(id);
@@ -56,7 +56,6 @@ public class SimpleStreamedResponse implements StreamedResponse {
 		if (response.hasMore()){
 			throw new IllegalArgumentException("cannot create a single response instance for a response which sets 'more' to true");
 		}
-        response.setId(sr.getID());
 		sr.add(response);
 		return sr;
 	}

@@ -1,46 +1,29 @@
+/*
+ * (c) Copyright Selerity, Inc. 2009-2012. All rights reserved. This source code is confidential
+ * and proprietary information of Selerity Inc. and may be used only by a recipient designated
+ * by and for the purposes permitted by Selerity Inc. in writing.  Reproduction of, dissemination
+ * of, modifications to or creation of derivative works from this source code, whether in source
+ * or binary forms, by any means and in any form or manner, is expressly prohibited, except with
+ * the prior written permission of Selerity Inc..  THIS CODE AND INFORMATION ARE PROVIDED "AS IS"
+ * WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be
+ * removed from the software by any user thereof.
+ */
+
 package com.selerity.sync.client;
-
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.stream.JsonReader;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.*;
 
 
-/** 
- * (C) Copyright Selerity, Inc. 2009-2011. All rights reserved. This source code
- * is confidential and proprietary information of Selerity Inc. and may be used
- * only by a recipient designated by and for the purposes permitted by Selerity
- * Inc. in writing. Reproduction of, dissemination of, modifications to or
- * creation of derivative works from this source code, whether in source or
- * binary forms, by any means and in any form or manner, is expressly
- * prohibited, except with the prior written permission of Selerity Inc.. THIS
- * CODE AND INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND,
- * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may
- * not be removed from the software by any user thereof.
- * 
- * Dispatches requests to whichever service is advertising support from amongst those registered.
- *  
- * This depends on the services implementing the Narhwal introspection services.
- * 
- * If two or more services advertise support for the same method name (ignoring arguments) then
- * dispatch will be attempted in the order of service registration.  
- * 
- * In general, if dispatch fails on a given service endpoint then the next endpoint which
- * supports a method with that name will be selected and dispatched to.
- *
- */
 public class NarwhalMetaServiceImpl extends AbstractNawhalServiceImpl {
 
 	private static final Log log = LogFactory.getLog (NarwhalMetaServiceImpl.class);
@@ -183,8 +166,12 @@ public class NarwhalMetaServiceImpl extends AbstractNawhalServiceImpl {
 		log.debug("failed request " + request.getMethod() + " with all registered services");
 		throw lastException;
 	}
-	
-	public Response dispatchWithResponse(final Request request, final Session session) throws DispatchException{
+
+    public Response dispatchWithResponse(final Request request, final Session session) throws DispatchException{
+        return dispatchWithResponse(request, session, null);
+    }
+
+	public Response dispatchWithResponse(final Request request, final Session session, final String id) throws DispatchException{
 		List<NarwhalService> serviceList = serviceMap.get(request.getMethod());
 		if (serviceList == null){
 			throw new DispatchException(DispatchException.INVALID_REQUEST, "no dispatchers registered for method " + request.getMethod());
@@ -192,7 +179,12 @@ public class NarwhalMetaServiceImpl extends AbstractNawhalServiceImpl {
 		DispatchException lastException = null;
 		for (NarwhalService service : serviceList){
 			try{
-				Response response = service.dispatchWithResponse(request, session);
+				Response response;
+                if (id == null || id.isEmpty()){
+                    response = service.dispatchWithResponse(request, session);
+                } else {
+                    response = service.dispatchWithResponse(request, session, id);
+                }
 				return response;
 			}
 			catch (DispatchException dx){

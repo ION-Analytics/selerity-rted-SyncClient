@@ -23,7 +23,7 @@ public class Response {
     private final JsonElement result;
     private final DispatchException error;
     private final JsonObject header;
-    private String id;
+    private final String id;
 
 
     /**
@@ -88,10 +88,6 @@ public class Response {
      */
     public Response(DispatchException error, String id, String resultAPI, boolean more) {
         this(null, error, id, resultAPI, "void", more);
-    }
-
-    public void setId(String id) {
-        this.id = id;
     }
 
     /**
