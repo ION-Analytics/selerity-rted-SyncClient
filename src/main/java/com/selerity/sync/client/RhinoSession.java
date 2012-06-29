@@ -31,6 +31,7 @@ public class RhinoSession extends SessionImpl {
 	public static final String CLIENT = "client";
 	public static final String TOKEN = "token";
 	public static final String MODE = "mode";
+	public static final String STREAMING = "canStream";
 	
 	
 	public RhinoSession(String user, String client, String token, String mode){
