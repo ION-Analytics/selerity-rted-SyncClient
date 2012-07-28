@@ -289,7 +289,7 @@ public class NarwhalSessionFactory {
 			while (true){
 				long mins = (long)(Math.random() * 60.0);  // pick a random number of minutes between 0 and 1 hour.
 				log.info("now sleep for " + mins + " minutes and try again...");
-				Thread.sleep(mins * 1000L);  
+				Thread.sleep(mins * 60000L);  
 				session = factory.getInstance(narwhalService, "NarwhalSessionFactoryTest", null);
 				log.info("token = " + session.getHeaderParameter(RhinoSession.TOKEN));
 			}
