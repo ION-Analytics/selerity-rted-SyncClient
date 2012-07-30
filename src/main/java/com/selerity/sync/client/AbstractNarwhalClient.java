@@ -23,6 +23,7 @@ import com.google.gson.stream.JsonReader;
 public class AbstractNarwhalClient {
 	
 	
+	protected final NarwhalSessionFactory narwhalSessionFactory;
 	protected final NarwhalService service;
 	protected final String user;
 	protected final String password;
@@ -43,6 +44,8 @@ public class AbstractNarwhalClient {
 		this.password = password;
 		
 		this.clientAppName = clientAppName;
+		
+		narwhalSessionFactory = new NarwhalSessionFactory();
 	}
 
 
@@ -88,7 +91,7 @@ public class AbstractNarwhalClient {
 	 * @throws DispatchException
 	 */
 	public Session startSession() throws DispatchException{
-		return new NarwhalSessionFactory().getInstance(service,
+		return narwhalSessionFactory.getInstance(service,
 				clientAppName, null, user, password);
 	}
 	
@@ -99,7 +102,7 @@ public class AbstractNarwhalClient {
 	 * @throws DispatchException
 	 */
 	public Session startSession(String mode) throws DispatchException{
-		return new NarwhalSessionFactory().getInstance(service,
+		return narwhalSessionFactory.getInstance(service,
 				clientAppName, mode, user, password);
 	}
 	
@@ -110,7 +113,7 @@ public class AbstractNarwhalClient {
 	 * @throws DispatchException
 	 */
 	public Session startSessionExtensionMode() throws DispatchException{
-		return new NarwhalSessionFactory().getInstance(service,
+		return narwhalSessionFactory.getInstance(service,
 				clientAppName, "extension", user, password);
 	}
 	
@@ -119,8 +122,7 @@ public class AbstractNarwhalClient {
 	 * @throws DispatchException
 	 */
 	public void extendSession(Session session) throws DispatchException{
-		Request extendRequest = new Request("AuthenticationHandler.extend");
-		dispatch(extendRequest, session);
+		narwhalSessionFactory.extend(session);
 	}
 	
 	
@@ -129,7 +131,6 @@ public class AbstractNarwhalClient {
 	 * @throws DispatchException
 	 */
 	public void closeSession(Session session) throws DispatchException{
-		Request logoutRequest = new Request("AuthenticationHandler.invalidate");
-		dispatch(logoutRequest, session);
+		narwhalSessionFactory.close(session);
 	}
 }

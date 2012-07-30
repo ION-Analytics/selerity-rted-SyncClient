@@ -257,6 +257,9 @@ public class NarwhalSessionFactory {
 		// no need to close this session
 	}
 	
+	public void extend(Session session){
+		// no need to do this explicitly, it will be done on demand when needed
+	}
 	
 	// useful for long-duration for manual integration testing.
 	public static void main(String[] args){
