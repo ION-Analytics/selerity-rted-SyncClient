@@ -24,40 +24,71 @@ public class AbstractNarwhalClient {
 	
 	
 	protected final NarwhalSessionFactory narwhalSessionFactory;
-	protected final NarwhalService service;
-	protected final String user;
-	protected final String password;
-	protected final String clientAppName;
+	protected final NarwhalService narwhalService;
+
 	
-	/** 
+	/** Creates a new instance with the given service endpoint, username, password and client app name.
 	 * 
-	 * @param host
-	 * @param port
+	 *  Note that this assumes that the given endpoint can be used for authentication as well as other methods. 
+	 * 
+	 * @param service
 	 * @param user
 	 * @param password
+	 * @param clientAppName
 	 * @throws Exception 
 	 */
-	public AbstractNarwhalClient(NarwhalService service, String user, String password, String clientAppName) throws Exception{
-		this.service = service;
-		
-		this.user = user;
-		this.password = password;
-		
-		this.clientAppName = clientAppName;
-		
-		narwhalSessionFactory = new NarwhalSessionFactory();
+	public AbstractNarwhalClient(NarwhalService narwhalService, String user, String password, String clientAppName) throws Exception{
+		this.narwhalService = narwhalService;		
+		narwhalSessionFactory = new NarwhalSessionFactory(narwhalService, clientAppName, user, password);
 	}
 
+	/** Creates a new instance with the given service endpoint for normal method dispatch and the given
+	 *  session factory for performing authentication.
+	 * 
+	 * @param narwhalService
+	 * @param narwhalSessionFactory
+	 * @throws Exception 
+	 */
+	public AbstractNarwhalClient(NarwhalService narwhalService, NarwhalSessionFactory narwhalSessionFactory) throws Exception{
+		this.narwhalService = narwhalService;
+		this.narwhalSessionFactory = narwhalSessionFactory;
+	}
+	
 
 	/** 
-	 * Dispatch the request using the current session.
+	 * Dispatch the request using the given session.
 	 * 
 	 * @param request
 	 * @return
 	 * @throws DispatchException
 	 */
 	public JsonElement dispatch(Request request, Session session) throws DispatchException{
-		return service.dispatch(request, session); 	
+		return narwhalService.dispatch(request, session); 	
+	}
+	
+	/** 
+	 * Dispatch the request using a session created by the internal factory.  Note that this
+	 * method will be dispatched with a default mode session.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws DispatchException
+	 */
+	public JsonElement dispatch(Request request) throws DispatchException{
+		return narwhalService.dispatch(request, narwhalSessionFactory.getInstance()); 	
+	}
+	
+	/** 
+	 * Dispatch the request using a session created by the internal factory.
+	 * 
+	 * Note that this method will be dispatched with an "extension mode" session.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws DispatchException
+	 */
+	public JsonElement dispatchExtensionMode(Request request) throws DispatchException{
+		return narwhalService.dispatch(request, narwhalSessionFactory.getInstanceExtensionMode()); 	
 	}
 	
 	/**
@@ -69,18 +100,53 @@ public class AbstractNarwhalClient {
 	 * @throws Exception 
 	 */
 	public JsonReader dispatch(FullRequest request) throws Exception{
-		return service.dispatch(request);
+		return narwhalService.dispatch(request);
 	}
 	
-	/** Create a paginated response iterator using the current session.  Requires the name of the parameter object that
+	/** Create a paginated response iterator using the given session.  Requires the name of the parameter object that
 	 *  will carry the limit and offset parameters.
 	 * 
 	 * @param request
+	 * @param session
+	 * @param optionObjectName the name of the object that contains the "pagination options" block of limit and offset
+	 * @param limit the page size to load
 	 * @return
 	 * @throws DispatchException
 	 */
 	public PaginatedResponseIterator paginatedDispatch(Request request, Session session, String optionObjectName, int limit) throws DispatchException{
-		return new NarwhalPaginatedResponseInteratorImpl(service, session, request, optionObjectName, limit);
+		return new NarwhalPaginatedResponseInteratorImpl(narwhalService, session, request, optionObjectName, limit);
+	}
+	
+	/** Create a paginated response iterator using the current session from the internal factory.  Requires the name of the parameter object that
+	 *  will carry the limit and offset parameters.
+	 *  
+	 *  This call will be executed with a default mode session.
+	 * 
+	 * @param request
+	 * @param session
+	 * @param optionObjectName the name of the object that contains the "pagination options" block of limit and offset
+	 * @param limit the page size to load
+	 * @return
+	 * @throws DispatchException
+	 */
+	public PaginatedResponseIterator paginatedDispatch(Request request, String optionObjectName, int limit) throws DispatchException{
+		return new NarwhalPaginatedResponseInteratorImpl(narwhalService, narwhalSessionFactory.getInstance(), request, optionObjectName, limit);
+	}
+	
+	/** Create a paginated response iterator using the current session from the internal factory.  Requires the name of the parameter object that
+	 *  will carry the limit and offset parameters.
+	 *  
+	 *  This call will be executed with a "extension mode" session.
+	 * 
+	 * @param request
+	 * @param session
+	 * @param optionObjectName the name of the object that contains the "pagination options" block of limit and offset
+	 * @param limit the page size to load
+	 * @return
+	 * @throws DispatchException
+	 */
+	public PaginatedResponseIterator paginatedDispatchExtensionMode(Request request, String optionObjectName, int limit) throws DispatchException{
+		return new NarwhalPaginatedResponseInteratorImpl(narwhalService, narwhalSessionFactory.getInstanceExtensionMode(), request, optionObjectName, limit);
 	}
 
 	
@@ -91,8 +157,7 @@ public class AbstractNarwhalClient {
 	 * @throws DispatchException
 	 */
 	public Session startSession() throws DispatchException{
-		return narwhalSessionFactory.getInstance(service,
-				clientAppName, null, user, password);
+		return narwhalSessionFactory.getInstance();
 	}
 	
 	/** Starts a session in the given mode.
@@ -102,8 +167,7 @@ public class AbstractNarwhalClient {
 	 * @throws DispatchException
 	 */
 	public Session startSession(String mode) throws DispatchException{
-		return narwhalSessionFactory.getInstance(service,
-				clientAppName, mode, user, password);
+		return narwhalSessionFactory.getInstance(mode);
 	}
 	
 	/** Starts a session in "extension" mode.
@@ -113,8 +177,7 @@ public class AbstractNarwhalClient {
 	 * @throws DispatchException
 	 */
 	public Session startSessionExtensionMode() throws DispatchException{
-		return narwhalSessionFactory.getInstance(service,
-				clientAppName, "extension", user, password);
+		return narwhalSessionFactory.getInstanceExtensionMode();
 	}
 	
 	/** Extends the current session.

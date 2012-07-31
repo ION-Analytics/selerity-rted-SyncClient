@@ -143,6 +143,7 @@ public class NarwhalHTTPServiceImpl extends AbstractNawhalServiceImpl {
         con.addRequestProperty("Accept", "text/plain");
         con.addRequestProperty("Content-type", "application/x-json");
         con.addRequestProperty("User-Agent", "Java/NarwhalClient");
+        con.addRequestProperty("Connection", "Keep-Alive");
         con.setDoOutput(true);
         con.connect();
 

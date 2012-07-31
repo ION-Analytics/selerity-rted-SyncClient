@@ -4,7 +4,9 @@ import java.net.URL;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -13,7 +15,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 /** 
- * (C) Copyright Selerity, Inc. 2009-2011. All rights reserved. This source code
+ * (C) Copyright Selerity, Inc. 2009-2012. All rights reserved. This source code
  * is confidential and proprietary information of Selerity Inc. and may be used
  * only by a recipient designated by and for the purposes permitted by Selerity
  * Inc. in writing. Reproduction of, dissemination of, modifications to or
@@ -42,11 +44,20 @@ public class NarwhalSessionFactory {
 	
 	public static final String SYNC_USER_PROPERTY_NAME = "com.selerity.sync.user"; 
 	public static final String SYNC_PASSWORD_PROPERTY_NAME = "com.selerity.sync.password";
+	
+	public static final String EXTENSION_MODE_STRING = "extension";
 
 	// this is the minimum amount of time remaining on a session before it will be extended
 	public static final String SYNC_SESSION_MIN_VALID_TIME_MILLIS_PROPERTY_NAME = "com.selerity.sync.min_valid_time_millis"; 
 	public static final long   SYNC_SESSION_MIN_VALID_TIME_MILLIS_DEFAULT_VALUE = 300000L;  // assumes sessions need to be valid for at least another 5 minutes in order to use.
 	
+	public static final long SESSION_REFRESH_INTERVAL_MILLIS = 1200000L; // refresh at least once every 20 minutes.
+	
+	
+	/**
+	 * Simple data structure to record information about a session.
+	 * 
+	 */
 	protected static class SessionData {
 		
 		private static final String KEY_FIELD_SEPARATOR = "|||";
@@ -58,8 +69,8 @@ public class NarwhalSessionFactory {
 		private final Session session;
 		private Date expiration;
 		
+		
 		public SessionData(Session session, Date expiration) {
-			super();
 			this.session = session;
 			this.expiration = expiration;
 		}
@@ -75,22 +86,138 @@ public class NarwhalSessionFactory {
 		public synchronized void setExpiration(Date expiration) {
 			this.expiration = expiration;
 		}
+
+		
 	}
 	
-	public static final Map<String,SessionData> sessionCache = new HashMap<String,SessionData>();
+	public static final Map<String,SessionData> sessionCache = new HashMap<String,SessionData>();  // this is a shared global cache of sessions used by all factories
 	
 	
-	/** Gets an instance with the provided user and password.
+	// Instance variables
+	
+	public final NarwhalService service; // this is the service used to perform authentication
+	public final String client;
+	public final String user;
+	public final String password;
+	
+	
+	
+	public NarwhalSessionFactory(final NarwhalService service, final String client){
+		this(service, client, null, null);
+	}
+	
+	
+	public NarwhalSessionFactory(final NarwhalService service, final String client, final String user, final String password){
+		this.service = service;
+		this.client = client;
+	
+		// if the user is set to null, try to look it up via the system property
+		if (user == null){
+			this.user = System.getProperty(SYNC_USER_PROPERTY_NAME);
+			if (this.user == null){
+				throw new NullPointerException("user cannot be null, try setting property " + SYNC_USER_PROPERTY_NAME);
+			}
+		}
+		else{
+			this.user = user;
+		}
+			
+			
+		// if the password is set to null, try to look it up via the system property
+		if (password == null){
+			this.password = System.getProperty(SYNC_PASSWORD_PROPERTY_NAME);
+			if (this.password == null){
+				throw new NullPointerException("password cannot be null, try setting property " + SYNC_PASSWORD_PROPERTY_NAME);
+			}
+		}
+		else{
+			this.password = password;
+		}
+		
+	}
+	
+	/** 
+	 * Starts a thread to periodically force the session to be refreshed using default timing parameter
 	 * 
-	 * @param dispatcher
-	 * @param client
+	 * @param refreshIntervalMillis
+	 */
+	public void startPerpetualRefresh(){
+		startPerpetualRefresh(SESSION_REFRESH_INTERVAL_MILLIS);
+	}
+	
+	
+	/** 
+	 * Starts a thread to periodically force the session to be refreshed using the given timing parameter
+	 * 
+	 * @param refreshIntervalMillis
+	 */
+	public void startPerpetualRefresh(final long refreshIntervalMillis){
+		final Thread refreshThread = new Thread(new Runnable(){
+					public void run(){
+						while (true){
+							try{
+								// look up the set of keys
+								final Set<String> sessionCacheKeys = new HashSet<String>();
+								synchronized(sessionCache){
+									sessionCacheKeys.addAll(sessionCache.keySet());
+								}
+								
+								// now loop through and force a reload of each
+								for (String key : sessionCacheKeys){
+									final SessionData sessionData;
+									synchronized(sessionCache){
+										sessionData = sessionCache.get(key);
+									}
+									extendSessionData(service, sessionData); // forces a reload
+								}
+								
+							}
+							catch (Exception ex){
+								log.error("caught " + ex + " while refreshing session, ignoring");
+							}
+							
+							try{
+								Thread.sleep(refreshIntervalMillis);
+							}
+							catch (Exception ex){
+								
+							}
+						}
+					}
+				}, "perpetualSessionRefreshThread");	
+		refreshThread.setDaemon(true);
+		refreshThread.start();
+		log.info("started session refresh thread: " + refreshThread.getName() + " refreshing every " + refreshIntervalMillis + " ms.");
+	}
+	
+	
+	/** Gets an instance with default mode.
+	 * 
 	 * @param mode
-	 * @param user
-	 * @param password
 	 * @return
 	 * @throws DispatchException
 	 */
-	public Session getInstance(final NarwhalService service, final String client, final String mode, final String user, final String password) throws DispatchException{
+	public Session getInstance() throws DispatchException{
+		return getInstance(null);
+	}
+	
+	/** Gets an instance with extension mode.
+	 * 
+	 * @param mode
+	 * @return
+	 * @throws DispatchException
+	 */
+	public Session getInstanceExtensionMode() throws DispatchException{
+		return getInstance(EXTENSION_MODE_STRING);
+	}
+	
+	/** Gets an instance with the provided mode.
+	 * 
+	 * @param mode
+	 * @return
+	 * @throws DispatchException
+	 */
+	public Session getInstance(final String mode) throws DispatchException{
 		
 		String sessionCacheKey = SessionData.getKey(user, password, client, mode);
 		
@@ -100,7 +227,7 @@ public class NarwhalSessionFactory {
 			
 			if (cacheEntry == null){ // there's no entry now, need to try to create one
 				log.debug("there is no cached session for user=" + user + "; client=" + client + "; mode=" + mode + "; password= <not shown>.  Will need to create one.");
-				cacheEntry = startNewSession(service, client, mode, user, password);
+				cacheEntry = startNewSession(mode);
 				sessionCache.put(sessionCacheKey, cacheEntry);
 				// now return the newly created entry
 				return cacheEntry.getSession();
@@ -125,7 +252,7 @@ public class NarwhalSessionFactory {
 							log.error("need to start a new session for user " + user + " with old token " + token + " because an error occured: " + dx + " )", dx);
 						}
 						// token wasn't valid - create a new token
-						cacheEntry = startNewSession(service, client, mode, user, password);
+						cacheEntry = startNewSession(mode);
 						sessionCache.put(sessionCacheKey, cacheEntry);
 					}
 				}
@@ -136,16 +263,11 @@ public class NarwhalSessionFactory {
 			}
 		}
 		
-		
-		
-		
-		
-		
 	}
 
 	
 	
-	protected SessionData startNewSession(final NarwhalService service, final String client, final String mode, final String user, final String password) throws DispatchException{
+	protected SessionData startNewSession(final String mode) throws DispatchException{
 		Request authRequest = new Request("AuthenticationHandler.authenticate");
 		authRequest.setMethodParameter("user", user);
 		authRequest.setMethodParameter("password", password);
@@ -232,26 +354,7 @@ public class NarwhalSessionFactory {
 	}
 	
 	
-	/** Gets a session using the user and password set in the system properties.
-	 * 
-	 * @param dispatcher
-	 * @param client
-	 * @param mode
-	 * @return
-	 * @throws DispatchException
-	 */
-	public Session getInstance(NarwhalService service, String client, String mode) throws DispatchException{
-		String user = System.getProperty(SYNC_USER_PROPERTY_NAME);
-		String password = System.getProperty(SYNC_PASSWORD_PROPERTY_NAME);
-		if (user == null){
-			throw new NullPointerException("user cannot be null, try setting property " + SYNC_USER_PROPERTY_NAME);
-		}
-		if (password == null){
-			throw new NullPointerException("password cannot be null, try setting property " + SYNC_PASSWORD_PROPERTY_NAME);
-		}
 
-		return getInstance(service, client, mode, user, password);
-	}
 	
 	public void close(Session session){
 		// no need to close this session
@@ -261,31 +364,32 @@ public class NarwhalSessionFactory {
 		// no need to do this explicitly, it will be done on demand when needed
 	}
 	
-	// useful for long-duration for manual integration testing.
+	// useful for long-duration or manual integration testing.
 	public static void main(String[] args){
 		try{
-			NarwhalSessionFactory factory = new NarwhalSessionFactory();
-			String serviceURLs = "http://ny2aclsp01:8080/rhino-1.0-SNAPSHOT/rpc.do";
-			//String serviceURL = "http://ny2aclsp01:8083/rpc.do";
-			NarwhalService narwhalService = new NarwhalHTTPServiceImpl(new URL(serviceURLs));
+			
+			//String serviceURLs = "http://ny2aclsp01:8080/rhino-1.0-SNAPSHOT/rpc.do";
+			String serviceURLs = "http://ny2aclsp01:8083/rpc.do";
+			NarwhalSessionFactory factory = new NarwhalSessionFactory(new NarwhalHTTPServiceImpl(new URL(serviceURLs)), "NarwhalSessionFactoryTest");
+			factory.startPerpetualRefresh();
 
 			log.info("will get the first token now...");
-			Session session = factory.getInstance(narwhalService, "NarwhalSessionFactoryTest", null);
+			Session session = factory.getInstance();
 			log.info("token = " + session.getHeaderParameter(RhinoSession.TOKEN));
 			
 			log.info("now sleep for a minute and try again - should just hit cache...");
 			Thread.sleep(60000);
-			session = factory.getInstance(narwhalService, "NarwhalSessionFactoryTest", null);
+			session = factory.getInstance();
 			log.info("token = " + session.getHeaderParameter(RhinoSession.TOKEN));
 			
 			log.info("now sleep for 20 minutes and try again - should force an extension...");
 			Thread.sleep(1200000);
-			session = factory.getInstance(narwhalService, "NarwhalSessionFactoryTest", null);
+			session = factory.getInstance();
 			log.info("token = " + session.getHeaderParameter(RhinoSession.TOKEN));
 			
 			log.info("now sleep for 30 minutes and try again - should force an new session to start...");
 			Thread.sleep(1800000);
-			session = factory.getInstance(narwhalService, "NarwhalSessionFactoryTest", null);
+			session = factory.getInstance();
 			log.info("token = " + session.getHeaderParameter(RhinoSession.TOKEN));
 			
 			
@@ -293,7 +397,7 @@ public class NarwhalSessionFactory {
 				long mins = (long)(Math.random() * 60.0);  // pick a random number of minutes between 0 and 1 hour.
 				log.info("now sleep for " + mins + " minutes and try again...");
 				Thread.sleep(mins * 60000L);  
-				session = factory.getInstance(narwhalService, "NarwhalSessionFactoryTest", null);
+				session = factory.getInstance();
 				log.info("token = " + session.getHeaderParameter(RhinoSession.TOKEN));
 			}
 			
