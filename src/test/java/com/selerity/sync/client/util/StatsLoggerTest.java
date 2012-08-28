@@ -12,8 +12,9 @@
 
 package com.selerity.sync.client.util;
 
-import org.junit.Test;
 import static org.junit.Assert.*;
+
+import org.junit.Test;
 
 public class StatsLoggerTest {
 
@@ -79,6 +80,20 @@ public class StatsLoggerTest {
 		assertEquals(new Double(8.0), statsLogger.getMaxValue("Blah"));
 		assertEquals(3, statsLogger.getCountValues("Blah"));
 		assertEquals((Double)21.0, new Double(statsLogger.getSumOfValues("Blah")));
+	}
+	
+	@Test
+	public void testPerformance(){
+		StatsLogger<String,Double> statsLogger = new StatsLogger<String,Double>();
+		long startMillis = System.currentTimeMillis();
+		int count = 1000000;
+		for (int i = 0; i < count; i++){
+			String key = Integer.toString(i % 1000);
+			statsLogger.addResult(key, new Double(i));
+		}
+		long elapsedMillis = System.currentTimeMillis() - startMillis;
+		assertTrue(elapsedMillis < 10000); // shouldn't take more than 10 seconds (typically takes about 1 second on 2.4 GHz CPU)
+		//System.out.println("added " + count + " results in " + elapsedMillis + " ms; " + (count * 1000 / elapsedMillis) + " results per second");
 	}
 	
 }
