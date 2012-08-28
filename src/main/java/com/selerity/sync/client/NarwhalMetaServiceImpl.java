@@ -62,7 +62,7 @@ public class NarwhalMetaServiceImpl extends AbstractNawhalServiceImpl {
 	 */
 	public void addService(String host, int port, String resource) throws MalformedURLException, DispatchException{
 		String urlString = "http://" + host + ":" + port + "/" + resource;
-		NarwhalService service = new NarwhalHTTPServiceImpl(new URL(urlString));
+		NarwhalService service = new NarwhalHTTPServiceImpl(new URL(urlString), this.getMethodStatsLogger());
 		addService(service);
 	}
 	
@@ -83,7 +83,7 @@ public class NarwhalMetaServiceImpl extends AbstractNawhalServiceImpl {
 		boolean anySuccess = false;
 		for (String urlString : urlStringArray){
 			try{
-				NarwhalService service = new NarwhalHTTPServiceImpl(new URL(urlString));
+				NarwhalService service = new NarwhalHTTPServiceImpl(new URL(urlString), this.getMethodStatsLogger());
 				if (addService(service) > 0){
 					anySuccess = true;
 				}

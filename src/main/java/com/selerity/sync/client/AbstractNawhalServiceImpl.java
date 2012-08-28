@@ -37,6 +37,15 @@ public abstract class AbstractNawhalServiceImpl implements NarwhalService{
 	
 	protected final StatsLogger<String,Long> methodStatsLogger;
 	
+	private static final Gson initGson(){
+		GsonBuilder builder = new GsonBuilder().serializeNulls();
+		builder.registerTypeAdapter(FullRequest.class, new FullRequest.FullRequestDeserializer());
+		builder.registerTypeAdapter(FullRequest.class, new FullRequest.FullRequestSerializer());
+		builder.registerTypeAdapter(Response.class, new Response.ResponseDeserializer());
+		builder.registerTypeAdapter(Response.class, new Response.ResponseSerializer());
+		return builder.create();
+	}
+	
 	/** 
 	 * Creates an abstract instance of a NarwhalService endpoint with the given name.
 	 * Enables method statistics if the appropriate system property is set. 
@@ -44,12 +53,7 @@ public abstract class AbstractNawhalServiceImpl implements NarwhalService{
 	 * @param serviceName
 	 */
 	public AbstractNawhalServiceImpl(String serviceName){
-		GsonBuilder builder = new GsonBuilder().serializeNulls();
-		builder.registerTypeAdapter(FullRequest.class, new FullRequest.FullRequestDeserializer());
-		builder.registerTypeAdapter(FullRequest.class, new FullRequest.FullRequestSerializer());
-		builder.registerTypeAdapter(Response.class, new Response.ResponseDeserializer());
-		builder.registerTypeAdapter(Response.class, new Response.ResponseSerializer());
-		gson = builder.create();
+		gson = initGson();
 		this.serviceName = serviceName;
 		
 		boolean enableStats = false;
@@ -70,6 +74,28 @@ public abstract class AbstractNawhalServiceImpl implements NarwhalService{
 			log.info("method statistics logging disabled");
 			this.methodStatsLogger = null;
 		}
+	}
+	
+	/**
+	 * Creates an abstract instance of a NarwhalService endpoint with the given name
+	 * and method statistics logger.  If the method statistics logger is null then stats
+	 * logging is disabled.
+	 * 
+	 * @param serviceName
+	 * @param methodStatsLogger
+	 */
+	public AbstractNawhalServiceImpl(String serviceName, StatsLogger<String,Long> methodStatsLogger){
+		gson = initGson();
+		this.serviceName = serviceName;
+		this.methodStatsLogger = methodStatsLogger;
+		
+		if(methodStatsLogger == null){
+			log.info("method statistics logging disabled");
+		}
+		else{
+			log.info("method statistics logging enabled");
+		}
+		
 	}
 	
 	public void setName(String serviceName){

@@ -12,18 +12,20 @@
 
 package com.selerity.sync.client;
 
-import com.google.gson.JsonElement;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonWriter;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.UUID;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.google.gson.JsonElement;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+import com.selerity.sync.client.util.StatsLogger;
 
 public class NarwhalHTTPServiceImpl extends AbstractNawhalServiceImpl {
 
@@ -45,10 +47,45 @@ public class NarwhalHTTPServiceImpl extends AbstractNawhalServiceImpl {
         this.serviceURL = serviceURL;
         log.info("connecting to URL: " + serviceURL);
     }
+    
+    /**
+     * Creates transport that will POST JSON-RPC requests to the given URL.
+     * 
+     * Uses the given method statistics logger.  If methodStatsLogger is null then
+     * statistics logging is disabled.
+     *
+     * @param serviceURL
+     * @throws MalformedURLException
+     */
+    public NarwhalHTTPServiceImpl(URL serviceURL, StatsLogger<String, Long> methodStatsLogger) {
+        super(serviceURL.toString(), methodStatsLogger);
+        this.serviceURL = serviceURL;
+        log.info("connecting to URL: " + serviceURL);
+    }
 
+    /**
+     * Creates transport that will POST JSON-RPC requests to the given resource on the given host and port.
+     *
+     * @param serviceURL
+     * @throws MalformedURLException
+     */
     public NarwhalHTTPServiceImpl(String host, int port, String resource)
             throws MalformedURLException {
         this(new URL("http://" + host + ":" + port + "/" + resource));
+    }
+    
+    /**
+     * Creates transport that will POST JSON-RPC requests to the given resource on the given host and port.
+     *
+     * Uses the given method statistics logger.  If methodStatsLogger is null then
+     * statistics logging is disabled.
+     * 
+     * @param serviceURL
+     * @throws MalformedURLException
+     */
+    public NarwhalHTTPServiceImpl(String host, int port, String resource, StatsLogger<String, Long> methodStatsLogger)
+            throws MalformedURLException {
+        this(new URL("http://" + host + ":" + port + "/" + resource), methodStatsLogger);
     }
 
     public JsonElement dispatch(final Request request, final Session session)
