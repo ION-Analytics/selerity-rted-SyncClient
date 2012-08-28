@@ -1,7 +1,11 @@
 package com.selerity.sync.client;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.selerity.sync.client.util.StatsLogger;
 
 /** 
  * (C) Copyright Selerity, Inc. 2009-2011. All rights reserved. This source code
@@ -23,12 +27,22 @@ import com.google.gson.GsonBuilder;
 
 public abstract class AbstractNawhalServiceImpl implements NarwhalService{
 	
+	private static final Log log = LogFactory.getLog(AbstractNawhalServiceImpl.class);
+	
 	protected final Gson gson;
 	
 	protected final long WARN_DISPATCH_TIME_MILLIS = 30000;  // 30 seconds is too long for most dispatches to take
 
 	protected String serviceName = null;
 	
+	protected final StatsLogger<String,Long> methodStatsLogger;
+	
+	/** 
+	 * Creates an abstract instance of a NarwhalService endpoint with the given name.
+	 * Enables method statistics if the appropriate system property is set. 
+	 * 
+	 * @param serviceName
+	 */
 	public AbstractNawhalServiceImpl(String serviceName){
 		GsonBuilder builder = new GsonBuilder().serializeNulls();
 		builder.registerTypeAdapter(FullRequest.class, new FullRequest.FullRequestDeserializer());
@@ -37,6 +51,25 @@ public abstract class AbstractNawhalServiceImpl implements NarwhalService{
 		builder.registerTypeAdapter(Response.class, new Response.ResponseSerializer());
 		gson = builder.create();
 		this.serviceName = serviceName;
+		
+		boolean enableStats = false;
+		try{
+			String enableStatsProp = System.getProperty(ENABLE_METHOD_STATS_PROPERTY_NAME, "false");
+			enableStats = Boolean.parseBoolean(enableStatsProp);
+		}
+		catch (Exception ex){
+			log.error("caught " + ex + " while attempting to set method statistics logging", ex);
+			enableStats = false;
+		}
+		
+		if (enableStats){
+			log.info("method statistics logging enabled");
+			this.methodStatsLogger = new StatsLogger<String,Long>();
+		}
+		else{
+			log.info("method statistics logging disabled");
+			this.methodStatsLogger = null;
+		}
 	}
 	
 	public void setName(String serviceName){
@@ -47,6 +80,9 @@ public abstract class AbstractNawhalServiceImpl implements NarwhalService{
 		return this.serviceName;
 	}
 	
-
+	
+	public StatsLogger<String,Long> getMethodStatsLogger(){
+		return methodStatsLogger;
+	}
 	
 }

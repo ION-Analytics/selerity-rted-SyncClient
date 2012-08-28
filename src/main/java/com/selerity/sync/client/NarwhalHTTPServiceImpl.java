@@ -27,8 +27,7 @@ import java.util.UUID;
 
 public class NarwhalHTTPServiceImpl extends AbstractNawhalServiceImpl {
 
-    private static final Log log = LogFactory
-            .getLog(NarwhalHTTPServiceImpl.class);
+    private static final Log log = LogFactory.getLog(NarwhalHTTPServiceImpl.class);
 
     private static final int CONNECTION_TIMEOUT_MILLIS = 30000;
     private static final int READ_TIMEOUT_MILLIS = 30000;
@@ -69,7 +68,6 @@ public class NarwhalHTTPServiceImpl extends AbstractNawhalServiceImpl {
     public synchronized Response dispatchWithResponse(final Request request,
                                                       final Session session, final String id) throws DispatchException {
 
-        final long startTimeMillis = System.currentTimeMillis();
         JsonReader reader = null;
         try {
             FullRequest fullRequest = new FullRequest(request,
@@ -81,18 +79,7 @@ public class NarwhalHTTPServiceImpl extends AbstractNawhalServiceImpl {
 
             reader = dispatch(fullRequest);
             Response response = gson.fromJson(reader, Response.class);
-            final long elapsedMillis = System.currentTimeMillis()
-                    - startTimeMillis;
-            if (elapsedMillis > WARN_DISPATCH_TIME_MILLIS) {
-                log.warn("got delayed response to " + request.getMethod()
-                        + " in " + elapsedMillis + " ms from service "
-                        + serviceName);
-            } else {
-                if (log.isDebugEnabled()) {
-                    log.debug("got response to " + request.getMethod() + " in "
-                            + elapsedMillis + " ms from service " + serviceName);
-                }
-            }
+            
             return response;
         } catch (DispatchException dx) {
             throw dx;
@@ -128,6 +115,9 @@ public class NarwhalHTTPServiceImpl extends AbstractNawhalServiceImpl {
      */
     public synchronized JsonReader dispatch(FullRequest request)
             throws Exception {
+    	
+    	final long startNanos = MiscUtils.getNanoTime();
+    	
         // record start time of dispatch
         if (log.isDebugEnabled()) {
             log.debug("preparing to send "
@@ -155,9 +145,30 @@ public class NarwhalHTTPServiceImpl extends AbstractNawhalServiceImpl {
         writer.flush();
         writer.close();
 
+        JsonReader responseReader = new JsonReader(new InputStreamReader(con.getInputStream(),
+        "UTF-8"));
+        
+        
+        final long elapsedNanos = MiscUtils.getNanoTime() - startNanos;
+        final long elapsedMillis = (elapsedNanos / MiscUtils.NANOS_PER_MILLISECOND);
+
+		if (elapsedNanos > WARN_DISPATCH_TIME_MILLIS) {
+		    log.warn("got delayed response to " + request.getMethod()
+		            + " in " + elapsedMillis + " ms from service "
+		            + serviceName);
+		} else {
+		    if (log.isDebugEnabled()) {
+		        log.debug("got response to " + request.getMethod() + " in "
+		                + elapsedMillis + " ms from service " + serviceName);
+		    }
+		}
+        
+        if (methodStatsLogger != null){
+        	methodStatsLogger.addResult(request.getMethod(), elapsedNanos);
+        }
+        
         // read in a JSON reader
-        return new JsonReader(new InputStreamReader(con.getInputStream(),
-                "UTF-8"));
+        return responseReader;
     }
 
 }

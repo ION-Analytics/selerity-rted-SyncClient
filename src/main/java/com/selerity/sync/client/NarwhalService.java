@@ -14,9 +14,12 @@ package com.selerity.sync.client;
 
 import com.google.gson.JsonElement;
 import com.google.gson.stream.JsonReader;
+import com.selerity.sync.client.util.StatsLogger;
 
 public interface NarwhalService {
 
+	public static final String ENABLE_METHOD_STATS_PROPERTY_NAME = "com.selerity.sync.client.EnableMethodStats";
+	
 	/** 
 	 * Returns a name for the service instance, useful mainly for debugging purposes when there are multiple service
 	 * instances.
@@ -24,6 +27,15 @@ public interface NarwhalService {
 	 * @return
 	 */
 	public String getName();
+	
+	/** 
+	 * Returns the statistics logger for method latency stats if stats logging has been enabled.  Otherwise returns null.
+	 * 
+	 * Note that method statistics logging can be enabled by setting the system property com.selerity.sync.client.EnableMethodStats = true
+	 * 
+	 * @return
+	 */
+	public StatsLogger<String,Long> getMethodStatsLogger();
 	
 	/**
 	 * Dispatches the request, filling in the header from the session information as appropriate.

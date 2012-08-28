@@ -31,6 +31,7 @@ import org.apache.commons.logging.LogFactory;
 
 import com.google.gson.JsonElement;
 import com.google.gson.stream.JsonReader;
+import com.selerity.sync.client.util.StatsLogger;
 
 public class PersistentNarwhalHTTPService implements NarwhalService{
 
@@ -121,14 +122,14 @@ public class PersistentNarwhalHTTPService implements NarwhalService{
     	}
     }
 	
-    /** 
-	 * Returns a name for the service instance, useful mainly for debugging purposes when there are multiple service
-	 * instances.
-	 * 
-	 * @return
-	 */
+    @Override
 	public String getName(){
 		return this.service.getName();
+	}
+	
+	@Override
+	public StatsLogger<String,Long> getMethodStatsLogger(){
+		return this.service.getMethodStatsLogger();
 	}
 	
 	/**
