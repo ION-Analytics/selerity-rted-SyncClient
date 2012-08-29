@@ -182,26 +182,23 @@ public class NarwhalHTTPServiceImpl extends AbstractNawhalServiceImpl {
         writer.flush();
         writer.close();
 
-        JsonReader responseReader = new JsonReader(new InputStreamReader(con.getInputStream(),
-        "UTF-8"));
-        
-        
+        JsonReader responseReader = new JsonReader(new InputStreamReader(con.getInputStream(), "UTF-8"));
+
         final long elapsedNanos = MiscUtils.getNanoTime() - startNanos;
         final long elapsedMillis = (elapsedNanos / MiscUtils.NANOS_PER_MILLISECOND);
 
-		if (elapsedNanos > WARN_DISPATCH_TIME_MILLIS) {
-		    log.warn("got delayed response to " + request.getMethod()
-		            + " in " + elapsedMillis + " ms from service "
-		            + serviceName);
-		} else {
-		    if (log.isDebugEnabled()) {
-		        log.debug("got response to " + request.getMethod() + " in "
-		                + elapsedMillis + " ms from service " + serviceName);
-		    }
-		}
-        
-        if (methodStatsLogger != null){
-        	methodStatsLogger.addResult(request.getMethod(), elapsedNanos);
+        if (elapsedNanos > WARN_DISPATCH_TIME_MILLIS * 1000000) {
+            log.warn("got delayed response to " + request.getMethod() + " in " + elapsedMillis + " ms from service "
+                    + serviceName);
+        } else {
+            if (log.isDebugEnabled()) {
+                log.debug("got response to " + request.getMethod() + " in " + elapsedMillis + " ms from service "
+                        + serviceName);
+            }
+        }
+
+        if (methodStatsLogger != null) {
+            methodStatsLogger.addResult(request.getMethod(), elapsedNanos);
         }
         
         // read in a JSON reader
