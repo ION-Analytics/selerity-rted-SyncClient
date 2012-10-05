@@ -25,11 +25,8 @@ public class AsyncDispatcherImpl implements AsyncDispatcher, AsyncTransportListe
     private static final Log log = LogFactory.getLog(AsyncDispatcherImpl.class);
 
     protected final AsyncTransport transport;
-
     protected final Map<String, SimpleStreamedResponse> responses = new HashMap<String, SimpleStreamedResponse>();
-
     protected int nextID = 0;
-
     protected final long DEFAULT_SYNCHRONOUS_TIMEOUT_MILLIS = 60000;
 
     public AsyncDispatcherImpl(AsyncTransport transport) {
@@ -53,39 +50,48 @@ public class AsyncDispatcherImpl implements AsyncDispatcher, AsyncTransportListe
         } catch (DispatchException dx) {
             return SimpleStreamedResponse.getSingleResponseInstance(dx, id);
         } catch (Exception ex) {
-            return SimpleStreamedResponse.getSingleResponseInstance(DispatchException.INTERNAL_ERROR,
-                    "caught " + ex + " while sending request ", new JsonPrimitive(ex.toString()), id);
+            return SimpleStreamedResponse.getSingleResponseInstance(DispatchException.INTERNAL_ERROR, "caught " + ex
+                    + " while sending request ", new JsonPrimitive(ex.toString()), id);
         }
         return response;
     }
 
     public StreamedResponse asyncDispatch(Request request, Session session) {
-        return asyncDispatch(request, session.getHeaderParameter(RhinoSession.USER), session.getHeaderParameter(RhinoSession.TOKEN),
-                session.getHeaderParameter(RhinoSession.CLIENT), session.getHeaderParameter(RhinoSession.MODE));
+        return asyncDispatch(request, session.getHeaderParameter(RhinoSession.USER),
+                session.getHeaderParameter(RhinoSession.TOKEN), session.getHeaderParameter(RhinoSession.CLIENT),
+                session.getHeaderParameter(RhinoSession.MODE));
     }
-
 
     public Response syncDispatch(Request request, String user, String token, String client, String mode) {
         long startTime = System.currentTimeMillis();
-        log.debug("starting synchronous dispatch for request to " + request.getMethod());
+        if (log.isDebugEnabled()) {
+            log.debug("starting synchronous dispatch for request to " + request.getMethod());
+        }
+
         StreamedResponse sr = asyncDispatch(request, user, token, client, mode);
         Response response = sr.getNextResponse(DEFAULT_SYNCHRONOUS_TIMEOUT_MILLIS);
         if (response == null) {
             log.error("timed out on response to request for " + request.getMethod());
-            return new Response(new DispatchException(DispatchException.TIMEOUT_ERROR, "exceeded response timeout"), sr.getID(), "Selerity Streaming API", false);
+            return new Response(new DispatchException(DispatchException.TIMEOUT_ERROR, "exceeded response timeout"),
+                    sr.getID(), "Selerity Streaming API", false);
         }
-        long elapsedTime = System.currentTimeMillis() - startTime;
-        log.debug("got synchronous response in " + elapsedTime + " ms for request to " + request.getMethod());
+
+        if (log.isDebugEnabled()) {
+            long elapsedTime = System.currentTimeMillis() - startTime;
+            log.debug("got synchronous response in " + elapsedTime + " ms for request to " + request.getMethod());
+        }
+
         if (response.hasMore()) {
             log.error("response may not have been single - remaining responses will be discarded");
-            sr.setWantsNoMore();  // discard subsequent
+            sr.setWantsNoMore(); // discard subsequent
         }
         return response;
     }
 
     public Response syncDispatch(Request request, Session session) {
-        return syncDispatch(request, session.getHeaderParameter(RhinoSession.USER), session.getHeaderParameter(RhinoSession.TOKEN),
-                session.getHeaderParameter(RhinoSession.CLIENT), session.getHeaderParameter(RhinoSession.MODE));
+        return syncDispatch(request, session.getHeaderParameter(RhinoSession.USER),
+                session.getHeaderParameter(RhinoSession.TOKEN), session.getHeaderParameter(RhinoSession.CLIENT),
+                session.getHeaderParameter(RhinoSession.MODE));
     }
 
     public synchronized void onResponse(Response response) {
@@ -93,7 +99,9 @@ public class AsyncDispatcherImpl implements AsyncDispatcher, AsyncTransportListe
         if (id == null) {
             log.error("got response with null id, discarding!");
         } else {
-            log.debug("got response for id \"" + id + "\"");
+            if (log.isDebugEnabled()) {
+                log.debug("got response for id \"" + id + "\"");
+            }
             SimpleStreamedResponse sr = responses.get(id);
             if (sr != null) {
                 sr.add(response);
@@ -102,17 +110,21 @@ public class AsyncDispatcherImpl implements AsyncDispatcher, AsyncTransportListe
             }
 
             if (!response.hasMore()) {
-                log.debug("got last response for id \"" + id + "\"; removing streamed response from map");
+                if (log.isDebugEnabled()) {
+                    log.debug("got last response for id \"" + id + "\"; removing streamed response from map");
+                }
                 responses.remove(id);
             } else {
-                log.debug("stream for id \"" + id + "\" still has more");
+                if (log.isDebugEnabled()) {
+                    log.debug("stream for id \"" + id + "\" still has more");
+                }
             }
         }
     }
 
     /**
      * Returns an ID which is unique for this dispatcher.
-     *
+     * 
      * @param user
      * @param client
      * @return
@@ -121,6 +133,5 @@ public class AsyncDispatcherImpl implements AsyncDispatcher, AsyncTransportListe
         int id = nextID++;
         return Integer.toString(id);
     }
-
 
 }
