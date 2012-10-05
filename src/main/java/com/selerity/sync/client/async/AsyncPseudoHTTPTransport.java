@@ -203,13 +203,19 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
                 log.debug("waiting for a response");
                 // read a single response from the socket
                 Response response = gson.fromJson(reader, Response.class);
-                log.debug("got response to id " + response.getID());
+                if (log.isDebugEnabled()) {
+                    log.debug("got response to id " + response.getID());
+                }
+
                 if (listener == null) {
                     log.error("no listener for " + name + ", discarding response");
                 } else {
                     listener.onResponse(response);
                 }
-                log.debug("notified listener to response to id " + response.getID());
+
+                if (log.isDebugEnabled()) {
+                    log.debug("notified listener to response to id " + response.getID());
+                }
             }
         } catch (Exception ex) {
             if (isConnected()) {
@@ -220,19 +226,23 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
     }
 
     /**
-     * Consumes an input stream until the 4-byte string 0x0d0a0d0a is found. Leaves the stream pointing at the next byte
-     * after the pattern.
+     * Consumes an input stream until the 4-byte string 0x0d0a0d0a is found. <br>
+     * Leaves the stream pointing at the next byte after the pattern.
      * 
      * @return
      * @throws IOException
      */
     protected boolean stripHeader() throws IOException {
-        log.debug("stripping header on " + name + "...");
+        if (log.isDebugEnabled()) {
+            log.debug("stripping header on " + name + "...");
+        }
         int mode = 0;
         while (true) {
             int c = in.read();
             if (c < 0) {
-                log.debug("failed to strip header on " + name);
+                if (log.isDebugEnabled()) {
+                    log.debug("failed to strip header on " + name);
+                }
                 return false;
             }
             switch (mode) {
@@ -243,7 +253,6 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
                     mode = 0;
                 }
                 break;
-
             case 1:
                 if (c == 10) {
                     mode = 2;
@@ -253,7 +262,6 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
                     mode = 0;
                 }
                 break;
-
             case 2:
                 if (c == 13) {
                     mode = 3;
@@ -261,10 +269,11 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
                     mode = 0;
                 }
                 break;
-
             case 3:
                 if (c == 10) {
-                    log.debug("done stripping header on " + name);
+                    if (log.isDebugEnabled()) {
+                        log.debug("done stripping header on " + name);
+                    }
                     return true;
                 } else if (c == 13) {
                     mode = 1;
@@ -288,4 +297,5 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
     public String toString() {
         return name;
     }
+
 }
