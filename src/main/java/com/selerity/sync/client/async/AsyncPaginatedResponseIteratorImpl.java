@@ -191,13 +191,18 @@ public class AsyncPaginatedResponseIteratorImpl implements PaginatedResponseIter
                     options.remove(limitFieldName);
                 }
                 options.addProperty(limitFieldName, limit);
-                log.debug("updated " + request.getMethod() + "." + optionObjectName + "." + limitFieldName + " to " + limit);
+                if (log.isDebugEnabled()) {
+                    log.debug("updated " + request.getMethod() + "." + optionObjectName + "." + limitFieldName + " to "
+                            + limit);
+                }
                 if (options.has(offsetFieldName)) {
                     options.remove(offsetFieldName);
                 }
                 options.addProperty(offsetFieldName, nextOffset);
-                log.debug("updated " + request.getMethod() + "." + optionObjectName + "." + offsetFieldName + " to "
-                        + nextOffset);
+                if (log.isDebugEnabled()) {
+                    log.debug("updated " + request.getMethod() + "." + optionObjectName + "." + offsetFieldName + " to "
+                            + nextOffset);
+                }
             } else {
                 // the object needs to be created
                 options = new JsonObject();
@@ -205,10 +210,13 @@ public class AsyncPaginatedResponseIteratorImpl implements PaginatedResponseIter
                 options.addProperty(offsetFieldName, nextOffset);
                 // now add it to the parameters
                 request.setMethodParameter(optionObjectName, options);
-                log.debug("created " + request.getMethod() + "." + optionObjectName + "." + limitFieldName + ", set to "
-                        + limit);
-                log.debug("created " + request.getMethod() + "." + optionObjectName + "." + offsetFieldName + ", set to "
-                        + nextOffset);
+
+                if (log.isDebugEnabled()) {
+                    log.debug("created " + request.getMethod() + "." + optionObjectName + "." + limitFieldName + ", set to "
+                            + limit);
+                    log.debug("created " + request.getMethod() + "." + optionObjectName + "." + offsetFieldName
+                            + ", set to " + nextOffset);
+                }
             }
         }
 
