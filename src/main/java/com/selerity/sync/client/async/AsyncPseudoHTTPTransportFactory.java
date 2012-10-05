@@ -1,7 +1,5 @@
-package com.selerity.sync.client.async;
-
-/** 
- * (C) Copyright Selerity, Inc. 2009-2011. All rights reserved. This source code
+/*
+ *  (C) Copyright Selerity, Inc. 2009-2012. All rights reserved. This source code
  * is confidential and proprietary information of Selerity Inc. and may be used
  * only by a recipient designated by and for the purposes permitted by Selerity
  * Inc. in writing. Reproduction of, dissemination of, modifications to or
@@ -12,26 +10,27 @@ package com.selerity.sync.client.async;
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may
  * not be removed from the software by any user thereof.
- * 
- *
  */
+package com.selerity.sync.client.async;
+
 @Deprecated
-public class AsyncPseudoHTTPTransportFactory implements AsyncTransportFactory{
+public class AsyncPseudoHTTPTransportFactory implements AsyncTransportFactory {
 
-	protected final String host;
-	protected final int port;
-	
-	public AsyncPseudoHTTPTransportFactory(String host, int port) {
-		this.host = host;
-		this.port = port;
-	}
+    protected final String host;
+    protected final int port;
 
-	public AsyncTransport getInstance() throws Exception{
-		AsyncPseudoHTTPTransport transport = new AsyncPseudoHTTPTransport(
-				AsyncPseudoHTTPTransport.DEFAULT_HTTP_ACTION, 
-				AsyncPseudoHTTPTransport.DEFAULT_HTTP_RESOURCE, host, port, host + ":" + port);
-		transport.start();
-		return transport;
-	}
-	
+    public AsyncPseudoHTTPTransportFactory(String host, int port) {
+        this.host = host;
+        this.port = port;
+    }
+
+    public AsyncTransport getInstance() throws Exception {
+        String httpAction = AsyncPseudoHTTPTransport.DEFAULT_HTTP_ACTION;
+        String resource = AsyncPseudoHTTPTransport.DEFAULT_HTTP_RESOURCE;
+        AsyncPseudoHTTPTransport transport = new AsyncPseudoHTTPTransport(httpAction, resource, host, port, host + ":"
+                + port);
+        transport.start();
+        return transport;
+    }
+
 }

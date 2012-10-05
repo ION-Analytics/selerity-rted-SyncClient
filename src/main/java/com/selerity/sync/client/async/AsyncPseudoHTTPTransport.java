@@ -1,5 +1,5 @@
 /*
- *  (C) Copyright Selerity, Inc. 2009-2011. All rights reserved. This source code
+ *  (C) Copyright Selerity, Inc. 2009-2012. All rights reserved. This source code
  * is confidential and proprietary information of Selerity Inc. and may be used
  * only by a recipient designated by and for the purposes permitted by Selerity
  * Inc. in writing. Reproduction of, dissemination of, modifications to or
