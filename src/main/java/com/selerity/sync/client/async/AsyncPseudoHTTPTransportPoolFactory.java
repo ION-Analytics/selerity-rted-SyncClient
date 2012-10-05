@@ -1,10 +1,5 @@
-package com.selerity.sync.client.async;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-/** 
- * (C) Copyright Selerity, Inc. 2009-2011. All rights reserved. This source code
+/*
+ *  (C) Copyright Selerity, Inc. 2009-2012. All rights reserved. This source code
  * is confidential and proprietary information of Selerity Inc. and may be used
  * only by a recipient designated by and for the purposes permitted by Selerity
  * Inc. in writing. Reproduction of, dissemination of, modifications to or
@@ -15,9 +10,12 @@ import org.apache.commons.logging.LogFactory;
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may
  * not be removed from the software by any user thereof.
- * 
- *
  */
+package com.selerity.sync.client.async;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 @Deprecated
 public class AsyncPseudoHTTPTransportPoolFactory implements AsyncTransportFactory{
 
@@ -93,9 +91,11 @@ public class AsyncPseudoHTTPTransportPoolFactory implements AsyncTransportFactor
 	public AsyncTransport getInstance() throws Exception{
 		AsyncPseudoHTTPTransportPool transportPool = new AsyncPseudoHTTPTransportPool(httpAction, httpResource, host, port, minPoolSize, activeIntervalMillis, retirementIntervalMillis);
 		transportPool.start(checkIntervalMillis, startIntervalMillis);
-		log.debug("started pool to " + host + ":" + port + " with min size " + minPoolSize 
-				+ ", checking every " + checkIntervalMillis + "ms, retiring transports with active period " + activeIntervalMillis
-				+ " ms and with gaps of " + startIntervalMillis + " ms between starts");
+		if(log.isDebugEnabled()) {
+		      log.debug("started pool to " + host + ":" + port + " with min size " + minPoolSize 
+		                + ", checking every " + checkIntervalMillis + "ms, retiring transports with active period " + activeIntervalMillis
+		                + " ms and with gaps of " + startIntervalMillis + " ms between starts");
+		}
 		return transportPool;
 	}
 
