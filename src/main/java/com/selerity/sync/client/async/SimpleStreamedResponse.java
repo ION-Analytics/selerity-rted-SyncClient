@@ -267,7 +267,7 @@ public class SimpleStreamedResponse implements StreamedResponse {
 		while (timeoutTime > (System.currentTimeMillis())){
 			//LOG.debug("in next response loop (timed)");
 			if (!wantsMore){
-				LOG.error("wantsMore already set to false, cannot get next response (" + responseQueue.size() + " waiting in queue)");
+				LOG.info("wantsMore already set to false, cannot get next response (" + responseQueue.size() + " waiting in queue)");
 				notifyAll();
 				return null;
 			}
