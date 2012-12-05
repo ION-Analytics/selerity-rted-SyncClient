@@ -36,9 +36,10 @@ public class Response {
      */
     public Response(JsonElement result, DispatchException error, String id, JsonObject header) {
 
-        if ((result != null) && (!result.isJsonNull()) && (error != null)) {
-            throw new IllegalArgumentException("result and error cannot both be set in a response");
-        }
+    	// this is allowed as of Narwhal 2.1
+        //if ((result != null) && (!result.isJsonNull()) && (error != null)) {
+        //    throw new IllegalArgumentException("result and error cannot both be set in a response");
+        //}
 
         this.result = result;
         this.error = error;
@@ -55,9 +56,10 @@ public class Response {
      */
     public Response(JsonElement result, DispatchException error, String id, String resultAPI, String resultType, boolean more) {
 
-        if ((result != null) && (!result.isJsonNull()) && (error != null)) {
-            throw new IllegalArgumentException("result and error cannot both be set in a response");
-        }
+    	// this is allowed as of Narwhal 2.1
+        //if ((result != null) && (!result.isJsonNull()) && (error != null)) {
+        //    throw new IllegalArgumentException("result and error cannot both be set in a response");
+        //}
 
         this.result = result;
         this.error = error;
