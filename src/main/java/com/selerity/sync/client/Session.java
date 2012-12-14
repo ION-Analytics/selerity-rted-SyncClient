@@ -20,6 +20,12 @@ package com.selerity.sync.client;
  */
 public interface Session {
 	
+	public static final String USER = "user";
+	public static final String CLIENT = "client";
+	public static final String TOKEN = "token";
+	public static final String MODE = "mode";
+	public static final String STREAMING = "canStream";
+	
 	public String getHeaderParameter(String parameterName);
 	
 	

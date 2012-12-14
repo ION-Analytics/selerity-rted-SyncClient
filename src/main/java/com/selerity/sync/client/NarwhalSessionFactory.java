@@ -88,6 +88,7 @@ public class NarwhalSessionFactory {
 		}
 
 		
+		
 	}
 	
 	public static final Map<String,SessionData> sessionCache = new HashMap<String,SessionData>();  // this is a shared global cache of sessions used by all factories
@@ -219,7 +220,7 @@ public class NarwhalSessionFactory {
 	 */
 	public Session getInstance(final String mode) throws DispatchException{
 		
-		String sessionCacheKey = SessionData.getKey(user, password, client, mode);
+		final String sessionCacheKey = SessionData.getKey(user, password, client, mode);
 		
 		// first, see if there's a session already available.
 		synchronized(sessionCache){
@@ -235,9 +236,9 @@ public class NarwhalSessionFactory {
 			
 			else{
 				// an entry exists, check its time to see if it has enough life left before expiry
-				long now = System.currentTimeMillis();
-				long remainingMillis = cacheEntry.getExpiration().getTime() - now;
-				String token = cacheEntry.getSession().getHeaderParameter("token");
+				final long now = System.currentTimeMillis();
+				final long remainingMillis = cacheEntry.getExpiration().getTime() - now;
+				final String token = cacheEntry.getSession().getHeaderParameter("token");
 				if (remainingMillis < SYNC_SESSION_MIN_VALID_TIME_MILLIS_DEFAULT_VALUE){
 					// need to extend
 					log.debug("need to extend session for user " + user + " with token " + token + " because it expires in " + remainingMillis + "ms");
@@ -268,35 +269,35 @@ public class NarwhalSessionFactory {
 	
 	
 	protected SessionData startNewSession(final String mode) throws DispatchException{
-		Request authRequest = new Request("AuthenticationHandler.authenticate");
+		final Request authRequest = new Request("AuthenticationHandler.authenticate");
 		authRequest.setMethodParameter("user", user);
 		authRequest.setMethodParameter("password", password);
-		SessionImpl session = new SessionImpl();
+		final SessionImpl session = new SessionImpl();
 		session.setHeaderParameter("client", client);
 		session.setHeaderParameter("mode", mode);
 		
 		// now try calling
-		JsonElement returnElement = service.dispatch(authRequest, session);
+		final JsonElement returnElement = service.dispatch(authRequest, session);
 		
 		if (returnElement.isJsonObject()){
 			// this must have been a call to the new Entitlements Service
-			JsonObject returnObject = returnElement.getAsJsonObject();
-			String token = MiscUtils.getString(returnObject, "id", null);
-			long expirationMillis = MiscUtils.getLong(returnObject, "leaseExpiration", 0);
-			Date expiration = new Date(expirationMillis);
+			final JsonObject returnObject = returnElement.getAsJsonObject();
+			final String token = MiscUtils.getString(returnObject, "id", null);
+			final long expirationMillis = MiscUtils.getLong(returnObject, "leaseExpiration", 0);
+			final Date expiration = new Date(expirationMillis);
 			log.debug("generated new session with token " + token + " for user " + user + " expiring on " 
 					+ MiscUtils.formatNanoTime(expirationMillis * MiscUtils.NANOS_PER_MILLISECOND) + " via new entitlements service.");
 			return new SessionData(new RhinoSession(user, client, token, mode), expiration);
 		}
 		else{
 			// this was a call to the old auth function in Rhino so we only get the token back
-			String token = returnElement.getAsString();
+			final String token = returnElement.getAsString();
 			
 			// now we need to extend so that we can see when it expires (HACK)
-			Request extendRequest = new Request("AuthenticationHandler.extend");
+			final Request extendRequest = new Request("AuthenticationHandler.extend");
 			session.setHeaderParameter("user", user);
 			session.setHeaderParameter("token", token);
-			String expirationStr = service.dispatch(extendRequest, session).getAsString();
+			final String expirationStr = service.dispatch(extendRequest, session).getAsString();
 			long expirationNanos = 0;
 			try{
 				expirationNanos = MiscUtils.parseNanoTime(expirationStr);
@@ -305,7 +306,7 @@ public class NarwhalSessionFactory {
 				log.error("caught " + px + " while parsing expiration time " + expirationStr, px);
 				throw new DispatchException(DispatchException.PARSE_ERROR, "failed to parse " + expirationStr + " as a timestamp", expirationStr, px);
 			}
-			Date expiration = new Date(expirationNanos / MiscUtils.NANOS_PER_MILLISECOND);
+			final Date expiration = new Date(expirationNanos / MiscUtils.NANOS_PER_MILLISECOND);
 			log.debug("generated new session with token " + token + " for user " + user + " expiring on " 
 					+ MiscUtils.formatNanoTime(expiration.getTime() * MiscUtils.NANOS_PER_MILLISECOND) + " via old Rhino authentication service.");
 			return new SessionData(new RhinoSession(user, client, token, mode), expiration);
@@ -313,17 +314,17 @@ public class NarwhalSessionFactory {
 	}
 	
 	protected void extendSessionData(final NarwhalService service, final SessionData sessionData) throws DispatchException{
-		Request extendRequest = new Request("AuthenticationHandler.extend");
+		final Request extendRequest = new Request("AuthenticationHandler.extend");
 		extendRequest.getMethodParametersAsArray();  // HACK to force zero-argument call to use array syntax instead of object syntax
 		log.debug("about to call extend with session: " + sessionData.getSession());
-		JsonElement returnElement = service.dispatch(extendRequest, sessionData.getSession());
+		final JsonElement returnElement = service.dispatch(extendRequest, sessionData.getSession());
 		
 		log.debug("got returnElement=" + returnElement);
 		
 		try{
 			// first, try the response as a milliseconds long
-			long expirationMillis = returnElement.getAsLong();
-			Date expiration = new Date(expirationMillis);
+			final long expirationMillis = returnElement.getAsLong();
+			final Date expiration = new Date(expirationMillis);
 			sessionData.setExpiration(expiration);
 			log.debug("extended existing session with token " + sessionData.getSession().getHeaderParameter("token") 
 					+ " for user " + sessionData.getSession().getHeaderParameter("user") + " expiring on " 
@@ -337,9 +338,9 @@ public class NarwhalSessionFactory {
 		
 		// didn't work as a long, try as a timestamp string
 		try{
-			String expirationStr = returnElement.getAsString();
-			long expirationNanos = MiscUtils.parseNanoTime(expirationStr);
-			Date expiration = new Date(expirationNanos / MiscUtils.NANOS_PER_MILLISECOND);
+			final String expirationStr = returnElement.getAsString();
+			final long expirationNanos = MiscUtils.parseNanoTime(expirationStr);
+			final Date expiration = new Date(expirationNanos / MiscUtils.NANOS_PER_MILLISECOND);
 			sessionData.setExpiration(expiration);
 			log.debug("extended existing session with token " + sessionData.getSession().getHeaderParameter("token") 
 					+ " for user " + sessionData.getSession().getHeaderParameter("user") + " expiring on " 
@@ -351,6 +352,40 @@ public class NarwhalSessionFactory {
 			throw new DispatchException(DispatchException.PARSE_ERROR, "failed to parse " + returnElement + " as a timestamp", returnElement.toString(), px);
 		}
 		
+	}
+	
+	/**
+	 * Force any sessions which use this token to be removed from the cache.  Subsequent requests for a session with the given user, password, etc. 
+	 * will thus force a new session to start.  This is a useful way to work around certain failure modes in the entitlements system when can get
+	 * out of sync for long-duration sessions.
+	 * 
+	 * 
+	 * @param token
+	 */
+	public void invalidateSession(final String tokenToInvalidate){
+		synchronized(sessionCache){
+			final Set<String> keys = sessionCache.keySet();
+			for (final String key : keys){
+				final SessionData cacheEntry = sessionCache.get(key);
+				final String token = cacheEntry.getSession().getHeaderParameter(Session.TOKEN);
+				if (tokenToInvalidate.equalsIgnoreCase(token)){
+					final String user = cacheEntry.getSession().getHeaderParameter(Session.USER);
+					log.info("invalidating session for user " + user + " with token " + token);
+					sessionCache.remove(key);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Force this session and any other sessions which use the same token to be removed from the cache.  Subsequent requests for a session with 
+	 * the given user, password, etc. will thus force a new session to start.  This is a useful way to work around certain failure modes in the 
+	 * entitlements system when can get out of sync for long-duration sessions.
+	 * 
+	 * @param sessionToInvalidate
+	 */
+	public void invalidateSession(final Session sessionToInvalidate){
+		invalidateSession(sessionToInvalidate.getHeaderParameter(Session.TOKEN));
 	}
 	
 	
@@ -369,16 +404,24 @@ public class NarwhalSessionFactory {
 		try{
 			
 			//String serviceURLs = "http://ny2aclsp01:8080/rhino-1.0-SNAPSHOT/rpc.do";
-			String serviceURLs = "http://ny2aclsp01:8083/rpc.do";
-			NarwhalSessionFactory factory = new NarwhalSessionFactory(new NarwhalHTTPServiceImpl(new URL(serviceURLs)), "NarwhalSessionFactoryTest");
+			final String serviceURLs = "http://ny2aclsp01:8083/rpc.do";
+			final NarwhalSessionFactory factory = new NarwhalSessionFactory(new NarwhalHTTPServiceImpl(new URL(serviceURLs)), "NarwhalSessionFactoryTest");
 			factory.startPerpetualRefresh();
 
 			log.info("will get the first token now...");
 			Session session = factory.getInstance();
 			log.info("token = " + session.getHeaderParameter(RhinoSession.TOKEN));
 			
-			log.info("now sleep for a minute and try again - should just hit cache...");
-			Thread.sleep(60000);
+			log.info("now sleep for 10 seconds and try again - should just hit cache...");
+			Thread.sleep(10000);
+			session = factory.getInstance();
+			log.info("token = " + session.getHeaderParameter(RhinoSession.TOKEN));
+			
+			log.info("now invalidate...");
+			factory.invalidateSession(session);
+			
+			log.info("now sleep for 10 seconds and try again - should force a new session to start...");
+			Thread.sleep(10000);
 			session = factory.getInstance();
 			log.info("token = " + session.getHeaderParameter(RhinoSession.TOKEN));
 			
