@@ -12,6 +12,8 @@
 
 package com.selerity.sync.client;
 
+import java.io.IOException;
+
 import com.google.gson.JsonElement;
 import com.google.gson.stream.JsonReader;
 import com.selerity.sync.client.util.StatsLogger;
@@ -107,4 +109,21 @@ public interface NarwhalService {
      */
     public JsonReader dispatch(FullRequest request) throws Exception;
 
+    
+    
+    /**
+	 * Dispatches a Narwhal request and gets back a JsonReader pointed at the result object.
+	 * 
+	 * Note that the caller *must* close the JsonReader to enable the connection to the server to be closed (otherwise 
+	 * we end up with sockets left open indefinitely).
+	 * 
+	 * @param request
+	 * @param session
+	 * @return
+	 * @throws DispatchException
+	 * @throws IOException
+	 * @throws Exception
+	 */
+	public JsonReader dispatchForResultStream(Request request, Session session) throws DispatchException, IOException, Exception;
+    
 }

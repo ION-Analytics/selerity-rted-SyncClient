@@ -24,7 +24,7 @@ import java.net.URL;
 import java.util.*;
 
 
-public class NarwhalMetaServiceImpl extends AbstractNawhalServiceImpl {
+public class NarwhalMetaServiceImpl extends AbstractNarwhalServiceImpl {
 
 	private static final Log log = LogFactory.getLog (NarwhalMetaServiceImpl.class);
 

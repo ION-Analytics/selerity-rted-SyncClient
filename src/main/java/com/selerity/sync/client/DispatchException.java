@@ -67,7 +67,7 @@ public class DispatchException extends Exception{
 		this.code = code;
 		this.message = message;
 		if (data == null){
-			this.data = new JsonNull();
+			this.data = JsonNull.INSTANCE;
 		}
 		else{
 			this.data = new JsonPrimitive(data);
@@ -86,7 +86,7 @@ public class DispatchException extends Exception{
 		this.code = code;
 		this.message = message;
 		if (data == null){
-			this.data = new JsonNull();
+			this.data = JsonNull.INSTANCE;
 		}
 		else{
 			this.data = new JsonPrimitive(data);

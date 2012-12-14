@@ -1,5 +1,7 @@
 package com.selerity.sync.client;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -15,10 +17,16 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TimeZone;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
 
 /** 
  * (C) Copyright Selerity, Inc. 2009-2011. All rights reserved. This source code
@@ -38,6 +46,8 @@ import com.google.gson.JsonPrimitive;
  *
  */
 public class MiscUtils {
+	
+	private static final Log log = LogFactory.getLog(MiscUtils.class);
 	
 	// used for parsing/formatting in the Selerity Time Format.
 	protected static DateFormat ISO8601_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
@@ -375,6 +385,112 @@ public class MiscUtils {
 			obj.addProperty(entry.getKey(), entry.getValue());
 		}
 		return obj;
+	}
+	
+	
+	/**
+	 * Partially consumes a response stream up to the start of the result and
+	 * then returns the stream. This can be useful for callers who want to
+	 * consume a response
+	 * 
+	 * @param responseStream
+	 * @return
+	 * @throws DispatchException
+	 */
+	protected static JsonReader extractResultStream(final JsonReader responseStream) throws DispatchException {
+		boolean gotNullResult = false;
+		try {
+			responseStream.beginObject(); // start response
+			while (responseStream.hasNext()) {
+				String responseEntry = responseStream.nextName();
+				if (responseEntry.equalsIgnoreCase("result")) {
+					if (responseStream.peek().equals(JsonToken.NULL)) {
+						log.info("got a null result, make note and keep parsing for the error");
+						gotNullResult = true;
+						responseStream.skipValue();
+					} else {
+						log.debug("got a result, returning it");
+						return responseStream;
+					}
+				} else if (responseEntry.equalsIgnoreCase("error")) {
+					if (responseStream.peek().equals(JsonToken.NULL)) {
+						log.info("got a null error, ignore and keep parsing for the error");
+						responseStream.skipValue();
+					}
+					else{
+						DispatchException error = parseErrorFromResponseStream(responseStream);
+						responseStream.close();
+						throw error;
+					}
+				} else if (responseEntry.equalsIgnoreCase("header")) {
+					responseStream.skipValue(); // ignore the header;
+				} else if (responseEntry.equalsIgnoreCase("id")) {
+					responseStream.skipValue(); // ignore the id;
+				} else {
+					log.error("got unexpected response element name: " + responseEntry);
+					responseStream.close();
+					throw new DispatchException(DispatchException.PARSE_ERROR, "got unexpected response element name: "
+							+ responseEntry);
+				}
+			}
+			responseStream.endObject();
+			responseStream.close();
+			if (gotNullResult){
+				log.debug("result was null so return a stream with null");
+				final JsonReader nullResult = new JsonReader(new StringReader("null"));
+				nullResult.setLenient(true); // necessary since we don't have a fully formed document
+				return nullResult;
+			}
+			// otherwise, throw an exception since we should have gotten a result in the response
+			throw new DispatchException(DispatchException.PARSE_ERROR, "no result in response");
+		} 
+		catch (IOException iox) {
+			log.error("caught " + iox + " while extracting result from JSON response stream, will wrap and rethrow",iox);
+			try {
+				responseStream.close(); // note - only want to close in case of error, *don't* want to close if it's being returned!
+			} catch (IOException e) {
+				//ignore
+			}
+			throw new DispatchException(DispatchException.INTERNAL_ERROR, "caught " + iox + " while parsing response");
+		}
+	}
+
+	/**
+	 * Extracts a DispatchException from the error field of a Narwhal response
+	 * 
+	 * @param reader
+	 * @return
+	 * @throws IOException
+	 */
+	private static DispatchException parseErrorFromResponseStream(JsonReader reader) throws IOException {
+		JsonParser parser = new JsonParser();
+
+		reader.beginObject();
+		int code = 0;
+		String message = null;
+		JsonElement data = null;
+		String error_id = null;
+		while (reader.hasNext()) {
+			final String fieldName = reader.nextName();
+			if (fieldName.equalsIgnoreCase("code")) {
+				code = reader.nextInt();
+				log.debug("code = " + code);
+			} else if (fieldName.equalsIgnoreCase("message")) {
+				message = reader.nextString();
+				log.debug("message = " + message);
+			} else if (fieldName.equalsIgnoreCase("data")) {
+				data = parser.parse(reader);
+				log.debug("data = " + data);
+			} else if (fieldName.equalsIgnoreCase("error-id")) {
+				error_id = reader.nextString();
+				log.debug("error-id = " + error_id);
+			} else {
+				// warn but continue to parse, no need to throw exception
+				log.warn("unexpected error field: " + fieldName);
+			}
+		}
+		reader.endObject();
+		return new DispatchException(code, message, data);
 	}
 	
 }

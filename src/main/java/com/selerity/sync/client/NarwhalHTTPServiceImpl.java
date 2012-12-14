@@ -27,7 +27,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import com.selerity.sync.client.util.StatsLogger;
 
-public class NarwhalHTTPServiceImpl extends AbstractNawhalServiceImpl {
+public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
 
     private static final Log log = LogFactory.getLog(NarwhalHTTPServiceImpl.class);
 
@@ -204,5 +204,9 @@ public class NarwhalHTTPServiceImpl extends AbstractNawhalServiceImpl {
         // read in a JSON reader
         return responseReader;
     }
+    
+    
+   
+    
 
 }

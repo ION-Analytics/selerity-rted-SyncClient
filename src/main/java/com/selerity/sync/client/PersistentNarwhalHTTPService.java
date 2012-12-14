@@ -22,9 +22,11 @@
 
 package com.selerity.sync.client;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -209,6 +211,32 @@ public class PersistentNarwhalHTTPService implements NarwhalService{
     public JsonReader dispatch(FullRequest request) throws Exception{
     	return this.service.dispatch(request);
     }
+    
+    
+    /**
+	 * Dispatches a Narwhal request and gets back a JsonReader pointed at the
+	 * result object.
+	 * 
+	 * Note that the caller *must* close the JsonReader to enable the connection
+	 * to the server to be closed (otherwise we end up with sockets left open
+	 * indefinitely).
+	 * 
+	 * @param request
+	 * @param session
+	 * @return
+	 * @throws DispatchException
+	 * @throws IOException
+	 * @throws Exception
+	 */
+	public JsonReader dispatchForResultStream(Request request, Session session) throws DispatchException, IOException,
+			Exception {
+		final FullRequest fullRequest = new FullRequest(request, session.getHeaderParameter("user"),
+				session.getHeaderParameter("token"), session.getHeaderParameter("client"),
+				session.getHeaderParameter("mode"), UUID.randomUUID().toString());
+		final JsonReader responseStream = dispatch(fullRequest);
+		return MiscUtils.extractResultStream(responseStream);
+	}
+    
     
     
     

@@ -3,6 +3,8 @@ package com.selerity.sync.client;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -11,6 +13,10 @@ import java.util.HashSet;
 import java.util.Map;
 
 import org.junit.Test;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonReader;
 
 /**
  * (C) Copyright Selerity, Inc. 2009-2011. All rights reserved. This source code
@@ -72,5 +78,48 @@ public class MiscUtilsTest {
         assertEquals("test", MiscUtils.collapseSet(new HashSet<String>(Collections.singleton("test"))));
         assertEquals("aa,bb,cc", MiscUtils.collapseSet(new HashSet<String>(Arrays.asList("bb", "cc", "aa"))));
     }
+    
+    @Test
+	public void testExtractResultStream() throws DispatchException, IOException {
+		assertResultEquals("{\"header\":{\"user\":\"jdoe\"},\"result\":[1,2,3],\"error\":null,\"id\":42}", "[1,2,3]");
+		assertResultEquals("{\"header\":{\"user\":\"jdoe\"},\"result\":{\"blobID\":47,\"blobName\":\"blobby\"},\"error\":null,\"id\":42}", "{\"blobID\":47,\"blobName\":\"blobby\"}");
+		assertResultEquals("{\"header\":{\"user\":\"jdoe\"},\"result\":[1,2,3],\"error\":{\"code\":101,\"message\":\"err!\"},\"id\":42}", "[1,2,3]");
+		assertResultEquals("{\"result\":[1,2,3],\"header\":{\"user\":\"jdoe\"},\"error\":null,\"id\":42}", "[1,2,3]");
+		assertResultEquals("{\"header\":{\"user\":\"jdoe\"},\"result\":null,\"error\":null,\"id\":42}", "null");
+	}
+	
+	@Test
+	public void testExtractResultStreamWithError() throws IOException {
+		try{
+			assertResultEquals("{\"error\":{\"code\":101,\"message\":\"err!\"},\"header\":{\"user\":\"jdoe\"},\"result\":[1,2,3],\"id\":42}", "[1,2,3]");
+		}
+		catch (DispatchException dx){
+			assertEquals(101, dx.getCode());
+			assertEquals("err!", dx.getMessage());
+		}
+	}
+	
+	@Test
+	public void testJsonReaderAssumptions() throws IOException {
+		final JsonReader reader = new JsonReader(new StringReader("null"));
+		reader.setLenient(true);
+		assertEquals(true, reader.hasNext());
+		reader.nextNull();
+		reader.close();
+	}
+
+	private void assertResultEquals(final String responseString, final String resultString) throws DispatchException, IOException{
+		final JsonReader responseStream = new JsonReader(new StringReader(responseString));
+		final JsonReader resultStream = MiscUtils.extractResultStream(responseStream);
+		assertNextElementEquals(resultStream, resultString);
+		resultStream.close();
+		responseStream.close();
+	}
+
+	private void assertNextElementEquals(final JsonReader reader, final String nextElementToString){
+		JsonParser parser = new JsonParser();
+		JsonElement elem = parser.parse(reader);
+		assertEquals(nextElementToString, elem.toString());
+	}
 
 }

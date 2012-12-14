@@ -1,10 +1,14 @@
 package com.selerity.sync.client;
 
+import java.io.IOException;
+import java.util.UUID;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.stream.JsonReader;
 import com.selerity.sync.client.util.StatsLogger;
 
 /** 
@@ -25,9 +29,9 @@ import com.selerity.sync.client.util.StatsLogger;
  */
 
 
-public abstract class AbstractNawhalServiceImpl implements NarwhalService{
+public abstract class AbstractNarwhalServiceImpl implements NarwhalService{
 	
-	private static final Log log = LogFactory.getLog(AbstractNawhalServiceImpl.class);
+	private static final Log log = LogFactory.getLog(AbstractNarwhalServiceImpl.class);
 	
 	protected final Gson gson;
 	
@@ -52,7 +56,7 @@ public abstract class AbstractNawhalServiceImpl implements NarwhalService{
 	 * 
 	 * @param serviceName
 	 */
-	public AbstractNawhalServiceImpl(String serviceName){
+	public AbstractNarwhalServiceImpl(String serviceName){
 		gson = initGson();
 		this.serviceName = serviceName;
 		
@@ -84,7 +88,7 @@ public abstract class AbstractNawhalServiceImpl implements NarwhalService{
 	 * @param serviceName
 	 * @param methodStatsLogger
 	 */
-	public AbstractNawhalServiceImpl(String serviceName, StatsLogger<String,Long> methodStatsLogger){
+	public AbstractNarwhalServiceImpl(String serviceName, StatsLogger<String,Long> methodStatsLogger){
 		gson = initGson();
 		this.serviceName = serviceName;
 		this.methodStatsLogger = methodStatsLogger;
@@ -110,5 +114,33 @@ public abstract class AbstractNawhalServiceImpl implements NarwhalService{
 	public StatsLogger<String,Long> getMethodStatsLogger(){
 		return methodStatsLogger;
 	}
+	
+	
+	
+	/**
+	 * Dispatches a Narwhal request and gets back a JsonReader pointed at the
+	 * result object.
+	 * 
+	 * Note that the caller *must* close the JsonReader to enable the connection
+	 * to the server to be closed (otherwise we end up with sockets left open
+	 * indefinitely).
+	 * 
+	 * @param request
+	 * @param session
+	 * @return
+	 * @throws DispatchException
+	 * @throws IOException
+	 * @throws Exception
+	 */
+	public JsonReader dispatchForResultStream(Request request, Session session) throws DispatchException, IOException,
+			Exception {
+		final FullRequest fullRequest = new FullRequest(request, session.getHeaderParameter("user"),
+				session.getHeaderParameter("token"), session.getHeaderParameter("client"),
+				session.getHeaderParameter("mode"), UUID.randomUUID().toString());
+		final JsonReader responseStream = dispatch(fullRequest);
+		return MiscUtils.extractResultStream(responseStream);
+	}
+
+	
 	
 }
