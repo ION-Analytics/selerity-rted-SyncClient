@@ -1,5 +1,8 @@
 package com.selerity.sync.client;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.google.gson.JsonElement;
 import com.google.gson.stream.JsonReader;
 
@@ -21,6 +24,8 @@ import com.google.gson.stream.JsonReader;
  */
 
 public class AbstractNarwhalClient {
+	
+	private static final Log log = LogFactory.getLog(AbstractNarwhalClient.class);
 	
 	
 	protected final NarwhalSessionFactory narwhalSessionFactory;
@@ -63,7 +68,17 @@ public class AbstractNarwhalClient {
 	 * @throws DispatchException
 	 */
 	public JsonElement dispatch(Request request, Session session) throws DispatchException{
-		return narwhalService.dispatch(request, session); 	
+		try{
+			return narwhalService.dispatch(request, session);
+		}
+		catch (DispatchException dx){  // catch any session-related errors and invalidate the session
+			if (((dx.getCode() == -1000) || (dx.getMessage().startsWith("Session not valid"))) && (session != null)){
+				final String token = session.getHeaderParameter(Session.TOKEN);
+				log.error("session " + token + " had error, will invalidate", dx);
+				this.narwhalSessionFactory.invalidateSession(token);
+			}
+			throw dx; // rethrow the exception
+		}
 	}
 	
 	/** 
@@ -75,7 +90,18 @@ public class AbstractNarwhalClient {
 	 * @throws DispatchException
 	 */
 	public JsonElement dispatch(Request request) throws DispatchException{
-		return narwhalService.dispatch(request, narwhalSessionFactory.getInstance()); 	
+		final Session session = narwhalSessionFactory.getInstance();
+		try{
+			return narwhalService.dispatch(request, session);
+		}
+		catch (DispatchException dx){  // catch any session-related errors and invalidate the session
+			if (((dx.getCode() == -1000) || (dx.getMessage().startsWith("Session not valid"))) && (session != null)){
+				final String token = session.getHeaderParameter(Session.TOKEN);
+				log.error("session " + token + " had error, will invalidate", dx);
+				this.narwhalSessionFactory.invalidateSession(token);
+			}
+			throw dx; // rethrow the exception
+		}
 	}
 	
 	/** 
@@ -87,8 +113,19 @@ public class AbstractNarwhalClient {
 	 * @return
 	 * @throws DispatchException
 	 */
-	public JsonElement dispatchExtensionMode(Request request) throws DispatchException{
-		return narwhalService.dispatch(request, narwhalSessionFactory.getInstanceExtensionMode()); 	
+	public JsonElement dispatchExtensionMode(Request request) throws DispatchException{		
+		final Session session = narwhalSessionFactory.getInstanceExtensionMode();
+		try{
+			return narwhalService.dispatch(request, session);
+		}
+		catch (DispatchException dx){  // catch any session-related errors and invalidate the session
+			if (((dx.getCode() == -1000) || (dx.getMessage().startsWith("Session not valid"))) && (session != null)){
+				final String token = session.getHeaderParameter(Session.TOKEN);
+				log.error("session " + token + " had error, will invalidate", dx);
+				this.narwhalSessionFactory.invalidateSession(token);
+			}
+			throw dx; // rethrow the exception
+		}
 	}
 	
 	/**
@@ -100,7 +137,20 @@ public class AbstractNarwhalClient {
 	 * @throws Exception 
 	 */
 	public JsonReader dispatch(FullRequest request) throws Exception{
-		return narwhalService.dispatch(request);
+		try{
+			return narwhalService.dispatch(request);
+		}
+		catch (DispatchException dx){  // catch any session-related errors and invalidate the session
+			if (((dx.getCode() == -1000) || (dx.getMessage().startsWith("Session not valid"))) && (request != null)){
+				final JsonElement tokenElem = request.getHeader().get(Session.TOKEN);
+				if (tokenElem != null){
+					final String token = tokenElem.getAsString();
+					log.error("session " + token + " had error, will invalidate", dx);
+					this.narwhalSessionFactory.invalidateSession(token);
+				}
+			}
+			throw dx; // rethrow the exception
+		}
 	}
 	
 	/** Create a paginated response iterator using the given session.  Requires the name of the parameter object that
