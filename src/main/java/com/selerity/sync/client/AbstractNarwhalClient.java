@@ -42,7 +42,7 @@ public class AbstractNarwhalClient {
 	 * @param clientAppName
 	 * @throws Exception 
 	 */
-	public AbstractNarwhalClient(NarwhalService narwhalService, String user, String password, String clientAppName) throws Exception{
+	public AbstractNarwhalClient(final NarwhalService narwhalService, final String user, final String password, final String clientAppName) throws Exception{
 		this.narwhalService = narwhalService;		
 		narwhalSessionFactory = new NarwhalSessionFactory(narwhalService, clientAppName, user, password);
 	}
@@ -54,7 +54,7 @@ public class AbstractNarwhalClient {
 	 * @param narwhalSessionFactory
 	 * @throws Exception 
 	 */
-	public AbstractNarwhalClient(NarwhalService narwhalService, NarwhalSessionFactory narwhalSessionFactory) throws Exception{
+	public AbstractNarwhalClient(final NarwhalService narwhalService, final NarwhalSessionFactory narwhalSessionFactory) throws Exception{
 		this.narwhalService = narwhalService;
 		this.narwhalSessionFactory = narwhalSessionFactory;
 	}
@@ -67,7 +67,7 @@ public class AbstractNarwhalClient {
 	 * @return
 	 * @throws DispatchException
 	 */
-	public JsonElement dispatch(Request request, Session session) throws DispatchException{
+	public JsonElement dispatch(final Request request, final Session session) throws DispatchException{
 		try{
 			return narwhalService.dispatch(request, session);
 		}
@@ -89,7 +89,7 @@ public class AbstractNarwhalClient {
 	 * @return
 	 * @throws DispatchException
 	 */
-	public JsonElement dispatch(Request request) throws DispatchException{
+	public JsonElement dispatch(final Request request) throws DispatchException{
 		final Session session = narwhalSessionFactory.getInstance();
 		try{
 			return narwhalService.dispatch(request, session);
@@ -113,7 +113,7 @@ public class AbstractNarwhalClient {
 	 * @return
 	 * @throws DispatchException
 	 */
-	public JsonElement dispatchExtensionMode(Request request) throws DispatchException{		
+	public JsonElement dispatchExtensionMode(final Request request) throws DispatchException{		
 		final Session session = narwhalSessionFactory.getInstanceExtensionMode();
 		try{
 			return narwhalService.dispatch(request, session);
@@ -136,7 +136,7 @@ public class AbstractNarwhalClient {
 	 * @return
 	 * @throws Exception 
 	 */
-	public JsonReader dispatch(FullRequest request) throws Exception{
+	public JsonReader dispatch(final FullRequest request) throws Exception{
 		try{
 			return narwhalService.dispatch(request);
 		}
@@ -153,6 +153,33 @@ public class AbstractNarwhalClient {
 		}
 	}
 	
+	/**
+	 * Dispatches a Narwhal request and gets back a JsonReader pointed at the
+	 * result object.
+	 * 
+	 * Note that the caller *must* close the JsonReader to enable the connection
+	 * to the server to be closed (otherwise we end up with sockets left open
+	 * indefinitely).
+	 * 
+	 * @param request
+	 * @return
+	 * @throws Exception
+	 */
+	public JsonReader dispatchForResultStream(final Request request) throws Exception{
+		final Session session = narwhalSessionFactory.getInstance();
+		try{
+			return narwhalService.dispatchForResultStream(request, session);
+		}
+		catch (DispatchException dx){  // catch any session-related errors and invalidate the session
+			if (((dx.getCode() == -1000) || (dx.getMessage().startsWith("Session not valid"))) && (session != null)){
+				final String token = session.getHeaderParameter(Session.TOKEN);
+				log.error("session " + token + " had error, will invalidate", dx);
+				this.narwhalSessionFactory.invalidateSession(token);
+			}
+			throw dx; // rethrow the exception
+		}
+	}
+	
 	/** Create a paginated response iterator using the given session.  Requires the name of the parameter object that
 	 *  will carry the limit and offset parameters.
 	 * 
@@ -163,7 +190,7 @@ public class AbstractNarwhalClient {
 	 * @return
 	 * @throws DispatchException
 	 */
-	public PaginatedResponseIterator paginatedDispatch(Request request, Session session, String optionObjectName, int limit) throws DispatchException{
+	public PaginatedResponseIterator paginatedDispatch(final Request request, final Session session, final String optionObjectName, final int limit) throws DispatchException{
 		return new NarwhalPaginatedResponseInteratorImpl(narwhalService, session, request, optionObjectName, limit);
 	}
 	
@@ -179,7 +206,7 @@ public class AbstractNarwhalClient {
 	 * @return
 	 * @throws DispatchException
 	 */
-	public PaginatedResponseIterator paginatedDispatch(Request request, String optionObjectName, int limit) throws DispatchException{
+	public PaginatedResponseIterator paginatedDispatch(final Request request, final String optionObjectName, final int limit) throws DispatchException{
 		return new NarwhalPaginatedResponseInteratorImpl(narwhalService, narwhalSessionFactory.getInstance(), request, optionObjectName, limit);
 	}
 	
@@ -195,7 +222,7 @@ public class AbstractNarwhalClient {
 	 * @return
 	 * @throws DispatchException
 	 */
-	public PaginatedResponseIterator paginatedDispatchExtensionMode(Request request, String optionObjectName, int limit) throws DispatchException{
+	public PaginatedResponseIterator paginatedDispatchExtensionMode(final Request request, final String optionObjectName, final int limit) throws DispatchException{
 		return new NarwhalPaginatedResponseInteratorImpl(narwhalService, narwhalSessionFactory.getInstanceExtensionMode(), request, optionObjectName, limit);
 	}
 
@@ -216,7 +243,7 @@ public class AbstractNarwhalClient {
 	 * @param password
 	 * @throws DispatchException
 	 */
-	public Session startSession(String mode) throws DispatchException{
+	public Session startSession(final String mode) throws DispatchException{
 		return narwhalSessionFactory.getInstance(mode);
 	}
 	
@@ -234,7 +261,7 @@ public class AbstractNarwhalClient {
 	 * 
 	 * @throws DispatchException
 	 */
-	public void extendSession(Session session) throws DispatchException{
+	public void extendSession(final Session session) throws DispatchException{
 		narwhalSessionFactory.extend(session);
 	}
 	
@@ -243,7 +270,7 @@ public class AbstractNarwhalClient {
 	 * 
 	 * @throws DispatchException
 	 */
-	public void closeSession(Session session) throws DispatchException{
+	public void closeSession(final Session session) throws DispatchException{
 		narwhalSessionFactory.close(session);
 	}
 }
