@@ -55,7 +55,7 @@ public class AsyncPseudoHTTPTransportPoolFactory implements AsyncTransportFactor
         this.startIntervalMillis = getDefaultedProperty(CONNECTION_POOL_START_INTERVAL_MILLIS, 10000);
         this.activeIntervalMillis = getDefaultedProperty(CONNECTION_POOL_ACTIVE_INTERVAL_MILLIS, 60000);
         this.retirementIntervalMillis = getDefaultedProperty(CONNECTION_POOL_RETIREMENT_INTERVAL_MILLIS, 30000);
-        this.minPoolSize = (int) getDefaultedProperty(CONNECTION_POOL_MIN_SIZE, 10);
+        this.minPoolSize = (int) getDefaultedProperty(CONNECTION_POOL_MIN_SIZE, 7);
     }
 
     public AsyncPseudoHTTPTransportPoolFactory(String host, int port) {
