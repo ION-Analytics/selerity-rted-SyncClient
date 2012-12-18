@@ -38,16 +38,13 @@ public class NarwhalSessionFactory {
 
     private static final Log log = LogFactory.getLog(NarwhalSessionFactory.class);
 
-    // private final Gson gson = new GsonBuilder().serializeNulls().create();
-
     public static final String SYNC_USER_PROPERTY_NAME = "com.selerity.sync.user";
     public static final String SYNC_PASSWORD_PROPERTY_NAME = "com.selerity.sync.password";
 
     public static final String EXTENSION_MODE_STRING = "extension";
 
     // this is the minimum amount of time remaining on a session before it will be extended
-    public static final String SYNC_SESSION_MIN_VALID_TIME_MILLIS_PROPERTY_NAME = "com.selerity.sync.min_valid_time_millis";
-    public static final long SYNC_SESSION_MIN_VALID_TIME_MILLIS_DEFAULT_VALUE = 300000L; // assumes sessions need to be valid
+    public static final long SYNC_SESSION_MIN_VALID_TIME_MILLIS = 300000L; // assumes sessions need to be valid
                                                                                          // for at least another 5 minutes in
                                                                                          // order to use.
 
@@ -87,7 +84,19 @@ public class NarwhalSessionFactory {
     }
 
     // this is a shared global cache of sessions used by all factories
-    public static final Map<String, SessionData> sessionCache = new HashMap<String, SessionData>();
+    private static final Map<String, SessionData> sessionCache = new HashMap<String, SessionData>();
+    
+    /**
+     * Clears all sessions from the cache used by all factory instances.  Should
+     * rarely be needed except in testing.
+     */
+    public static void clearAllSessions(){
+    	synchronized(sessionCache){
+    		sessionCache.clear();
+    		log.info("cleared all sessions from cache!");
+    	}
+    }
+    
 
     // Instance variables
 
@@ -230,7 +239,7 @@ public class NarwhalSessionFactory {
                 final long now = System.currentTimeMillis();
                 final long remainingMillis = cacheEntry.getExpiration().getTime() - now;
                 final String token = cacheEntry.getSession().getHeaderParameter("token");
-                if (remainingMillis < SYNC_SESSION_MIN_VALID_TIME_MILLIS_DEFAULT_VALUE) {
+                if (remainingMillis < SYNC_SESSION_MIN_VALID_TIME_MILLIS) {
                     // need to extend
                     log.debug("need to extend session for user " + user + " with token " + token + " because it expires in "
                             + remainingMillis + "ms");
