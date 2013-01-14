@@ -366,7 +366,7 @@ public class NarwhalSessionFactory {
      */
     public void invalidateSession(final String tokenToInvalidate) {
         synchronized (sessionCache) {
-            final Set<String> keys = sessionCache.keySet();
+            final Set<String> keys = new HashSet<String>(sessionCache.keySet());
             for (final String key : keys) {
                 final SessionData cacheEntry = sessionCache.get(key);
                 final String token = cacheEntry.getSession().getHeaderParameter(Session.TOKEN);
