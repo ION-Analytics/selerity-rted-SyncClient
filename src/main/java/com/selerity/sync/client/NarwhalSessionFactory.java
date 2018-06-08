@@ -171,7 +171,7 @@ public class NarwhalSessionFactory {
                         }
 
                     } catch (Exception ex) {
-                        log.error("caught " + ex + " while refreshing session, ignoring");
+                        log.warn("caught " + ex + " while refreshing session, ignoring");
                     }
 
                     try {
