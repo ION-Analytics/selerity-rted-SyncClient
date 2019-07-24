@@ -12,20 +12,20 @@
 
 package com.selerity.sync.client;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+import com.selerity.sync.client.util.StatsLogger;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.UUID;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import com.google.gson.JsonElement;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonWriter;
-import com.selerity.sync.client.util.StatsLogger;
 
 public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
 
@@ -45,10 +45,10 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
         this.serviceURL = serviceURL;
         log.info("connecting to URL: " + serviceURL);
     }
-    
+
     /**
      * Creates transport that will POST JSON-RPC requests to the given URL.
-     * 
+     * <p>
      * Uses the given method statistics logger.  If methodStatsLogger is null then
      * statistics logging is disabled.
      */
@@ -65,10 +65,10 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
             throws MalformedURLException {
         this(new URL("http://" + host + ":" + port + "/" + resource));
     }
-    
+
     /**
      * Creates transport that will POST JSON-RPC requests to the given resource on the given host and port.
-     *
+     * <p>
      * Uses the given method statistics logger.  If methodStatsLogger is null then
      * statistics logging is disabled.
      */
@@ -140,14 +140,26 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
      */
     public synchronized JsonReader dispatch(FullRequest request)
             throws Exception {
-    	
-    	final long startNanos = MiscUtils.getNanoTime();
-    	
+
+        final long startNanos = MiscUtils.getNanoTime();
+
         // record start time of dispatch
         if (log.isDebugEnabled()) {
+            JsonElement password = null;
+            JsonObject params = request.params.getAsJsonObject();
+
+            if (params.has("password")) {
+                password = params.get("password");
+                params.addProperty("password", "XXX");
+            }
+
             log.debug("preparing to send "
                     + gson.toJson(request, FullRequest.class) + " to "
                     + serviceURL);
+
+            if (params.has("password")) {
+                params.add("password", password);
+            }
         }
 
         URLConnection con;
@@ -188,13 +200,10 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
         if (methodStatsLogger != null) {
             methodStatsLogger.addResult(request.getMethod(), elapsedNanos);
         }
-        
+
         // read in a JSON reader
         return responseReader;
     }
-    
-    
-   
-    
+
 
 }
