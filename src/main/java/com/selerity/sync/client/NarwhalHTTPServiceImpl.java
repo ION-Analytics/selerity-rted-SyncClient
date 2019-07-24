@@ -34,13 +34,11 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
     private static final int CONNECTION_TIMEOUT_MILLIS = 30000;
     private static final int READ_TIMEOUT_MILLIS = 30000;
 
+    @SuppressWarnings("WeakerAccess")
     protected final URL serviceURL;
 
     /**
      * Creates transport that will POST JSON-RPC requests to the given URL.
-     *
-     * @param serviceURL
-     * @throws MalformedURLException
      */
     public NarwhalHTTPServiceImpl(URL serviceURL) {
         super(serviceURL.toString());
@@ -53,9 +51,6 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
      * 
      * Uses the given method statistics logger.  If methodStatsLogger is null then
      * statistics logging is disabled.
-     *
-     * @param serviceURL
-     * @throws MalformedURLException
      */
     public NarwhalHTTPServiceImpl(URL serviceURL, StatsLogger<String, Long> methodStatsLogger) {
         super(serviceURL.toString(), methodStatsLogger);
@@ -65,9 +60,6 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
 
     /**
      * Creates transport that will POST JSON-RPC requests to the given resource on the given host and port.
-     *
-     * @param serviceURL
-     * @throws MalformedURLException
      */
     public NarwhalHTTPServiceImpl(String host, int port, String resource)
             throws MalformedURLException {
@@ -79,9 +71,6 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
      *
      * Uses the given method statistics logger.  If methodStatsLogger is null then
      * statistics logging is disabled.
-     * 
-     * @param serviceURL
-     * @throws MalformedURLException
      */
     public NarwhalHTTPServiceImpl(String host, int port, String resource, StatsLogger<String, Long> methodStatsLogger)
             throws MalformedURLException {
@@ -115,9 +104,8 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
                     (id != null && !id.isEmpty()) ? id : UUID.randomUUID().toString());
 
             reader = dispatch(fullRequest);
-            Response response = gson.fromJson(reader, Response.class);
-            
-            return response;
+
+            return gson.fromJson(reader, Response.class);
         } catch (DispatchException dx) {
             throw dx;
         } catch (Exception ex) {
@@ -162,7 +150,7 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
                     + serviceURL);
         }
 
-        URLConnection con = null;
+        URLConnection con;
 
         con = serviceURL.openConnection();
         con.setConnectTimeout(CONNECTION_TIMEOUT_MILLIS);

@@ -1,6 +1,6 @@
 package com.selerity.sync.client;
 
-/** 
+/*
  * (C) Copyright Selerity, Inc. 2009-2011. All rights reserved. This source code
  * is confidential and proprietary information of Selerity Inc. and may be used
  * only by a recipient designated by and for the purposes permitted by Selerity
@@ -49,8 +49,6 @@ public class MockNarwhalServiceImpl implements NarwhalService {
 	/**
 	 * Adds a response to the queue.  Note that response must be a String in JSON format
 	 * which complies with Narwhal protocol requirements for format.
-	 * 
-	 * @param response
 	 */
 	public void addResponse(final String response){
 		responses.add(response);
@@ -63,7 +61,7 @@ public class MockNarwhalServiceImpl implements NarwhalService {
 
 	@Override
 	public StatsLogger<String, Long> getMethodStatsLogger() {
-		// TODO Auto-generated method stub
+		// Auto-generated method stub
 		return null;
 	}
 
@@ -85,7 +83,7 @@ public class MockNarwhalServiceImpl implements NarwhalService {
 	public Response dispatchWithResponse(final Request request, final Session session, final String id) throws DispatchException {
 		JsonReader reader = null;
 		try {
-            FullRequest fullRequest = new FullRequest(request,
+            @SuppressWarnings("Duplicates") FullRequest fullRequest = new FullRequest(request,
                     session.getHeaderParameter("user"),
                     session.getHeaderParameter("token"),
                     session.getHeaderParameter("client"),
@@ -93,9 +91,8 @@ public class MockNarwhalServiceImpl implements NarwhalService {
                     (id != null && !id.isEmpty()) ? id : UUID.randomUUID().toString());
 
             reader = dispatch(fullRequest);
-            Response response = gson.fromJson(reader, Response.class);
-            
-            return response;
+
+			return gson.fromJson(reader, Response.class);
         } catch (DispatchException dx) {
             throw dx;
         } catch (Exception ex) {
@@ -116,6 +113,7 @@ public class MockNarwhalServiceImpl implements NarwhalService {
         }
 	}
 
+	@SuppressWarnings("RedundantThrows")
 	@Override
 	public JsonReader dispatch(final FullRequest request) throws Exception {
 		final String mockResponse = responses.poll();
@@ -126,6 +124,7 @@ public class MockNarwhalServiceImpl implements NarwhalService {
 		return new JsonReader(new StringReader(mockResponse));
 	}
 
+	@SuppressWarnings({"DuplicateThrows", "RedundantThrows"})
 	@Override
 	public JsonReader dispatchForResultStream(final Request request, final Session session) throws DispatchException, IOException,
 			Exception {
