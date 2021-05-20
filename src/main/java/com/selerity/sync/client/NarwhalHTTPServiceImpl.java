@@ -31,8 +31,24 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
 
     private static final Log log = LogFactory.getLog(NarwhalHTTPServiceImpl.class);
 
-    private static final int CONNECTION_TIMEOUT_MILLIS = 90000;
-    private static final int READ_TIMEOUT_MILLIS = 90000;
+    private static final int CONNECTION_TIMEOUT_MILLIS;
+    private static final int READ_TIMEOUT_MILLIS;
+    static {
+        CONNECTION_TIMEOUT_MILLIS = getProperty("com.selerity.sync.connection_timeout", 90000);
+        READ_TIMEOUT_MILLIS = getProperty("com.selerity.sync.read_timeout", 90000);
+    }
+
+    private static int getProperty(String propertyName, int default0) {
+        try {
+            String s = System.getProperty(propertyName);
+            if (s != null && s.length() > 0) {
+                return Integer.parseInt(s);
+            }            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return default0;
+    }
 
     @SuppressWarnings("WeakerAccess")
     protected final URL serviceURL;
