@@ -31,8 +31,8 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
 
     private static final Log log = LogFactory.getLog(NarwhalHTTPServiceImpl.class);
 
-    private static final int CONNECTION_TIMEOUT_MILLIS = 30000;
-    private static final int READ_TIMEOUT_MILLIS = 30000;
+    private static final int CONNECTION_TIMEOUT_MILLIS = 90000;
+    private static final int READ_TIMEOUT_MILLIS = 90000;
 
     @SuppressWarnings("WeakerAccess")
     protected final URL serviceURL;
@@ -61,8 +61,7 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
     /**
      * Creates transport that will POST JSON-RPC requests to the given resource on the given host and port.
      */
-    public NarwhalHTTPServiceImpl(String host, int port, String resource)
-            throws MalformedURLException {
+    public NarwhalHTTPServiceImpl(String host, int port, String resource) throws MalformedURLException {
         this(new URL("http://" + host + ":" + port + "/" + resource));
     }
 
@@ -77,8 +76,7 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
         this(new URL("http://" + host + ":" + port + "/" + resource), methodStatsLogger);
     }
 
-    public JsonElement dispatch(final Request request, final Session session)
-            throws DispatchException {
+    public JsonElement dispatch(final Request request, final Session session) throws DispatchException {
         final Response response = dispatchWithResponse(request, session);
         if (response.getError() != null) {
             throw response.getError();
@@ -86,8 +84,7 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
         return response.getResult();
     }
 
-    public Response dispatchWithResponse(final Request request,
-                                         final Session session) throws DispatchException {
+    public Response dispatchWithResponse(final Request request, final Session session) throws DispatchException {
         return dispatchWithResponse(request, session, null);
     }
 
@@ -109,16 +106,13 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
         } catch (DispatchException dx) {
             throw dx;
         } catch (Exception ex) {
-            log.error("caught " + ex + " while dispatching to service "
-                    + serviceName, ex);
+            log.error("caught " + ex + " while dispatching to service " + serviceName, ex);
             throw new DispatchException(DispatchException.INTERNAL_ERROR,
-                    "caught " + ex + " while dispatching to service "
-                            + serviceName, ex.toString());
+                    "caught " + ex + " while dispatching to service " + serviceName, ex.toString());
         } finally {
             if (reader != null) {
                 try {
-                    // this is important - without it, the socket sometimes gets
-                    // left open indefinitely.
+                    // this is important - without it, the socket sometimes gets left open indefinitely.
                     reader.close();
                 } catch (Exception ex) {
                     // ignore the exception
@@ -138,27 +132,30 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
      * @param request request to dispatch
      * @return response based on the request
      */
-    public synchronized JsonReader dispatch(FullRequest request)
-            throws Exception {
+    public synchronized JsonReader dispatch(FullRequest request) throws Exception {
 
         final long startNanos = MiscUtils.getNanoTime();
 
         // record start time of dispatch
         if (log.isDebugEnabled()) {
             JsonElement password = null;
-            JsonObject params = request.params.getAsJsonObject();
+            JsonObject params = null;
 
-            if (params.has("password")) {
-                password = params.get("password");
-                params.addProperty("password", "XXX");
+            if (request.params.isJsonObject()) {
+                params = request.params.getAsJsonObject();
+
+                if (params.has("password")) {
+                    password = params.get("password");
+                    params.addProperty("password", "XXX");
+                }
             }
 
-            log.debug("preparing to send "
-                    + gson.toJson(request, FullRequest.class) + " to "
-                    + serviceURL);
+            log.debug("preparing to send " + gson.toJson(request, FullRequest.class) + " to " + serviceURL);
 
-            if (params.has("password")) {
-                params.add("password", password);
+            if (request.params.isJsonObject()) {
+                if (params.has("password")) {
+                    params.add("password", password);
+                }
             }
         }
 
@@ -176,8 +173,7 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
 
         // write the JSON request out
 
-        JsonWriter writer = new JsonWriter(new OutputStreamWriter(
-                con.getOutputStream()));
+        JsonWriter writer = new JsonWriter(new OutputStreamWriter(con.getOutputStream()));
         gson.toJson(request, FullRequest.class, writer);
         writer.flush();
         writer.close();
