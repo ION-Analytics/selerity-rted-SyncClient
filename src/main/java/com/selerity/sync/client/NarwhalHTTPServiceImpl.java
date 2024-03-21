@@ -1,15 +1,16 @@
 /*
- * (c) Copyright Selerity, Inc. 2009-2012. All rights reserved. This source code is confidential
- * and proprietary information of Selerity Inc. and may be used only by a recipient designated
- * by and for the purposes permitted by Selerity Inc. in writing.  Reproduction of, dissemination
- * of, modifications to or creation of derivative works from this source code, whether in source
- * or binary forms, by any means and in any form or manner, is expressly prohibited, except with
- * the prior written permission of Selerity Inc..  THIS CODE AND INFORMATION ARE PROVIDED "AS IS"
- * WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be
- * removed from the software by any user thereof.
+ * (C) Copyright Selerity, Inc. 2009-2019. All rights reserved. This source code
+ * is confidential and proprietary information of Selerity Inc. and may be used
+ * only by a recipient designated by and for the purposes permitted by Selerity
+ * Inc. in writing. Reproduction of, dissemination of, modifications to or
+ * creation of derivative works from this source code, whether in source or
+ * binary forms, by any means and in any form or manner, is expressly
+ * prohibited, except with the prior written permission of Selerity Inc.. THIS
+ * CODE AND INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND,
+ * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may
+ * not be removed from the software by any user thereof.
  */
-
 package com.selerity.sync.client;
 
 import com.google.gson.JsonElement;
@@ -25,6 +26,7 @@ import java.io.OutputStreamWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
@@ -33,6 +35,7 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
 
     private static final int CONNECTION_TIMEOUT_MILLIS;
     private static final int READ_TIMEOUT_MILLIS;
+
     static {
         CONNECTION_TIMEOUT_MILLIS = getProperty("com.selerity.sync.connection_timeout", 90000);
         READ_TIMEOUT_MILLIS = getProperty("com.selerity.sync.read_timeout", 90000);
@@ -43,7 +46,7 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
             String s = System.getProperty(propertyName);
             if (s != null && s.length() > 0) {
                 return Integer.parseInt(s);
-            }            
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -138,12 +141,10 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
     }
 
     /**
-     * Dispatches a request to Narwhal server using a JSON request string and
-     * returns the response.
+     * Dispatches a request to Narwhal server using a JSON request string and returns the response.
      * <p/>
      * Note that it is the responsibility of the caller to close the reader when
-     * finished reading - otherwise a connection to the server may remain open
-     * indefinitely.
+     * finished reading - otherwise a connection to the server may remain open indefinitely.
      *
      * @param request request to dispatch
      * @return response based on the request
@@ -194,7 +195,7 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
         writer.flush();
         writer.close();
 
-        JsonReader responseReader = new JsonReader(new InputStreamReader(con.getInputStream(), "UTF-8"));
+        JsonReader responseReader = new JsonReader(new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8));
 
         final long elapsedNanos = MiscUtils.getNanoTime() - startNanos;
         final long elapsedMillis = (elapsedNanos / MiscUtils.NANOS_PER_MILLISECOND);
@@ -216,6 +217,5 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
         // read in a JSON reader
         return responseReader;
     }
-
 
 }

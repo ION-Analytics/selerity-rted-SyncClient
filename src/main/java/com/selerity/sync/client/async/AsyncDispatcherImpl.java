@@ -1,15 +1,16 @@
 /*
- * (c) Copyright Selerity, Inc. 2009-2012. All rights reserved. This source code is confidential
- * and proprietary information of Selerity Inc. and may be used only by a recipient designated
- * by and for the purposes permitted by Selerity Inc. in writing.  Reproduction of, dissemination
- * of, modifications to or creation of derivative works from this source code, whether in source
- * or binary forms, by any means and in any form or manner, is expressly prohibited, except with
- * the prior written permission of Selerity Inc..  THIS CODE AND INFORMATION ARE PROVIDED "AS IS"
- * WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may not be
- * removed from the software by any user thereof.
+ * (C) Copyright Selerity, Inc. 2009-2019. All rights reserved. This source code
+ * is confidential and proprietary information of Selerity Inc. and may be used
+ * only by a recipient designated by and for the purposes permitted by Selerity
+ * Inc. in writing. Reproduction of, dissemination of, modifications to or
+ * creation of derivative works from this source code, whether in source or
+ * binary forms, by any means and in any form or manner, is expressly
+ * prohibited, except with the prior written permission of Selerity Inc.. THIS
+ * CODE AND INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND,
+ * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may
+ * not be removed from the software by any user thereof.
  */
-
 package com.selerity.sync.client.async;
 
 import com.google.gson.JsonPrimitive;
@@ -58,7 +59,8 @@ public class AsyncDispatcherImpl implements AsyncDispatcher, AsyncTransportListe
 
     public StreamedResponse asyncDispatch(Request request, Session session) {
         return asyncDispatch(request, session.getHeaderParameter(RhinoSession.USER),
-                session.getHeaderParameter(RhinoSession.TOKEN), session.getHeaderParameter(RhinoSession.CLIENT),
+                session.getHeaderParameter(RhinoSession.TOKEN),
+                session.getHeaderParameter(RhinoSession.CLIENT),
                 session.getHeaderParameter(RhinoSession.MODE));
     }
 
@@ -90,7 +92,8 @@ public class AsyncDispatcherImpl implements AsyncDispatcher, AsyncTransportListe
 
     public Response syncDispatch(Request request, Session session) {
         return syncDispatch(request, session.getHeaderParameter(RhinoSession.USER),
-                session.getHeaderParameter(RhinoSession.TOKEN), session.getHeaderParameter(RhinoSession.CLIENT),
+                session.getHeaderParameter(RhinoSession.TOKEN),
+                session.getHeaderParameter(RhinoSession.CLIENT),
                 session.getHeaderParameter(RhinoSession.MODE));
     }
 
@@ -124,10 +127,9 @@ public class AsyncDispatcherImpl implements AsyncDispatcher, AsyncTransportListe
 
     /**
      * Returns an ID which is unique for this dispatcher.
-     * 
+     *
      * @param user
      * @param client
-     * @return
      */
     protected synchronized String getNextID(String user, String client) {
         int id = nextID++;

@@ -1,5 +1,5 @@
 /*
- *  (C) Copyright Selerity, Inc. 2009-2012. All rights reserved. This source code
+ * (C) Copyright Selerity, Inc. 2009-2019. All rights reserved. This source code
  * is confidential and proprietary information of Selerity Inc. and may be used
  * only by a recipient designated by and for the purposes permitted by Selerity
  * Inc. in writing. Reproduction of, dissemination of, modifications to or
@@ -37,16 +37,8 @@ public class AsyncPseudoHTTPTransportPoolFactory implements AsyncTransportFactor
     protected final long activeIntervalMillis;
     protected final long retirementIntervalMillis;
 
-    protected static long getDefaultedProperty(String propertyName, long defaultValue) {
-        String s = System.getProperty(propertyName);
-        if (s == null) {
-            log.info("Optional property not set: " + propertyName + "; defaulting to " + defaultValue);
-            return defaultValue;
-        }
-        return Long.parseLong(s);
-    }
-
-    public AsyncPseudoHTTPTransportPoolFactory(String httpAction, String httpResource, String host, int port) {
+    public AsyncPseudoHTTPTransportPoolFactory(String httpAction, String httpResource,
+                                               String host, int port) {
         this.httpAction = httpAction;
         this.httpResource = httpResource;
         this.host = host;
@@ -62,9 +54,10 @@ public class AsyncPseudoHTTPTransportPoolFactory implements AsyncTransportFactor
         this(AsyncPseudoHTTPTransport.DEFAULT_HTTP_ACTION, AsyncPseudoHTTPTransport.DEFAULT_HTTP_RESOURCE, host, port);
     }
 
-    public AsyncPseudoHTTPTransportPoolFactory(String httpAction, String httpResource, String host, int port,
-            long checkIntervalMillis, long startIntervalMillis, int minPoolSize, long activeIntervalMillis,
-            long retirementIntervalMillis) {
+    public AsyncPseudoHTTPTransportPoolFactory(String httpAction, String httpResource,
+                                               String host, int port,
+                                               long checkIntervalMillis, long startIntervalMillis, int minPoolSize,
+                                               long activeIntervalMillis, long retirementIntervalMillis) {
         this.httpAction = httpAction;
         this.httpResource = httpResource;
         this.host = host;
@@ -76,16 +69,22 @@ public class AsyncPseudoHTTPTransportPoolFactory implements AsyncTransportFactor
         this.retirementIntervalMillis = retirementIntervalMillis;
     }
 
-    public AsyncPseudoHTTPTransportPoolFactory(String host, int port, long checkIntervalMillis, long startIntervalMillis,
-            int minPoolSize, long activeIntervalMillis, long retirementIntervalMillis) {
+    public AsyncPseudoHTTPTransportPoolFactory(String host, int port,
+                                               long checkIntervalMillis, long startIntervalMillis, int minPoolSize,
+                                               long activeIntervalMillis, long retirementIntervalMillis) {
 
-        this(AsyncPseudoHTTPTransport.DEFAULT_HTTP_ACTION, AsyncPseudoHTTPTransport.DEFAULT_HTTP_RESOURCE, host, port,
-                checkIntervalMillis, startIntervalMillis, minPoolSize, activeIntervalMillis, retirementIntervalMillis);
+        this(AsyncPseudoHTTPTransport.DEFAULT_HTTP_ACTION,
+                AsyncPseudoHTTPTransport.DEFAULT_HTTP_RESOURCE, host, port,
+                checkIntervalMillis, startIntervalMillis, minPoolSize,
+                activeIntervalMillis, retirementIntervalMillis);
     }
 
     public AsyncTransport getInstance() throws Exception {
-        AsyncPseudoHTTPTransportPool transportPool = new AsyncPseudoHTTPTransportPool(httpAction, httpResource, host, port,
-                minPoolSize, activeIntervalMillis, retirementIntervalMillis);
+        AsyncPseudoHTTPTransportPool transportPool =
+                new AsyncPseudoHTTPTransportPool(httpAction,
+                        httpResource, host, port,
+                        minPoolSize,
+                        activeIntervalMillis, retirementIntervalMillis);
         transportPool.start(checkIntervalMillis, startIntervalMillis);
         if (log.isDebugEnabled()) {
             log.debug("started pool to " + host + ":" + port + " with min size " + minPoolSize + ", checking every "
@@ -93,6 +92,15 @@ public class AsyncPseudoHTTPTransportPoolFactory implements AsyncTransportFactor
                     + " ms and with gaps of " + startIntervalMillis + " ms between starts");
         }
         return transportPool;
+    }
+
+    protected static long getDefaultedProperty(String propertyName, long defaultValue) {
+        String s = System.getProperty(propertyName);
+        if (s == null) {
+            log.info("Optional property not set: " + propertyName + "; defaulting to " + defaultValue);
+            return defaultValue;
+        }
+        return Long.parseLong(s);
     }
 
 }

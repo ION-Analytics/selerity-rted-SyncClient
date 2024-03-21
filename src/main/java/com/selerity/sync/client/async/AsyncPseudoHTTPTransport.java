@@ -1,5 +1,5 @@
 /*
- *  (C) Copyright Selerity, Inc. 2009-2012. All rights reserved. This source code
+ * (C) Copyright Selerity, Inc. 2009-2019. All rights reserved. This source code
  * is confidential and proprietary information of Selerity Inc. and may be used
  * only by a recipient designated by and for the purposes permitted by Selerity
  * Inc. in writing. Reproduction of, dissemination of, modifications to or
@@ -19,6 +19,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -56,12 +57,12 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
     public AsyncPseudoHTTPTransport(String httpAction, String resource, String host, int port, String name) {
         this.host = host;
         this.port = port;
-		this.pseudoRequestHeader = httpAction + " /" + resource + " HTTP/1.1\n"
-						+ "Accept: text/plain\n"
-						+ "Content-type: application/x-json\n"
-						+ "User-Agent: Java/SyncClient\n"
-						+ "Host: " + host + ":" + port + "\n"
-						+ "Connection: keep-alive";
+        this.pseudoRequestHeader = httpAction + " /" + resource + " HTTP/1.1\n"
+                + "Accept: text/plain\n"
+                + "Content-type: application/x-json\n"
+                + "User-Agent: Java/SyncClient\n"
+                + "Host: " + host + ":" + port + "\n"
+                + "Connection: keep-alive";
         this.name = name;
 
         GsonBuilder builder = new GsonBuilder().serializeNulls();
@@ -157,17 +158,17 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
             final String httpRequestString;
             if (includeHeader) {
                 // this is the first request, need it to look like a valid HTTP request
-                byte[] contentBytes = jsonRequestString.getBytes("UTF-8");
+                byte[] contentBytes = jsonRequestString.getBytes(StandardCharsets.UTF_8);
                 int contentLength = contentBytes.length; // yes, we need this for some servers... ugh.
-				httpRequestString = pseudoRequestHeader + "\nContent-length: " + contentLength + ((char)13) + ((char)10) + ((char)13) + ((char)10) + jsonRequestString;
-			}
-			else{
+                httpRequestString = pseudoRequestHeader +
+                        "\nContent-length: " + contentLength + ((char) 13) + ((char) 10) + ((char) 13) + ((char) 10) + jsonRequestString;
+            } else {
                 // it's not the first request, no need for the header
                 httpRequestString = "" + ((char) 13) + ((char) 10) + ((char) 13) + ((char) 10) + jsonRequestString;
             }
 
             // send the request
-            byte[] bytesToWrite = httpRequestString.getBytes("UTF-8");
+            byte[] bytesToWrite = httpRequestString.getBytes(StandardCharsets.UTF_8);
             synchronized (this) {
                 out.write(bytesToWrite);
                 out.flush();
@@ -178,6 +179,7 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
         }
     }
 
+    @Override
     public void run() {
 
         // strip the HTTP response header and get a JsonReader
@@ -188,7 +190,7 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
                 close();
                 return;
             }
-            reader = new JsonReader(new InputStreamReader(in, "UTF-8"));
+            reader = new JsonReader(new InputStreamReader(in, StandardCharsets.UTF_8));
             reader.setLenient(true); // this allows reading multiple top-level values
         } catch (Exception ex) {
             if (isConnected()) {
@@ -228,7 +230,7 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
     /**
      * Consumes an input stream until the 4-byte string 0x0d0a0d0a is found. <br>
      * Leaves the stream pointing at the next byte after the pattern.
-     * 
+     *
      * @return
      * @throws IOException
      */
@@ -246,41 +248,41 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
                 return false;
             }
             switch (mode) {
-            case 0:
-                if (c == 13) {
-                    mode = 1;
-                } else {
-                    mode = 0;
-                }
-                break;
-            case 1:
-                if (c == 10) {
-                    mode = 2;
-                } else if (c == 13) {
-                    mode = 1;
-                } else {
-                    mode = 0;
-                }
-                break;
-            case 2:
-                if (c == 13) {
-                    mode = 3;
-                } else {
-                    mode = 0;
-                }
-                break;
-            case 3:
-                if (c == 10) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("done stripping header on " + name);
+                case 0:
+                    if (c == 13) {
+                        mode = 1;
+                    } else {
+                        mode = 0;
                     }
-                    return true;
-                } else if (c == 13) {
-                    mode = 1;
-                } else {
-                    mode = 0;
-                }
-                break;
+                    break;
+                case 1:
+                    if (c == 10) {
+                        mode = 2;
+                    } else if (c == 13) {
+                        mode = 1;
+                    } else {
+                        mode = 0;
+                    }
+                    break;
+                case 2:
+                    if (c == 13) {
+                        mode = 3;
+                    } else {
+                        mode = 0;
+                    }
+                    break;
+                case 3:
+                    if (c == 10) {
+                        if (log.isDebugEnabled()) {
+                            log.debug("done stripping header on " + name);
+                        }
+                        return true;
+                    } else if (c == 13) {
+                        mode = 1;
+                    } else {
+                        mode = 0;
+                    }
+                    break;
             }
         }
     }

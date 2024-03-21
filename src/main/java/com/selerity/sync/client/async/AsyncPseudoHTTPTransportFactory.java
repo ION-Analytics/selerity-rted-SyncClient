@@ -1,5 +1,5 @@
 /*
- *  (C) Copyright Selerity, Inc. 2009-2012. All rights reserved. This source code
+ * (C) Copyright Selerity, Inc. 2009-2019. All rights reserved. This source code
  * is confidential and proprietary information of Selerity Inc. and may be used
  * only by a recipient designated by and for the purposes permitted by Selerity
  * Inc. in writing. Reproduction of, dissemination of, modifications to or
@@ -27,8 +27,8 @@ public class AsyncPseudoHTTPTransportFactory implements AsyncTransportFactory {
     public AsyncTransport getInstance() throws Exception {
         String httpAction = AsyncPseudoHTTPTransport.DEFAULT_HTTP_ACTION;
         String resource = AsyncPseudoHTTPTransport.DEFAULT_HTTP_RESOURCE;
-        AsyncPseudoHTTPTransport transport = new AsyncPseudoHTTPTransport(httpAction, resource, host, port, host + ":"
-                + port);
+        AsyncPseudoHTTPTransport transport =
+                new AsyncPseudoHTTPTransport(httpAction, resource, host, port, host + ":" + port);
         transport.start();
         return transport;
     }

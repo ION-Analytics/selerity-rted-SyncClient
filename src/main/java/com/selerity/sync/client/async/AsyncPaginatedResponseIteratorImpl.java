@@ -1,5 +1,5 @@
 /*
- * (C) Copyright Selerity, Inc. 2009-2012. All rights reserved. This source code
+ * (C) Copyright Selerity, Inc. 2009-2019. All rights reserved. This source code
  * is confidential and proprietary information of Selerity Inc. and may be used
  * only by a recipient designated by and for the purposes permitted by Selerity
  * Inc. in writing. Reproduction of, dissemination of, modifications to or
@@ -26,9 +26,10 @@ import com.selerity.sync.client.Response;
 import com.selerity.sync.client.Session;
 
 /**
- * An iterator over the responses of a pages request. Note that it actually makes requests on demand so calls to
+ * An iterator over the responses of a pages request.
+ * Note that it actually makes requests on demand so calls to
  * hasNextResult() or nextResult() can block even though the underlying calls are asynchronous.
- * 
+ *
  * Note also that this class assumes object (map) style parameters -- it cannot be used with array-style parameters.
  */
 public class AsyncPaginatedResponseIteratorImpl implements PaginatedResponseIterator {
@@ -54,17 +55,15 @@ public class AsyncPaginatedResponseIteratorImpl implements PaginatedResponseIter
 
     /**
      * Create a new instance for the given request and pagination option object.
-     * 
+     *
      * @param dispatcher
      * @param session
      * @param request
      * @param optionObjectName
-     * @param limitFieldName
-     * @param offsetFieldName
      * @param limit
      */
     public AsyncPaginatedResponseIteratorImpl(AsyncDispatcher dispatcher, Session session, Request request,
-            String optionObjectName, int limit) {
+                                              String optionObjectName, int limit) {
         this.dispatcher = dispatcher;
         this.session = session;
         this.request = request;
@@ -76,7 +75,7 @@ public class AsyncPaginatedResponseIteratorImpl implements PaginatedResponseIter
 
     /**
      * Create a new instance for the given request, pagination option object name and field names.
-     * 
+     *
      * @param dispatcher
      * @param session
      * @param request
@@ -86,7 +85,7 @@ public class AsyncPaginatedResponseIteratorImpl implements PaginatedResponseIter
      * @param limit
      */
     public AsyncPaginatedResponseIteratorImpl(AsyncDispatcher dispatcher, Session session, Request request,
-            String optionObjectName, String limitFieldName, String offsetFieldName, int limit) {
+                                              String optionObjectName, String limitFieldName, String offsetFieldName, int limit) {
         this.dispatcher = dispatcher;
         this.session = session;
         this.request = request;
@@ -96,11 +95,7 @@ public class AsyncPaginatedResponseIteratorImpl implements PaginatedResponseIter
         this.limit = limit;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.selerity.sync.client.PaginatedResponseIterator#hasNextResult()
-     */
+    @Override
     public synchronized boolean hasNextResult() throws DispatchException {
         // first be sure we have a response
         if ((streamedResponse == null) || (!streamedResponse.hasMore())) {
@@ -128,11 +123,7 @@ public class AsyncPaginatedResponseIteratorImpl implements PaginatedResponseIter
         return true;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.selerity.sync.client.PaginatedResponseIterator#nextResult()
-     */
+    @Override
     public synchronized JsonElement nextResult() throws DispatchException {
         if (hasNextResult()) {
             JsonElement result = results.get(index);
@@ -169,9 +160,9 @@ public class AsyncPaginatedResponseIteratorImpl implements PaginatedResponseIter
     }
 
     /**
-     * Loads the next page of results, starting from the offset in nextOffset. This drops the existing results so don't call
-     * it until you're done iterating over the prior page.
-     * 
+     * Loads the next page of results, starting from the offset in nextOffset.
+     * This drops the existing results so don't call it until you're done iterating over the prior page.
+     *
      * @throws DispatchException
      */
     protected synchronized void loadNextPage() throws DispatchException {

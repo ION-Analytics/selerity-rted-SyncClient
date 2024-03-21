@@ -1,13 +1,5 @@
-package com.selerity.sync.client;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import com.google.gson.JsonElement;
-import com.google.gson.stream.JsonReader;
-
-/** 
- * (C) Copyright Selerity, Inc. 2009-2011. All rights reserved. This source code
+/*
+ * (C) Copyright Selerity, Inc. 2009-2019. All rights reserved. This source code
  * is confidential and proprietary information of Selerity Inc. and may be used
  * only by a recipient designated by and for the purposes permitted by Selerity
  * Inc. in writing. Reproduction of, dissemination of, modifications to or
@@ -18,259 +10,247 @@ import com.google.gson.stream.JsonReader;
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may
  * not be removed from the software by any user thereof.
- * 
- * An abstract class for building clients of a Narwhal-based service.
- *
  */
+package com.selerity.sync.client;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.google.gson.JsonElement;
+import com.google.gson.stream.JsonReader;
+
+/**
+ * An abstract class for building clients of a Narwhal-based service.
+ */
 public class AbstractNarwhalClient {
-	
-	private static final Log log = LogFactory.getLog(AbstractNarwhalClient.class);
-	
-	
-	protected final NarwhalSessionFactory narwhalSessionFactory;
-	protected final NarwhalService narwhalService;
 
-	
-	/** Creates a new instance with the given service endpoint, username, password and client app name.
-	 * 
-	 *  Note that this assumes that the given endpoint can be used for authentication as well as other methods. 
-	 * 
-	 * @param service
-	 * @param user
-	 * @param password
-	 * @param clientAppName
-	 * @throws Exception 
-	 */
-	public AbstractNarwhalClient(final NarwhalService narwhalService, final String user, final String password, final String clientAppName) throws Exception{
-		this.narwhalService = narwhalService;		
-		narwhalSessionFactory = new NarwhalSessionFactory(narwhalService, clientAppName, user, password);
-	}
+    private static final Log log = LogFactory.getLog(AbstractNarwhalClient.class);
 
-	/** Creates a new instance with the given service endpoint for normal method dispatch and the given
-	 *  session factory for performing authentication.
-	 * 
-	 * @param narwhalService
-	 * @param narwhalSessionFactory
-	 * @throws Exception 
-	 */
-	public AbstractNarwhalClient(final NarwhalService narwhalService, final NarwhalSessionFactory narwhalSessionFactory) throws Exception{
-		this.narwhalService = narwhalService;
-		this.narwhalSessionFactory = narwhalSessionFactory;
-	}
-	
+    protected final NarwhalSessionFactory narwhalSessionFactory;
+    protected final NarwhalService narwhalService;
 
-	/** 
-	 * Dispatch the request using the given session.
-	 * 
-	 * @param request
-	 * @return
-	 * @throws DispatchException
-	 */
-	public JsonElement dispatch(final Request request, final Session session) throws DispatchException{
-		try{
-			return narwhalService.dispatch(request, session);
-		}
-		catch (DispatchException dx){  // catch any session-related errors and invalidate the session
-			if (((dx.getCode() == -1000) || (dx.getMessage().startsWith("Session not valid"))) && (session != null)){
-				final String token = session.getHeaderParameter(Session.TOKEN);
-				log.error("session " + token + " had error, will invalidate", dx);
-				this.narwhalSessionFactory.invalidateSession(token);
-			}
-			throw dx; // rethrow the exception
-		}
-	}
-	
-	/** 
-	 * Dispatch the request using a session created by the internal factory.  Note that this
-	 * method will be dispatched with a default mode session.
-	 * 
-	 * @param request
-	 * @return
-	 * @throws DispatchException
-	 */
-	public JsonElement dispatch(final Request request) throws DispatchException{
-		final Session session = narwhalSessionFactory.getInstance();
-		try{
-			return narwhalService.dispatch(request, session);
-		}
-		catch (DispatchException dx){  // catch any session-related errors and invalidate the session
-			if (((dx.getCode() == -1000) || (dx.getMessage().startsWith("Session not valid"))) && (session != null)){
-				final String token = session.getHeaderParameter(Session.TOKEN);
-				log.error("session " + token + " had error, will invalidate", dx);
-				this.narwhalSessionFactory.invalidateSession(token);
-			}
-			throw dx; // rethrow the exception
-		}
-	}
-	
-	/** 
-	 * Dispatch the request using a session created by the internal factory.
-	 * 
-	 * Note that this method will be dispatched with an "extension mode" session.
-	 * 
-	 * @param request
-	 * @return
-	 * @throws DispatchException
-	 */
-	public JsonElement dispatchExtensionMode(final Request request) throws DispatchException{		
-		final Session session = narwhalSessionFactory.getInstanceExtensionMode();
-		try{
-			return narwhalService.dispatch(request, session);
-		}
-		catch (DispatchException dx){  // catch any session-related errors and invalidate the session
-			if (((dx.getCode() == -1000) || (dx.getMessage().startsWith("Session not valid"))) && (session != null)){
-				final String token = session.getHeaderParameter(Session.TOKEN);
-				log.error("session " + token + " had error, will invalidate", dx);
-				this.narwhalSessionFactory.invalidateSession(token);
-			}
-			throw dx; // rethrow the exception
-		}
-	}
-	
-	/**
-	 * Dispatch the request (assumes all header fields are filled in) and returns a reader.
-	 * The reader may be used to read in one or more responses asynchronously.
-	 * 
-	 * @param request
-	 * @return
-	 * @throws Exception 
-	 */
-	public JsonReader dispatch(final FullRequest request) throws Exception{
-		try{
-			return narwhalService.dispatch(request);
-		}
-		catch (DispatchException dx){  // catch any session-related errors and invalidate the session
-			if (((dx.getCode() == -1000) || (dx.getMessage().startsWith("Session not valid"))) && (request != null)){
-				final JsonElement tokenElem = request.getHeader().get(Session.TOKEN);
-				if (tokenElem != null){
-					final String token = tokenElem.getAsString();
-					log.error("session " + token + " had error, will invalidate", dx);
-					this.narwhalSessionFactory.invalidateSession(token);
-				}
-			}
-			throw dx; // rethrow the exception
-		}
-	}
-	
-	/**
-	 * Dispatches a Narwhal request and gets back a JsonReader pointed at the
-	 * result object.
-	 * 
-	 * Note that the caller *must* close the JsonReader to enable the connection
-	 * to the server to be closed (otherwise we end up with sockets left open
-	 * indefinitely).
-	 * 
-	 * @param request
-	 * @return
-	 * @throws Exception
-	 */
-	public JsonReader dispatchForResultStream(final Request request) throws Exception{
-		final Session session = narwhalSessionFactory.getInstance();
-		try{
-			return narwhalService.dispatchForResultStream(request, session);
-		}
-		catch (DispatchException dx){  // catch any session-related errors and invalidate the session
-			if (((dx.getCode() == -1000) || (dx.getMessage().startsWith("Session not valid"))) && (session != null)){
-				final String token = session.getHeaderParameter(Session.TOKEN);
-				log.error("session " + token + " had error, will invalidate", dx);
-				this.narwhalSessionFactory.invalidateSession(token);
-			}
-			throw dx; // rethrow the exception
-		}
-	}
-	
-	/** Create a paginated response iterator using the given session.  Requires the name of the parameter object that
-	 *  will carry the limit and offset parameters.
-	 * 
-	 * @param request
-	 * @param session
-	 * @param optionObjectName the name of the object that contains the "pagination options" block of limit and offset
-	 * @param limit the page size to load
-	 * @return
-	 * @throws DispatchException
-	 */
-	public PaginatedResponseIterator paginatedDispatch(final Request request, final Session session, final String optionObjectName, final int limit) throws DispatchException{
-		return new NarwhalPaginatedResponseInteratorImpl(narwhalService, session, request, optionObjectName, limit);
-	}
-	
-	/** Create a paginated response iterator using the current session from the internal factory.  Requires the name of the parameter object that
-	 *  will carry the limit and offset parameters.
-	 *  
-	 *  This call will be executed with a default mode session.
-	 * 
-	 * @param request
-	 * @param session
-	 * @param optionObjectName the name of the object that contains the "pagination options" block of limit and offset
-	 * @param limit the page size to load
-	 * @return
-	 * @throws DispatchException
-	 */
-	public PaginatedResponseIterator paginatedDispatch(final Request request, final String optionObjectName, final int limit) throws DispatchException{
-		return new NarwhalPaginatedResponseInteratorImpl(narwhalService, narwhalSessionFactory.getInstance(), request, optionObjectName, limit);
-	}
-	
-	/** Create a paginated response iterator using the current session from the internal factory.  Requires the name of the parameter object that
-	 *  will carry the limit and offset parameters.
-	 *  
-	 *  This call will be executed with a "extension mode" session.
-	 * 
-	 * @param request
-	 * @param session
-	 * @param optionObjectName the name of the object that contains the "pagination options" block of limit and offset
-	 * @param limit the page size to load
-	 * @return
-	 * @throws DispatchException
-	 */
-	public PaginatedResponseIterator paginatedDispatchExtensionMode(final Request request, final String optionObjectName, final int limit) throws DispatchException{
-		return new NarwhalPaginatedResponseInteratorImpl(narwhalService, narwhalSessionFactory.getInstanceExtensionMode(), request, optionObjectName, limit);
-	}
 
-	
-	/** Starts a session in normal mode.
-	 * 
-	 * @param user
-	 * @param password
-	 * @throws DispatchException
-	 */
-	public Session startSession() throws DispatchException{
-		return narwhalSessionFactory.getInstance();
-	}
-	
-	/** Starts a session in the given mode.
-	 * 
-	 * @param user
-	 * @param password
-	 * @throws DispatchException
-	 */
-	public Session startSession(final String mode) throws DispatchException{
-		return narwhalSessionFactory.getInstance(mode);
-	}
-	
-	/** Starts a session in "extension" mode.
-	 * 
-	 * @param user
-	 * @param password
-	 * @throws DispatchException
-	 */
-	public Session startSessionExtensionMode() throws DispatchException{
-		return narwhalSessionFactory.getInstanceExtensionMode();
-	}
-	
-	/** Extends the current session.
-	 * 
-	 * @throws DispatchException
-	 */
-	public void extendSession(final Session session) throws DispatchException{
-		narwhalSessionFactory.extend(session);
-	}
-	
-	
-	/** Closes the current session.
-	 * 
-	 * @throws DispatchException
-	 */
-	public void closeSession(final Session session) throws DispatchException{
-		narwhalSessionFactory.close(session);
-	}
+    /** Creates a new instance with the given service endpoint, username, password and client app name.
+     *
+     *  Note that this assumes that the given endpoint can be used for authentication as well as other methods.
+     *
+     * @param narwhalService
+     * @param user
+     * @param password
+     * @param clientAppName
+     * @throws Exception
+     */
+    public AbstractNarwhalClient(final NarwhalService narwhalService, final String user, final String password, final String clientAppName) throws Exception {
+        this.narwhalService = narwhalService;
+        narwhalSessionFactory = new NarwhalSessionFactory(narwhalService, clientAppName, user, password);
+    }
+
+    /** Creates a new instance with the given service endpoint for normal method dispatch and the given
+     *  session factory for performing authentication.
+     *
+     * @param narwhalService
+     * @param narwhalSessionFactory
+     * @throws Exception
+     */
+    public AbstractNarwhalClient(final NarwhalService narwhalService, final NarwhalSessionFactory narwhalSessionFactory) throws Exception {
+        this.narwhalService = narwhalService;
+        this.narwhalSessionFactory = narwhalSessionFactory;
+    }
+
+
+    /**
+     * Dispatch the request using the given session.
+     *
+     * @param request
+     * @throws DispatchException
+     */
+    public JsonElement dispatch(final Request request, final Session session) throws DispatchException {
+        try {
+            return narwhalService.dispatch(request, session);
+        } catch (DispatchException dx) {  // catch any session-related errors and invalidate the session
+            if (((dx.getCode() == -1000) || (dx.getMessage().startsWith("Session not valid"))) && (session != null)) {
+                final String token = session.getHeaderParameter(Session.TOKEN);
+                log.error("session " + token + " had error, will invalidate", dx);
+                this.narwhalSessionFactory.invalidateSession(token);
+            }
+            throw dx; // rethrow the exception
+        }
+    }
+
+    /**
+     * Dispatch the request using a session created by the internal factory.
+     * Note that this method will be dispatched with a default mode session.
+     *
+     * @param request
+     * @return
+     * @throws DispatchException
+     */
+    public JsonElement dispatch(final Request request) throws DispatchException {
+        final Session session = narwhalSessionFactory.getInstance();
+        try {
+            return narwhalService.dispatch(request, session);
+        } catch (DispatchException dx) {  // catch any session-related errors and invalidate the session
+            if (((dx.getCode() == -1000) || (dx.getMessage().startsWith("Session not valid"))) && (session != null)) {
+                final String token = session.getHeaderParameter(Session.TOKEN);
+                log.error("session " + token + " had error, will invalidate", dx);
+                this.narwhalSessionFactory.invalidateSession(token);
+            }
+            throw dx; // rethrow the exception
+        }
+    }
+
+    /**
+     * Dispatch the request using a session created by the internal factory.
+     *
+     * Note that this method will be dispatched with an "extension mode" session.
+     *
+     * @param request
+     * @throws DispatchException
+     */
+    public JsonElement dispatchExtensionMode(final Request request) throws DispatchException {
+        final Session session = narwhalSessionFactory.getInstanceExtensionMode();
+        try {
+            return narwhalService.dispatch(request, session);
+        } catch (DispatchException dx) {  // catch any session-related errors and invalidate the session
+            if (((dx.getCode() == -1000) || (dx.getMessage().startsWith("Session not valid"))) && (session != null)) {
+                final String token = session.getHeaderParameter(Session.TOKEN);
+                log.error("session " + token + " had error, will invalidate", dx);
+                this.narwhalSessionFactory.invalidateSession(token);
+            }
+            throw dx; // rethrow the exception
+        }
+    }
+
+    /**
+     * Dispatch the request (assumes all header fields are filled in) and returns a reader.
+     * The reader may be used to read in one or more responses asynchronously.
+     *
+     * @param request
+     * @return
+     * @throws Exception
+     */
+    public JsonReader dispatch(final FullRequest request) throws Exception {
+        try {
+            return narwhalService.dispatch(request);
+        } catch (DispatchException dx) {  // catch any session-related errors and invalidate the session
+            if (((dx.getCode() == -1000) || (dx.getMessage().startsWith("Session not valid"))) && (request != null)) {
+                final JsonElement tokenElem = request.getHeader().get(Session.TOKEN);
+                if (tokenElem != null) {
+                    final String token = tokenElem.getAsString();
+                    log.error("session " + token + " had error, will invalidate", dx);
+                    this.narwhalSessionFactory.invalidateSession(token);
+                }
+            }
+            throw dx; // rethrow the exception
+        }
+    }
+
+    /**
+     * Dispatches a Narwhal request and gets back a JsonReader pointed at the result object.
+     *
+     * Note that the caller *must* close the JsonReader to enable the connection
+     * to the server to be closed (otherwise we end up with sockets left open indefinitely).
+     *
+     * @param request
+     * @throws Exception
+     */
+    public JsonReader dispatchForResultStream(final Request request) throws Exception {
+        final Session session = narwhalSessionFactory.getInstance();
+        try {
+            return narwhalService.dispatchForResultStream(request, session);
+        } catch (DispatchException dx) {  // catch any session-related errors and invalidate the session
+            if (((dx.getCode() == -1000) || (dx.getMessage().startsWith("Session not valid"))) && (session != null)) {
+                final String token = session.getHeaderParameter(Session.TOKEN);
+                log.error("session " + token + " had error, will invalidate", dx);
+                this.narwhalSessionFactory.invalidateSession(token);
+            }
+            throw dx; // rethrow the exception
+        }
+    }
+
+    /** Create a paginated response iterator using the given session.
+     *  Requires the name of the parameter object that will carry the limit and offset parameters.
+     *
+     * @param request
+     * @param session
+     * @param optionObjectName the name of the object that contains the "pagination options" block of limit and offset
+     * @param limit the page size to load
+     * @throws DispatchException
+     */
+    public PaginatedResponseIterator paginatedDispatch(final Request request, final Session session, final String optionObjectName, final int limit) throws DispatchException {
+        return new NarwhalPaginatedResponseInteratorImpl(narwhalService, session, request, optionObjectName, limit);
+    }
+
+    /** Create a paginated response iterator using the current session from the internal factory.  Requires the name of the parameter object that
+     *  will carry the limit and offset parameters.
+     *
+     *  This call will be executed with a default mode session.
+     *
+     * @param request
+     * @param optionObjectName the name of the object that contains the "pagination options" block of limit and offset
+     * @param limit the page size to load
+     * @return
+     * @throws DispatchException
+     */
+    public PaginatedResponseIterator paginatedDispatch(final Request request, final String optionObjectName, final int limit) throws DispatchException {
+        return new NarwhalPaginatedResponseInteratorImpl(narwhalService, narwhalSessionFactory.getInstance(), request, optionObjectName, limit);
+    }
+
+    /** Create a paginated response iterator using the current session from the internal factory.  Requires the name of the parameter object that
+     *  will carry the limit and offset parameters.
+     *
+     *  This call will be executed with a "extension mode" session.
+     *
+     * @param request
+     * @param optionObjectName the name of the object that contains the "pagination options" block of limit and offset
+     * @param limit the page size to load
+     * @return
+     * @throws DispatchException
+     */
+    public PaginatedResponseIterator paginatedDispatchExtensionMode(final Request request, final String optionObjectName, final int limit) throws DispatchException {
+        return new NarwhalPaginatedResponseInteratorImpl(narwhalService, narwhalSessionFactory.getInstanceExtensionMode(), request, optionObjectName, limit);
+    }
+
+
+    /** Starts a session in normal mode.
+     *
+     * @throws DispatchException
+     */
+    public Session startSession() throws DispatchException {
+        return narwhalSessionFactory.getInstance();
+    }
+
+    /** Starts a session in the given mode.
+     *
+     * @throws DispatchException
+     */
+    public Session startSession(final String mode) throws DispatchException {
+        return narwhalSessionFactory.getInstance(mode);
+    }
+
+    /** Starts a session in "extension" mode.
+     *
+     * @throws DispatchException
+     */
+    public Session startSessionExtensionMode() throws DispatchException {
+        return narwhalSessionFactory.getInstanceExtensionMode();
+    }
+
+    /** Extends the current session.
+     *
+     * @throws DispatchException
+     */
+    public void extendSession(final Session session) throws DispatchException {
+        narwhalSessionFactory.extend(session);
+    }
+
+
+    /** Closes the current session.
+     *
+     * @throws DispatchException
+     */
+    public void closeSession(final Session session) throws DispatchException {
+        narwhalSessionFactory.close(session);
+    }
+
 }

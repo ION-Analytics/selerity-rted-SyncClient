@@ -1,15 +1,5 @@
-package com.selerity.sync.client;
-
-
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Test;
-
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-
-/**
- * (C) Copyright Selerity, Inc. 2009-2011. All rights reserved. This source code
+/*
+ * (C) Copyright Selerity, Inc. 2009-2019. All rights reserved. This source code
  * is confidential and proprietary information of Selerity Inc. and may be used
  * only by a recipient designated by and for the purposes permitted by Selerity
  * Inc. in writing. Reproduction of, dissemination of, modifications to or
@@ -20,227 +10,218 @@ import com.google.gson.JsonObject;
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may
  * not be removed from the software by any user thereof.
- * 
- * 
- *  Test the construction of requests by the dispatcher.
- * 
- * @author andrewbrook
- *
  */
+package com.selerity.sync.client;
 
+import static org.junit.Assert.assertEquals;
+
+import org.junit.Test;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
+/**
+ * Test the construction of requests by the dispatcher.
+ */
 public class RhinoDispatcherTest {
 
-	
-	@Test
-	public void testSingleRequestNoParams() throws DispatchException{
-		Request request = new Request("myHandler.fooMethod");
-		
-		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
-			+ "\"params\":{},"
-			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":null},"
-			+ "\"id\":\"0\"}";
-		
-		
-		assertDispatchRequest(request, expectedRequestJson, null);
-	}
-	
-	@Test
-	public void testSingleRequestNoParamsExtensionsMode() throws DispatchException{
-		Request request = new Request("myHandler.fooMethod");
-		
-		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
-			+ "\"params\":{},"
-			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
-			+ "\"id\":\"0\"}";
-		
-		
-		assertDispatchRequest(request, expectedRequestJson, "extension");
-	}
-	
-	@Test
-	public void testSingleRequestStringParam() throws DispatchException{
-		Request request = new Request("myHandler.fooMethod");
-		request.setMethodParameter("testString", "stringValue");
-		
-		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
-			+ "\"params\":{\"testString\":\"stringValue\"},"
-			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
-			+ "\"id\":\"0\"}";
-		
-		
-		assertDispatchRequest(request, expectedRequestJson, "extension");
-	}
-	
-	@Test
-	public void testSingleRequestStringArrayParam() throws DispatchException{
-		Request request = new Request("myHandler.fooMethod");
-		request.addMethodParameter("stringValue");
-		
-		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
-			+ "\"params\":[\"stringValue\"],"
-			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
-			+ "\"id\":\"0\"}";
-		
-		
-		assertDispatchRequest(request, expectedRequestJson, "extension");
-	}
-	
-	@Test
-	public void testSingleRequestNumParam() throws DispatchException{
-		Request request = new Request("myHandler.fooMethod");
-		request.setMethodParameter("testNumber", 42);
-		
-		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
-			+ "\"params\":{\"testNumber\":42},"
-			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":null},"
-			+ "\"id\":\"0\"}";
-		
-		
-		assertDispatchRequest(request, expectedRequestJson, null);
-	}
-	
-	@Test
-	public void testSingleRequestNumArrayParam() throws DispatchException{
-		Request request = new Request("myHandler.fooMethod");
-		request.addMethodParameter(42);
-		
-		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
-			+ "\"params\":[42],"
-			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":null},"
-			+ "\"id\":\"0\"}";
-		
-		
-		assertDispatchRequest(request, expectedRequestJson, null);
-	}
-	
-	@Test
-	public void testSingleRequestNumParamExtensionMode() throws DispatchException{
-		Request request = new Request("myHandler.fooMethod");
-		request.setMethodParameter("testNumber", 42);
-		
-		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
-			+ "\"params\":{\"testNumber\":42},"
-			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
-			+ "\"id\":\"0\"}";
-		
-		
-		assertDispatchRequest(request, expectedRequestJson, "extension");
-	}
-	
-	@Test
-	public void testSingleRequestBoolParam() throws DispatchException{
-		Request request = new Request("myHandler.fooMethod");
-		request.setMethodParameter("testBool", false);
-		
-		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
-			+ "\"params\":{\"testBool\":false},"
-			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
-			+ "\"id\":\"0\"}";
-		
-		
-		assertDispatchRequest(request, expectedRequestJson, "extension");
-	}
-	
-	@Test
-	public void testSingleRequestBoolArrayParam() throws DispatchException{
-		Request request = new Request("myHandler.fooMethod");
-		request.addMethodParameter(false);
-		
-		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
-			+ "\"params\":[false],"
-			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
-			+ "\"id\":\"0\"}";
-		
-		
-		assertDispatchRequest(request, expectedRequestJson, "extension");
-	}
-	
-	@Test
-	public void testSingleRequestObjParam() throws DispatchException{
-		Request request = new Request("myHandler.fooMethod");
-		JsonObject obj = new JsonObject();
-		obj.addProperty("stringProp", "value1");
-		obj.addProperty("numProp", 2);
-		obj.addProperty("boolProp", true);
-		request.setMethodParameter("testObj", obj);
-		
-		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
-			+ "\"params\":{\"testObj\":{\"stringProp\":\"value1\",\"numProp\":2,\"boolProp\":true}},"
-			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
-			+ "\"id\":\"0\"}";
-		
-		
-		assertDispatchRequest(request, expectedRequestJson, "extension");
-	}
-	
-	@Test
-	public void testSingleRequestObjArrayParam() throws DispatchException{
-		Request request = new Request("myHandler.fooMethod");
-		JsonObject obj = new JsonObject();
-		obj.addProperty("stringProp", "value1");
-		obj.addProperty("numProp", 2);
-		obj.addProperty("boolProp", true);
-		request.addMethodParameter(obj);
-		
-		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
-			+ "\"params\":[{\"stringProp\":\"value1\",\"numProp\":2,\"boolProp\":true}],"
-			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
-			+ "\"id\":\"0\"}";
-		
-		
-		assertDispatchRequest(request, expectedRequestJson, "extension");
-	}
-	
-	@Test
-	public void testMultiArrayParams() throws DispatchException{
-		Request request = new Request("myHandler.fooMethod");
-		request.addMethodParameter("foo");
-		request.addMethodParameter(true);
-		request.addMethodParameter(42);
-		
-		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
-			+ "\"params\":[\"foo\",true,42],"
-			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
-			+ "\"id\":\"0\"}";
-		
-		
-		assertDispatchRequest(request, expectedRequestJson, "extension");
-	}
-	
-	@Test
-	public void testMultiObjParams() throws DispatchException{
-		Request request = new Request("myHandler.fooMethod");
-		request.setMethodParameter("arg","foo");
-		request.setMethodParameter("happy",true);
-		request.setMethodParameter("meaning",42);
-		
-		String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
-			+ "\"params\":{\"arg\":\"foo\",\"happy\":true,\"meaning\":42},"
-			+ "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
-			+ "\"id\":\"0\"}";
-		
-		
-		assertDispatchRequest(request, expectedRequestJson, "extension");
-	}
-	
-	public void assertDispatchRequest(Request request, String expectedRequestJson, String mode) throws DispatchException{
-		MockTransport transport = new MockTransport();
-		RhinoDispatcher dispatcher = new RhinoDispatcher(transport);
-		Session session = getSession(mode);
-		transport.addResponse("{}", "null");
-		
-		JsonElement result = dispatcher.dispatch(request, session);
-	
-		String actualRequestJson = transport.getRequest(0);
-		String actualResultJson = result.toString();
-		
-		assertEquals(expectedRequestJson, actualRequestJson);
-		assertEquals("{}", actualResultJson);	
-	}
-	
-	
-	protected Session getSession(String mode){
-		return new RhinoSession("testUser", "testClient", "TEST-TOKEN", mode);
-	}
-	
+    @Test
+    public void testSingleRequestNoParams() throws DispatchException {
+        Request request = new Request("myHandler.fooMethod");
+
+        String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+                + "\"params\":{},"
+                + "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":null},"
+                + "\"id\":\"0\"}";
+
+        assertDispatchRequest(request, expectedRequestJson, null);
+    }
+
+    @Test
+    public void testSingleRequestNoParamsExtensionsMode() throws DispatchException {
+        Request request = new Request("myHandler.fooMethod");
+
+        String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+                + "\"params\":{},"
+                + "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
+                + "\"id\":\"0\"}";
+
+        assertDispatchRequest(request, expectedRequestJson, "extension");
+    }
+
+    @Test
+    public void testSingleRequestStringParam() throws DispatchException {
+        Request request = new Request("myHandler.fooMethod");
+        request.setMethodParameter("testString", "stringValue");
+
+        String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+                + "\"params\":{\"testString\":\"stringValue\"},"
+                + "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
+                + "\"id\":\"0\"}";
+
+        assertDispatchRequest(request, expectedRequestJson, "extension");
+    }
+
+    @Test
+    public void testSingleRequestStringArrayParam() throws DispatchException {
+        Request request = new Request("myHandler.fooMethod");
+        request.addMethodParameter("stringValue");
+
+        String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+                + "\"params\":[\"stringValue\"],"
+                + "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
+                + "\"id\":\"0\"}";
+
+        assertDispatchRequest(request, expectedRequestJson, "extension");
+    }
+
+    @Test
+    public void testSingleRequestNumParam() throws DispatchException {
+        Request request = new Request("myHandler.fooMethod");
+        request.setMethodParameter("testNumber", 42);
+
+        String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+                + "\"params\":{\"testNumber\":42},"
+                + "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":null},"
+                + "\"id\":\"0\"}";
+
+        assertDispatchRequest(request, expectedRequestJson, null);
+    }
+
+    @Test
+    public void testSingleRequestNumArrayParam() throws DispatchException {
+        Request request = new Request("myHandler.fooMethod");
+        request.addMethodParameter(42);
+
+        String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+                + "\"params\":[42],"
+                + "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":null},"
+                + "\"id\":\"0\"}";
+
+        assertDispatchRequest(request, expectedRequestJson, null);
+    }
+
+    @Test
+    public void testSingleRequestNumParamExtensionMode() throws DispatchException {
+        Request request = new Request("myHandler.fooMethod");
+        request.setMethodParameter("testNumber", 42);
+
+        String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+                + "\"params\":{\"testNumber\":42},"
+                + "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
+                + "\"id\":\"0\"}";
+
+        assertDispatchRequest(request, expectedRequestJson, "extension");
+    }
+
+    @Test
+    public void testSingleRequestBoolParam() throws DispatchException {
+        Request request = new Request("myHandler.fooMethod");
+        request.setMethodParameter("testBool", false);
+
+        String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+                + "\"params\":{\"testBool\":false},"
+                + "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
+                + "\"id\":\"0\"}";
+
+        assertDispatchRequest(request, expectedRequestJson, "extension");
+    }
+
+    @Test
+    public void testSingleRequestBoolArrayParam() throws DispatchException {
+        Request request = new Request("myHandler.fooMethod");
+        request.addMethodParameter(false);
+
+        String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+                + "\"params\":[false],"
+                + "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
+                + "\"id\":\"0\"}";
+
+        assertDispatchRequest(request, expectedRequestJson, "extension");
+    }
+
+    @Test
+    public void testSingleRequestObjParam() throws DispatchException {
+        Request request = new Request("myHandler.fooMethod");
+        JsonObject obj = new JsonObject();
+        obj.addProperty("stringProp", "value1");
+        obj.addProperty("numProp", 2);
+        obj.addProperty("boolProp", true);
+        request.setMethodParameter("testObj", obj);
+
+        String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+                + "\"params\":{\"testObj\":{\"stringProp\":\"value1\",\"numProp\":2,\"boolProp\":true}},"
+                + "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
+                + "\"id\":\"0\"}";
+
+        assertDispatchRequest(request, expectedRequestJson, "extension");
+    }
+
+    @Test
+    public void testSingleRequestObjArrayParam() throws DispatchException {
+        Request request = new Request("myHandler.fooMethod");
+        JsonObject obj = new JsonObject();
+        obj.addProperty("stringProp", "value1");
+        obj.addProperty("numProp", 2);
+        obj.addProperty("boolProp", true);
+        request.addMethodParameter(obj);
+
+        String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+                + "\"params\":[{\"stringProp\":\"value1\",\"numProp\":2,\"boolProp\":true}],"
+                + "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
+                + "\"id\":\"0\"}";
+
+        assertDispatchRequest(request, expectedRequestJson, "extension");
+    }
+
+    @Test
+    public void testMultiArrayParams() throws DispatchException {
+        Request request = new Request("myHandler.fooMethod");
+        request.addMethodParameter("foo");
+        request.addMethodParameter(true);
+        request.addMethodParameter(42);
+
+        String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+                + "\"params\":[\"foo\",true,42],"
+                + "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
+                + "\"id\":\"0\"}";
+
+        assertDispatchRequest(request, expectedRequestJson, "extension");
+    }
+
+    @Test
+    public void testMultiObjParams() throws DispatchException {
+        Request request = new Request("myHandler.fooMethod");
+        request.setMethodParameter("arg", "foo");
+        request.setMethodParameter("happy", true);
+        request.setMethodParameter("meaning", 42);
+
+        String expectedRequestJson = "{\"method\":\"myHandler.fooMethod\","
+                + "\"params\":{\"arg\":\"foo\",\"happy\":true,\"meaning\":42},"
+                + "\"header\":{\"user\":\"testUser\",\"token\":\"TEST-TOKEN\",\"client\":\"testClient\",\"mode\":\"extension\"},"
+                + "\"id\":\"0\"}";
+
+        assertDispatchRequest(request, expectedRequestJson, "extension");
+    }
+
+    public void assertDispatchRequest(Request request, String expectedRequestJson, String mode) throws DispatchException {
+        MockTransport transport = new MockTransport();
+        RhinoDispatcher dispatcher = new RhinoDispatcher(transport);
+        Session session = getSession(mode);
+        transport.addResponse("{}", "null");
+
+        JsonElement result = dispatcher.dispatch(request, session);
+
+        String actualRequestJson = transport.getRequest(0);
+        String actualResultJson = result.toString();
+
+        assertEquals(expectedRequestJson, actualRequestJson);
+        assertEquals("{}", actualResultJson);
+    }
+
+
+    protected Session getSession(String mode) {
+        return new RhinoSession("testUser", "testClient", "TEST-TOKEN", mode);
+    }
+
 }

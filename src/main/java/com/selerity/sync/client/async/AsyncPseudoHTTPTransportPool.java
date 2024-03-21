@@ -1,5 +1,5 @@
 /*
- *  (C) Copyright Selerity, Inc. 2009-2011. All rights reserved. This source code
+ * (C) Copyright Selerity, Inc. 2009-2019. All rights reserved. This source code
  * is confidential and proprietary information of Selerity Inc. and may be used
  * only by a recipient designated by and for the purposes permitted by Selerity
  * Inc. in writing. Reproduction of, dissemination of, modifications to or
@@ -46,13 +46,13 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
     protected long lastStartTimeMillis = 0;
 
     AsyncPseudoHTTPTransportPool(String httpAction, String httpResource, String host, int port, int minPoolSize,
-            long activeIntervalMillis, long retirementIntervalMillis) {
+                                 long activeIntervalMillis, long retirementIntervalMillis) {
         this.httpAction = httpAction;
         this.httpResource = httpResource;
         this.host = host;
         this.port = port;
         this.minPoolSize = minPoolSize;
-        transports = new AgedPool<AsyncPseudoHTTPTransport>(activeIntervalMillis, retirementIntervalMillis);
+        this.transports = new AgedPool<AsyncPseudoHTTPTransport>(activeIntervalMillis, retirementIntervalMillis);
     }
 
     public void start(long checkIntervalMillis, long startIntervalMillis) {

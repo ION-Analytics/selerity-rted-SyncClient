@@ -1,5 +1,5 @@
-/* 
- * (C) Copyright Selerity, Inc. 2009-2012. All rights reserved. This source code
+/*
+ * (C) Copyright Selerity, Inc. 2009-2019. All rights reserved. This source code
  * is confidential and proprietary information of Selerity Inc. and may be used
  * only by a recipient designated by and for the purposes permitted by Selerity
  * Inc. in writing. Reproduction of, dissemination of, modifications to or
@@ -30,7 +30,7 @@ import com.google.gson.JsonObject;
 /**
  * A utility function for constructing session objects for use with Narwhal services. The session is used to hold fields
  * across service calls which are passed in the request header. These may include a security token, an access mode, etc.
- * 
+ *
  * Note - the sessions may be cached - calls to getInstance may returned cached instance rather than start new ones and
  * close() does nothing.
  */
@@ -44,9 +44,8 @@ public class NarwhalSessionFactory {
     public static final String EXTENSION_MODE_STRING = "extension";
 
     // this is the minimum amount of time remaining on a session before it will be extended
-    public static final long SYNC_SESSION_MIN_VALID_TIME_MILLIS = 300000L; // assumes sessions need to be valid
-                                                                                         // for at least another 5 minutes in
-                                                                                         // order to use.
+    // assumes sessions need to be valid for at least another 5 minutes in order to use.
+    public static final long SYNC_SESSION_MIN_VALID_TIME_MILLIS = 300000L;
 
     public static final long SESSION_REFRESH_INTERVAL_MILLIS = 1200000L; // refresh at least once every 20 minutes.
 
@@ -84,19 +83,19 @@ public class NarwhalSessionFactory {
     }
 
     // this is a shared global cache of sessions used by all factories
-    private static final Map<String, SessionData> sessionCache = new HashMap<String, SessionData>();
-    
+    private static final Map<String, SessionData> sessionCache = new HashMap<>();
+
     /**
-     * Clears all sessions from the cache used by all factory instances.  Should
-     * rarely be needed except in testing.
+     * Clears all sessions from the cache used by all factory instances.
+     * Should rarely be needed except in testing.
      */
-    public static void clearAllSessions(){
-    	synchronized(sessionCache){
-    		sessionCache.clear();
-    		log.info("cleared all sessions from cache!");
-    	}
+    public static void clearAllSessions() {
+        synchronized (sessionCache) {
+            sessionCache.clear();
+            log.info("cleared all sessions from cache!");
+        }
     }
-    
+
 
     // Instance variables
 
@@ -127,8 +126,7 @@ public class NarwhalSessionFactory {
         if (password == null) {
             this.password = System.getProperty(SYNC_PASSWORD_PROPERTY_NAME);
             if (this.password == null) {
-                throw new NullPointerException("password cannot be null, try setting property "
-                        + SYNC_PASSWORD_PROPERTY_NAME);
+                throw new NullPointerException("password cannot be null, try setting property " + SYNC_PASSWORD_PROPERTY_NAME);
             }
         } else {
             this.password = password;
@@ -138,8 +136,6 @@ public class NarwhalSessionFactory {
 
     /**
      * Starts a thread to periodically force the session to be refreshed using default timing parameter
-     * 
-     * @param refreshIntervalMillis
      */
     public void startPerpetualRefresh() {
         startPerpetualRefresh(SESSION_REFRESH_INTERVAL_MILLIS);
@@ -147,38 +143,36 @@ public class NarwhalSessionFactory {
 
     /**
      * Starts a thread to periodically force the session to be refreshed using the given timing parameter
-     * 
+     *
      * @param refreshIntervalMillis
      */
     public void startPerpetualRefresh(final long refreshIntervalMillis) {
-        final Thread refreshThread = new Thread(new Runnable() {
-            public void run() {
-                while (true) {
-                    try {
-                        // look up the set of keys
-                        final Set<String> sessionCacheKeys = new HashSet<String>();
+        final Thread refreshThread = new Thread(() -> {
+            while (true) {
+                try {
+                    // look up the set of keys
+                    final Set<String> sessionCacheKeys = new HashSet<>();
+                    synchronized (sessionCache) {
+                        sessionCacheKeys.addAll(sessionCache.keySet());
+                    }
+
+                    // now loop through and force a reload of each
+                    for (String key : sessionCacheKeys) {
+                        final SessionData sessionData;
                         synchronized (sessionCache) {
-                            sessionCacheKeys.addAll(sessionCache.keySet());
+                            sessionData = sessionCache.get(key);
                         }
-
-                        // now loop through and force a reload of each
-                        for (String key : sessionCacheKeys) {
-                            final SessionData sessionData;
-                            synchronized (sessionCache) {
-                                sessionData = sessionCache.get(key);
-                            }
-                            extendSessionData(service, sessionData); // forces a reload
-                        }
-
-                    } catch (Exception ex) {
-                        log.warn("caught " + ex + " while refreshing session, ignoring");
+                        extendSessionData(service, sessionData); // forces a reload
                     }
 
-                    try {
-                        Thread.sleep(refreshIntervalMillis);
-                    } catch (Exception ex) {
+                } catch (Exception ex) {
+                    log.warn("caught " + ex + " while refreshing session, ignoring");
+                }
 
-                    }
+                try {
+                    Thread.sleep(refreshIntervalMillis);
+                } catch (Exception ex) {
+
                 }
             }
         }, "perpetualSessionRefreshThread");
@@ -190,9 +184,7 @@ public class NarwhalSessionFactory {
 
     /**
      * Gets an instance with default mode.
-     * 
-     * @param mode
-     * @return
+     *
      * @throws DispatchException
      */
     public Session getInstance() throws DispatchException {
@@ -201,9 +193,7 @@ public class NarwhalSessionFactory {
 
     /**
      * Gets an instance with extension mode.
-     * 
-     * @param mode
-     * @return
+     *
      * @throws DispatchException
      */
     public Session getInstanceExtensionMode() throws DispatchException {
@@ -212,9 +202,8 @@ public class NarwhalSessionFactory {
 
     /**
      * Gets an instance with the provided mode.
-     * 
+     *
      * @param mode
-     * @return
      * @throws DispatchException
      */
     public Session getInstance(final String mode) throws DispatchException {
@@ -232,9 +221,7 @@ public class NarwhalSessionFactory {
                 sessionCache.put(sessionCacheKey, cacheEntry);
                 // now return the newly created entry
                 return cacheEntry.getSession();
-            }
-
-            else {
+            } else {
                 // an entry exists, check its time to see if it has enough life left before expiry
                 final long now = System.currentTimeMillis();
                 final long remainingMillis = cacheEntry.getExpiration().getTime() - now;
@@ -264,7 +251,6 @@ public class NarwhalSessionFactory {
                 return cacheEntry.getSession();
             }
         }
-
     }
 
     protected SessionData startNewSession(final String mode) throws DispatchException {
@@ -316,7 +302,7 @@ public class NarwhalSessionFactory {
     protected void extendSessionData(final NarwhalService service, final SessionData sessionData) throws DispatchException {
         final Request extendRequest = new Request("AuthenticationHandler.extend");
         extendRequest.getMethodParametersAsArray(); // HACK to force zero-argument call to use array syntax instead of object
-                                                    // syntax
+        // syntax
         log.debug("about to call extend with session: " + sessionData.getSession());
         final JsonElement returnElement = service.dispatch(extendRequest, sessionData.getSession());
 
@@ -357,12 +343,13 @@ public class NarwhalSessionFactory {
     }
 
     /**
-     * Force any sessions which use this token to be removed from the cache. Subsequent requests for a session with the given
-     * user, password, etc. will thus force a new session to start. This is a useful way to work around certain failure modes
+     * Force any sessions which use this token to be removed from the cache.
+     * Subsequent requests for a session with the given
+     * user, password, etc. will thus force a new session to start.
+     * This is a useful way to work around certain failure modes
      * in the entitlements system when can get out of sync for long-duration sessions.
-     * 
-     * 
-     * @param token
+     *
+     * @param tokenToInvalidate
      */
     public void invalidateSession(final String tokenToInvalidate) {
         synchronized (sessionCache) {
@@ -380,10 +367,11 @@ public class NarwhalSessionFactory {
     }
 
     /**
-     * Force this session and any other sessions which use the same token to be removed from the cache. Subsequent requests
-     * for a session with the given user, password, etc. will thus force a new session to start. This is a useful way to work
+     * Force this session and any other sessions which use the same token to be removed from the cache.
+     * Subsequent requests for a session with the given user, password, etc. will thus force a new session to start.
+     * This is a useful way to work
      * around certain failure modes in the entitlements system when can get out of sync for long-duration sessions.
-     * 
+     *
      * @param sessionToInvalidate
      */
     public void invalidateSession(final Session sessionToInvalidate) {
@@ -401,7 +389,6 @@ public class NarwhalSessionFactory {
     // useful for long-duration or manual integration testing.
     public static void main(String[] args) {
         try {
-
             // String serviceURLs = "http://ny2aclsp01:8080/rhino-1.0-SNAPSHOT/rpc.do";
             final String serviceURLs = "http://ny2aclsp01:8083/rpc.do";
             final NarwhalSessionFactory factory = new NarwhalSessionFactory(

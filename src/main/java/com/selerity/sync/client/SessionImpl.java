@@ -1,10 +1,5 @@
-package com.selerity.sync.client;
-
-import java.util.HashMap;
-import java.util.Map;
-
-/** 
- * (C) Copyright Selerity, Inc. 2009-2011. All rights reserved. This source code
+/*
+ * (C) Copyright Selerity, Inc. 2009-2019. All rights reserved. This source code
  * is confidential and proprietary information of Selerity Inc. and may be used
  * only by a recipient designated by and for the purposes permitted by Selerity
  * Inc. in writing. Reproduction of, dissemination of, modifications to or
@@ -15,27 +10,29 @@ import java.util.Map;
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may
  * not be removed from the software by any user thereof.
- * 
+ */
+package com.selerity.sync.client;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
  *  A simple implementation of a Session which imposes no structure or limitation on the parameters.
  *  Basically just a wrapper for a Map<String,String>.
- * 
- *
  */
+public class SessionImpl implements Session {
 
-public class SessionImpl implements Session{
+    protected final Map<String, String> parameters = new HashMap<>();
 
-	protected final Map<String,String> parameters = new HashMap<String,String>();
-	
-	public SessionImpl(){
-		
-	}
-	
-	public void setHeaderParameter(String parameterName, String parameterValue){
-		parameters.put(parameterName, parameterValue);
-	}
-	
-	public String getHeaderParameter(String parameterName){
-		return parameters.get(parameterName);
-	}
-	
+    public SessionImpl() {
+    }
+
+    public void setHeaderParameter(String parameterName, String parameterValue) {
+        parameters.put(parameterName, parameterValue);
+    }
+
+    public String getHeaderParameter(String parameterName) {
+        return parameters.get(parameterName);
+    }
+
 }

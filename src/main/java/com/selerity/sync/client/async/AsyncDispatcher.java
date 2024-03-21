@@ -1,11 +1,5 @@
-package com.selerity.sync.client.async;
-
-import com.selerity.sync.client.Request;
-import com.selerity.sync.client.Response;
-import com.selerity.sync.client.Session;
-
-/** 
- * (C) Copyright Selerity, Inc. 2009-2011. All rights reserved. This source code
+/*
+ * (C) Copyright Selerity, Inc. 2009-2019. All rights reserved. This source code
  * is confidential and proprietary information of Selerity Inc. and may be used
  * only by a recipient designated by and for the purposes permitted by Selerity
  * Inc. in writing. Reproduction of, dissemination of, modifications to or
@@ -16,18 +10,21 @@ import com.selerity.sync.client.Session;
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may
  * not be removed from the software by any user thereof.
- * 
- *
  */
+package com.selerity.sync.client.async;
 
-public interface AsyncDispatcher{
-	
-	public StreamedResponse asyncDispatch(Request request, String user, String token, String client, String mode);
-	
-	public StreamedResponse asyncDispatch(Request request, Session session);
-	
-	public Response syncDispatch(Request request, String user, String token, String client, String mode);
-	
-	public Response syncDispatch(Request request, Session session);
-	
+import com.selerity.sync.client.Request;
+import com.selerity.sync.client.Response;
+import com.selerity.sync.client.Session;
+
+public interface AsyncDispatcher {
+
+    StreamedResponse asyncDispatch(Request request, String user, String token, String client, String mode);
+
+    StreamedResponse asyncDispatch(Request request, Session session);
+
+    Response syncDispatch(Request request, String user, String token, String client, String mode);
+
+    Response syncDispatch(Request request, Session session);
+
 }

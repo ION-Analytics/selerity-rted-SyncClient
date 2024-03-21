@@ -1,5 +1,5 @@
-/* 
- * (C) Copyright Selerity, Inc. 2009-2012. All rights reserved. This source code
+/*
+ * (C) Copyright Selerity, Inc. 2009-2019. All rights reserved. This source code
  * is confidential and proprietary information of Selerity Inc. and may be used
  * only by a recipient designated by and for the purposes permitted by Selerity
  * Inc. in writing. Reproduction of, dissemination of, modifications to or
@@ -31,9 +31,6 @@ public abstract class AbstractAsyncClient {
     protected final String user;
     protected final String password;
 
-    /**
-     * Initialize the dispatcher.
-     */
     public AbstractAsyncClient(AsyncTransportFactory transportFactory, String user, String password, String clientAppName)
             throws Exception {
         // initialized the transport and method dispatcher
@@ -46,7 +43,7 @@ public abstract class AbstractAsyncClient {
 
     /**
      * Dispatch the request using the current session.
-     * 
+     *
      * @throws DispatchException
      */
     public StreamedResponse asyncDispatch(Request request, Session session) throws DispatchException {
@@ -55,10 +52,9 @@ public abstract class AbstractAsyncClient {
 
     /**
      * Returns a single result assuming the method call is synchronous.
-     * 
+     *
      * @param request
      * @param session
-     * @return
      * @throws DispatchException
      */
     public JsonElement syncDispatch(Request request, Session session) throws DispatchException {
@@ -70,11 +66,10 @@ public abstract class AbstractAsyncClient {
     }
 
     /**
-     * Create a paginated response iterator using the current session. Requires the name of the parameter object that will
-     * carry the limit and offset parameters.
-     * 
+     * Create a paginated response iterator using the current session.
+     * Requires the name of the parameter object that will carry the limit and offset parameters.
+     *
      * @param request
-     * @return
      * @throws DispatchException
      */
     public PaginatedResponseIterator paginatedDispatch(Request request, Session session, String optionObjectName, int limit)
@@ -84,9 +79,7 @@ public abstract class AbstractAsyncClient {
 
     /**
      * Starts a session in normal mode.
-     * 
-     * @param user
-     * @param password
+     *
      * @throws DispatchException
      */
     public Session startSession() throws DispatchException {
@@ -95,9 +88,7 @@ public abstract class AbstractAsyncClient {
 
     /**
      * Starts a session in the given mode.
-     * 
-     * @param user
-     * @param password
+     *
      * @throws DispatchException
      */
     public Session startSession(String mode) throws DispatchException {
@@ -106,9 +97,7 @@ public abstract class AbstractAsyncClient {
 
     /**
      * Starts a session in "extension" mode.
-     * 
-     * @param user
-     * @param password
+     *
      * @throws DispatchException
      */
     public Session startSessionExtensionMode() throws DispatchException {
@@ -117,7 +106,7 @@ public abstract class AbstractAsyncClient {
 
     /**
      * Extends the current session.
-     * 
+     *
      * @throws DispatchException
      */
     public void extendSession(Session session) throws DispatchException {
@@ -127,7 +116,7 @@ public abstract class AbstractAsyncClient {
 
     /**
      * Closes the current session.
-     * 
+     *
      * @throws DispatchException
      */
     public void closeSession(Session session) throws DispatchException {

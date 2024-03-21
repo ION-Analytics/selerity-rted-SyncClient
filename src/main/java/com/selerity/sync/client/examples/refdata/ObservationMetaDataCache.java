@@ -1,9 +1,5 @@
-package com.selerity.sync.client.examples.refdata;
-
-import com.selerity.sync.client.DispatchException;
-
-/** 
- * (C) Copyright Selerity, Inc. 2009-2011. All rights reserved. This source code
+/*
+ * (C) Copyright Selerity, Inc. 2009-2019. All rights reserved. This source code
  * is confidential and proprietary information of Selerity Inc. and may be used
  * only by a recipient designated by and for the purposes permitted by Selerity
  * Inc. in writing. Reproduction of, dissemination of, modifications to or
@@ -14,13 +10,16 @@ import com.selerity.sync.client.DispatchException;
  * EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE. This notice may
  * not be removed from the software by any user thereof.
- * 
- * An interface for looking up ObservationMetaData.
- * 
  */
+package com.selerity.sync.client.examples.refdata;
 
+import com.selerity.sync.client.DispatchException;
+
+/**
+ * An interface for looking up ObservationMetaData.
+ */
 public interface ObservationMetaDataCache {
 
-	public ObservationMetaData getObservationMetaDataForSwordfishID(long swordfishObsSpecID) throws DispatchException;
-	
+    ObservationMetaData getObservationMetaDataForSwordfishID(long swordfishObsSpecID) throws DispatchException;
+
 }
