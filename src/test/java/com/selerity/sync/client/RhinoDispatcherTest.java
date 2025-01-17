@@ -219,7 +219,6 @@ public class RhinoDispatcherTest {
         assertEquals("{}", actualResultJson);
     }
 
-
     protected Session getSession(String mode) {
         return new RhinoSession("testUser", "testClient", "TEST-TOKEN", mode);
     }

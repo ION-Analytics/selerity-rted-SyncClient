@@ -46,8 +46,8 @@ public class NarwhalSessionFactory {
     // this is the minimum amount of time remaining on a session before it will be extended
     // assumes sessions need to be valid for at least another 5 minutes in order to use.
     public static final long SYNC_SESSION_MIN_VALID_TIME_MILLIS = 300000L;
-
-    public static final long SESSION_REFRESH_INTERVAL_MILLIS = 1200000L; // refresh at least once every 20 minutes.
+    // refresh at least once every 20 minutes.
+    public static final long SESSION_REFRESH_INTERVAL_MILLIS = 1200000L;
 
     /**
      * Simple data structure to record information about a session.
@@ -258,6 +258,7 @@ public class NarwhalSessionFactory {
         authRequest.setMethodParameter("user", user);
         authRequest.setMethodParameter("password", password);
         final SessionImpl session = new SessionImpl();
+        session.setHeaderParameter("user", user);
         session.setHeaderParameter("client", client);
         session.setHeaderParameter("mode", mode);
 
