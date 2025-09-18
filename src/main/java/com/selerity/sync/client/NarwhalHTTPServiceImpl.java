@@ -30,7 +30,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
-
     private static final Log log = LogFactory.getLog(NarwhalHTTPServiceImpl.class);
 
     private static final int CONNECTION_TIMEOUT_MILLIS;
@@ -38,7 +37,7 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
 
     static {
         CONNECTION_TIMEOUT_MILLIS = getProperty("com.selerity.sync.connection_timeout", 90000);
-        READ_TIMEOUT_MILLIS = getProperty("com.selerity.sync.read_timeout", 90000);
+        READ_TIMEOUT_MILLIS = getProperty("com.selerity.sync.read_timeout", 180000);
     }
 
     private static int getProperty(String propertyName, int default0) {
@@ -53,6 +52,10 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
         return default0;
     }
 
+    private static URL URL_PREV;
+
+    // //
+
     @SuppressWarnings("WeakerAccess")
     protected final URL serviceURL;
 
@@ -62,7 +65,13 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
     public NarwhalHTTPServiceImpl(URL serviceURL) {
         super(serviceURL.toString());
         this.serviceURL = serviceURL;
-        log.info("connecting to URL: " + serviceURL);
+
+        if (serviceURL != null && !serviceURL.equals(URL_PREV)) {
+            URL_PREV = serviceURL;
+            log.info("connecting to URL: " + serviceURL);
+        } else {
+            log.debug("connecting to URL: " + serviceURL);
+        }
     }
 
     /**
@@ -74,7 +83,13 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
     public NarwhalHTTPServiceImpl(URL serviceURL, StatsLogger<String, Long> methodStatsLogger) {
         super(serviceURL.toString(), methodStatsLogger);
         this.serviceURL = serviceURL;
-        log.info("connecting to URL: " + serviceURL);
+
+        if (serviceURL != null && !serviceURL.equals(URL_PREV)) {
+            URL_PREV = serviceURL;
+            log.info("connecting to URL: " + serviceURL);
+        } else {
+            log.debug("connecting to URL: " + serviceURL);
+        }
     }
 
     /**

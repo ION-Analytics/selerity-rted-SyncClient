@@ -59,10 +59,10 @@ public abstract class AbstractNarwhalServiceImpl implements NarwhalService {
         }
 
         if (enableStats) {
-            log.info("method statistics logging enabled");
+            log.debug("method statistics logging enabled");
             this.methodStatsLogger = new StatsLogger<>();
         } else {
-            log.info("method statistics logging disabled");
+            log.debug("method statistics logging disabled");
             this.methodStatsLogger = null;
         }
     }
@@ -81,9 +81,9 @@ public abstract class AbstractNarwhalServiceImpl implements NarwhalService {
         this.methodStatsLogger = methodStatsLogger;
 
         if (methodStatsLogger == null) {
-            log.info("method statistics logging disabled");
+            log.debug("method statistics logging disabled");
         } else {
-            log.info("method statistics logging enabled");
+            log.debug("method statistics logging enabled");
         }
     }
 

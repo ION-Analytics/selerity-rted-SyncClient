@@ -234,7 +234,7 @@ public class NarwhalSessionFactory {
                         extendSessionData(service, cacheEntry); // this updates the expiration
                     } catch (DispatchException dx) {
                         if (dx.getCode() == -1000) {
-                            log.info("need to start a new session for user " + user + " with old token " + token
+                            log.debug("need to start a new session for user " + user + " with old token " + token
                                     + " because it is no longer valid (got exception: " + dx + " )");
                         } else {
                             log.error("need to start a new session for user " + user + " with old token " + token
