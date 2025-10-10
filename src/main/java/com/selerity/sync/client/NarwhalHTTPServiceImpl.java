@@ -28,6 +28,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
     private static final Log log = LogFactory.getLog(NarwhalHTTPServiceImpl.class);
@@ -36,8 +37,8 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
     private static final int READ_TIMEOUT_MILLIS;
 
     static {
-        CONNECTION_TIMEOUT_MILLIS = getProperty("com.selerity.sync.connection_timeout", 90000);
-        READ_TIMEOUT_MILLIS = getProperty("com.selerity.sync.read_timeout", 180000);
+        CONNECTION_TIMEOUT_MILLIS = getProperty("com.selerity.sync.connection_timeout", (int) TimeUnit.SECONDS.toMillis(90));
+        READ_TIMEOUT_MILLIS = getProperty("com.selerity.sync.read_timeout", (int) TimeUnit.HOURS.toMillis(3));
     }
 
     private static int getProperty(String propertyName, int default0) {
