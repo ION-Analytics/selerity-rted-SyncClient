@@ -18,17 +18,23 @@ import com.google.gson.JsonObject;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import com.selerity.sync.client.util.StatsLogger;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.io.BufferedInputStream;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.GZIPInputStream;
 
 public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
     private static final Log log = LogFactory.getLog(NarwhalHTTPServiceImpl.class);
@@ -57,7 +63,6 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
 
     // //
 
-    @SuppressWarnings("WeakerAccess")
     protected final URL serviceURL;
 
     /**
@@ -201,17 +206,42 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
         con.addRequestProperty("Content-type", "application/x-json");
         con.addRequestProperty("User-Agent", "Java/NarwhalClient");
         con.addRequestProperty("Connection", "Keep-Alive");
+        con.addRequestProperty("Accept-Encoding", "gzip");
+        con.addRequestProperty("X-Enable-Gzip", "gzip");
         con.setDoOutput(true);
         con.connect();
 
         // write the JSON request out
 
-        JsonWriter writer = new JsonWriter(new OutputStreamWriter(con.getOutputStream()));
-        gson.toJson(request, FullRequest.class, writer);
-        writer.flush();
-        writer.close();
+        try (JsonWriter writer = new JsonWriter(new OutputStreamWriter(con.getOutputStream()))) {
+            gson.toJson(request, FullRequest.class, writer);
+        }
 
-        JsonReader responseReader = new JsonReader(new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8));
+        InputStream is = con.getInputStream();
+        is = new BufferedInputStream(is, 32 * 1024);
+
+        String respEncoding = con.getHeaderField("Content-Encoding");
+        if (respEncoding != null && respEncoding.toLowerCase().contains("gzip")) {
+            is = new GZIPInputStream(is, 32 * 1024);
+        }
+        JsonReader responseReader = new JsonReader(new InputStreamReader(is, StandardCharsets.UTF_8));
+
+        boolean logResponseHeaders = false;
+        if (logResponseHeaders) {
+            Map<String, List<String>> headers = con.getHeaderFields();
+
+            System.out.println("Response Headers:");
+            for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
+                String headerName = entry.getKey();
+                List<String> headerValues = entry.getValue();
+
+                if (headerName == null) {
+                    System.out.println("Status-Line: " + headerValues.get(0));
+                } else {
+                    System.out.println(headerName + ": " + String.join(", ", headerValues));
+                }
+            }
+        }
 
         final long elapsedNanos = MiscUtils.getNanoTime() - startNanos;
         final long elapsedMillis = (elapsedNanos / MiscUtils.NANOS_PER_MILLISECOND);

@@ -118,6 +118,7 @@ public class NarwhalMetaServiceImpl extends AbstractNarwhalServiceImpl {
         }
         JsonArray serviceArray = serviceListElem.getAsJsonArray();
         int serviceCount = 0;
+        List<String> methodNames = new ArrayList<>();
         for (JsonElement serviceEntryElem : serviceArray) {
             JsonObject serviceEntry = serviceEntryElem.getAsJsonObject();
             String methodName = serviceEntry.get("name").getAsString();
@@ -127,9 +128,12 @@ public class NarwhalMetaServiceImpl extends AbstractNarwhalServiceImpl {
                 serviceMap.put(methodName, serviceList);
             }
             serviceList.add(service);
-            log.debug("registered service " + service.getName() + " for method " + methodName);
             serviceCount++;
+
+            methodNames.add(methodName);
         }
+        log.debug("registered service " + service.getName() + " for methods: " + methodNames);
+
         if (serviceName == null) {
             serviceName = service.getName();
         } else {
