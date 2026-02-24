@@ -188,7 +188,7 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
                 }
             }
 
-            log.debug("preparing to send " + gson.toJson(request, FullRequest.class) + " to " + serviceURL);
+            log.debug("request  '" + request.getMethod() + "' " + gson.toJson(request, FullRequest.class) + " to " + serviceURL);
 
             if (request.params.isJsonObject()) {
                 if (params.has("password")) {
@@ -197,9 +197,7 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
             }
         }
 
-        URLConnection con;
-
-        con = serviceURL.openConnection();
+        URLConnection con = serviceURL.openConnection();
         con.setConnectTimeout(CONNECTION_TIMEOUT_MILLIS);
         con.setReadTimeout(READ_TIMEOUT_MILLIS);
         con.addRequestProperty("Accept", "text/plain");
@@ -247,12 +245,10 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
         final long elapsedMillis = (elapsedNanos / MiscUtils.NANOS_PER_MILLISECOND);
 
         if (elapsedNanos > WARN_DISPATCH_TIME_MILLIS * 1000000) {
-            log.warn("got delayed response to " + request.getMethod() + " in " + elapsedMillis + " ms from service "
-                    + serviceName);
+            log.warn("response '" + request.getMethod() + "' in " + elapsedMillis + " ms from service " + serviceName);
         } else {
             if (log.isDebugEnabled()) {
-                log.debug("got response to " + request.getMethod() + " in " + elapsedMillis + " ms from service "
-                        + serviceName);
+                log.debug("response '" + request.getMethod() + "' in " + elapsedMillis + " ms");
             }
         }
 

@@ -15,6 +15,7 @@ package com.selerity.sync.client;
 
 import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -28,15 +29,13 @@ import com.selerity.sync.client.util.StatsLogger;
  * An abstract class for building clients of a Narwhal-based service.
  */
 public abstract class AbstractNarwhalServiceImpl implements NarwhalService {
-
     private static final Log log = LogFactory.getLog(AbstractNarwhalServiceImpl.class);
 
+    // 30 seconds is too long for most dispatches to take
+    protected static final long WARN_DISPATCH_TIME_MILLIS = TimeUnit.SECONDS.toMillis(30);
+
     protected final Gson gson;
-
-    protected final long WARN_DISPATCH_TIME_MILLIS = 30000;  // 30 seconds is too long for most dispatches to take
-
     protected String serviceName = null;
-
     protected final StatsLogger<String, Long> methodStatsLogger;
 
     /**
