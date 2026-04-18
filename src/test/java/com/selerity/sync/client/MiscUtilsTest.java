@@ -13,7 +13,11 @@
  */
 package com.selerity.sync.client;
 
-import static org.junit.Assert.assertEquals;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonReader;
+
+import org.junit.Test;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -22,18 +26,20 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 
-import org.junit.Test;
-
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
-import com.google.gson.stream.JsonReader;
+import static org.junit.Assert.assertEquals;
 
 /**
  *  Tests some of the misc utilities used in this package.
  */
 public class MiscUtilsTest {
+
+    @Test
+    public void test_collapseSet() throws IOException {
+        assertEquals("-10,0,11,2,4,500", MiscUtils.collapseSet(new LinkedHashSet<>(Arrays.asList("4", "11", "500", "0", "-10", "2"))));
+    }
 
     @Test
     public void testParseNanoTime() throws ParseException {

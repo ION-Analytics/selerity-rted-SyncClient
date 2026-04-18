@@ -13,13 +13,23 @@
  */
 package com.selerity.sync.client;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import java.io.IOException;
 import java.io.StringReader;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -29,17 +39,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TimeZone;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonPrimitive;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonToken;
+import java.util.stream.Collectors;
 
 /**
  * Some misc utility methods that are used elsewhere, mainly as convenience functions to support debugging
@@ -312,21 +312,12 @@ public class MiscUtils {
      * @return
      */
     public static String collapseSet(Set<String> strings) {
-        if ((strings == null) || (strings.size() < 1)) {
+        if (strings == null || strings.isEmpty()) {
             return "";
-        } else if (strings.size() == 1) {
-            return strings.iterator().next();
         }
-
-        String[] sortedStrings = strings.toArray(new String[strings.size()]);
-        Arrays.sort(sortedStrings);
-
-        StringBuffer buf = new StringBuffer();
-        for (String string : sortedStrings) {
-            buf.append(',').append(string);
-        }
-
-        return buf.substring(1);  // trims off the first comma
+        return strings.stream() //
+                .sorted() //
+                .collect(Collectors.joining(","));
     }
 
     /** Merges the two objects into a new object.  The entries of the first object
