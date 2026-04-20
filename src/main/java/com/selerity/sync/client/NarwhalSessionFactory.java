@@ -35,7 +35,6 @@ import com.google.gson.JsonObject;
  * close() does nothing.
  */
 public class NarwhalSessionFactory {
-
     private static final Log log = LogFactory.getLog(NarwhalSessionFactory.class);
 
     public static final String SYNC_USER_PROPERTY_NAME = "com.selerity.sync.user";
@@ -245,7 +244,7 @@ public class NarwhalSessionFactory {
                         sessionCache.put(sessionCacheKey, cacheEntry);
                     }
                 } else {
-                    log.debug("don't need to extend session for user " + user + " with token " + token
+                    log.trace("don't need to extend session for user " + user + " with token " + token
                             + " because it still has " + remainingMillis + "ms left");
                 }
                 return cacheEntry.getSession();
