@@ -23,8 +23,7 @@ import com.selerity.sync.client.FullRequest;
 import com.selerity.sync.client.Response;
 
 @Deprecated
-public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, AsyncTransportListener {
-
+public class AsyncPseudoHTTPTransportPool implements AsyncTransport, AsyncTransportListener, Runnable {
     private static final Log log = LogFactory.getLog(AsyncPseudoHTTPTransportPool.class);
 
     protected final AgedPool<AsyncPseudoHTTPTransport> transports;
@@ -65,9 +64,10 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
         Thread th = new Thread(this, "transportHealthChecker");
         th.setDaemon(true);
         th.start();
-        log.debug("started " + th);
+        log.debug("started - " + th);
     }
 
+    @Override
     public synchronized void addAsyncTransportListener(AsyncTransportListener listener) {
         if (this.listener != null) {
             throw new IllegalArgumentException("cannot add a second listener to this transport");
@@ -75,6 +75,7 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
         this.listener = listener;
     }
 
+    @Override
     public void asyncDispatch(FullRequest request) throws DispatchException {
         log.debug("getting next available transport instance...");
         AsyncPseudoHTTPTransport transport = transports.waitForNextActive(100);
@@ -107,6 +108,7 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
         }
     }
 
+    @Override
     public void onResponse(Response response) {
         if (listener != null) {
             listener.onResponse(response);
@@ -115,12 +117,12 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
         }
     }
 
+    @Override
     public void run() {
         while (true) {
             // first, check retirement ages of existing transports. Yes, this stops the world
             log.debug("checking ages of transports");
-            Set<AsyncPseudoHTTPTransport> retired;
-            retired = transports.getRetired();
+            Set<AsyncPseudoHTTPTransport> retired = transports.getRetired();
             for (AsyncPseudoHTTPTransport transport : retired) {
                 transport.close();
             }
@@ -133,25 +135,26 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
                 log.warn("no active transports, need to start one immediately!");
                 startNewTransport();
             } else if (transports.getActiveCount() < minPoolSize) {
-                if (log.isDebugEnabled()) {
-                    log.debug("currently have only " + transports.getActiveCount() + " transports, pool should have "
-                            + minPoolSize);
-                }
 
                 long elapsedSinceLastStart = System.currentTimeMillis() - lastStartTimeMillis;
+                if (log.isDebugEnabled()) {
+                    log.debug("currently have only " + transports.getActiveCount() + " transports," //
+                            + " pool should have " + minPoolSize //
+                            + ", " + elapsedSinceLastStart + " ms have passed since last start");
+                }
+
                 if (elapsedSinceLastStart >= startIntervalMillis) {
                     if (log.isDebugEnabled()) {
                         log.debug("enough time has passed, starting another transport");
                     }
                     startNewTransport();
                 } else {
-                    if (log.isDebugEnabled()) {
-                        log.debug("only " + elapsedSinceLastStart + " ms have passed since last start, need to wait a while");
+                    if (log.isTraceEnabled()) {
+                        log.trace("only " + elapsedSinceLastStart + " ms have passed since last start, need to wait a while");
                     }
                 }
             }
 
-            log.debug("sleeping a while until next check");
             try {
                 Thread.sleep(checkIntervalMillis);
             } catch (Exception ex) {
@@ -162,14 +165,10 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, Runnable, A
 
     protected void startNewTransport() {
         int transportNumber = getNextTransportNumber();
-        AsyncPseudoHTTPTransport transport = new AsyncPseudoHTTPTransport(httpAction, httpResource, host, port, host + ":"
-                + port + ":" + transportNumber);
+        AsyncPseudoHTTPTransport transport = new AsyncPseudoHTTPTransport(httpAction, httpResource, host, port, //
+                host + ":" + port + ":" + transportNumber);
         transport.addAsyncTransportListener(this);
         try {
-            if (log.isDebugEnabled()) {
-                log.debug("starting transport " + transport + "...");
-            }
-
             transport.start();
             transports.addNew(transport);
             lastStartTimeMillis = System.currentTimeMillis();

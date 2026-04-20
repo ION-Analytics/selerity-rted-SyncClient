@@ -74,6 +74,7 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
     }
 
     public synchronized void start() throws UnknownHostException, IOException {
+        log.debug("connecting " + name + "...");
         socket = new Socket(host, port);
         in = socket.getInputStream();
         out = socket.getOutputStream();
@@ -82,7 +83,7 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
         Thread th = new Thread(this, name + "_reader");
         th.setDaemon(true);
         th.start();
-        log.debug("started reader thread " + th);
+        log.debug("started - " + th);
     }
 
     public synchronized void addAsyncTransportListener(AsyncTransportListener listener) {
@@ -230,20 +231,17 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
     /**
      * Consumes an input stream until the 4-byte string 0x0d0a0d0a is found. <br>
      * Leaves the stream pointing at the next byte after the pattern.
-     *
-     * @return
-     * @throws IOException
      */
     protected boolean stripHeader() throws IOException {
         if (log.isDebugEnabled()) {
-            log.debug("stripping header on " + name + "...");
+            log.debug("stripping header...");
         }
         int mode = 0;
         while (true) {
             int c = in.read();
             if (c < 0) {
                 if (log.isDebugEnabled()) {
-                    log.debug("failed to strip header on " + name);
+                    log.debug("failed to strip header");
                 }
                 return false;
             }
@@ -274,7 +272,7 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
                 case 3:
                     if (c == 10) {
                         if (log.isDebugEnabled()) {
-                            log.debug("done stripping header on " + name);
+                            log.debug("done stripping header");
                         }
                         return true;
                     } else if (c == 13) {
