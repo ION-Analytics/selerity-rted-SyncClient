@@ -86,6 +86,7 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
         log.debug("started - " + th);
     }
 
+    @Override
     public synchronized void addAsyncTransportListener(AsyncTransportListener listener) {
         if (this.listener != null) {
             throw new IllegalArgumentException("cannot add a second listener to this transport");
@@ -131,6 +132,7 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
         return socket.isConnected();
     }
 
+    @Override
     public void asyncDispatch(FullRequest request) throws DispatchException {
 
         String jsonRequestString = gson.toJson(request, FullRequest.class);
@@ -294,6 +296,7 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
         return s;
     }
 
+    @Override
     public String toString() {
         return name;
     }
