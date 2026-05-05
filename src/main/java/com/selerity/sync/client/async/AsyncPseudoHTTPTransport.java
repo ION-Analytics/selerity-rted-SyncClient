@@ -78,9 +78,21 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
         if (log.isDebugEnabled())
             log.debug("connecting " + name + "...");
         socket = new Socket(host, port);
+        socket.setTcpNoDelay(true); // disable Nagle's Algorithm
+        boolean tcpNoDelay = socket.getTcpNoDelay();
+        boolean keepAlive = socket.getKeepAlive();
+        int receiveBufferSize = socket.getReceiveBufferSize();
+        int sendBufferSize = socket.getSendBufferSize();
         in = socket.getInputStream();
         out = socket.getOutputStream();
-        log.debug("connected " + name);
+        log.info("connected " + name //
+                + " (TcpNoDelay: " + tcpNoDelay // 
+                + " KeepAlive: " + keepAlive //
+                + " ReceiveBufferSize: " + receiveBufferSize //
+                + " SendBufferSize: " + sendBufferSize + ")");
+        if (sendBufferSize < 1024) {
+            log.warn("sendBufferSize is too small: " + sendBufferSize);
+        }
 
         Thread th = new Thread(this, name + "_reader");
         th.setDaemon(true);
