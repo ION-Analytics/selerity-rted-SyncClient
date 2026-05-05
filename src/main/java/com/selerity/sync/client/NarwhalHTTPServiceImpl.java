@@ -76,7 +76,8 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
             URL_PREV = serviceURL;
             log.info("connecting to URL: " + serviceURL);
         } else {
-            log.debug("connecting to URL: " + serviceURL);
+            if (log.isDebugEnabled())
+                log.debug("connecting to URL: " + serviceURL);
         }
     }
 
@@ -94,7 +95,8 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
             URL_PREV = serviceURL;
             log.info("connecting to URL: " + serviceURL);
         } else {
-            log.debug("connecting to URL: " + serviceURL);
+            if (log.isDebugEnabled())
+                log.debug("connecting to URL: " + serviceURL);
         }
     }
 

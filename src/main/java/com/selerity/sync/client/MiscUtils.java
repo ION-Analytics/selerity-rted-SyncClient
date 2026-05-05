@@ -374,13 +374,8 @@ public class MiscUtils {
 
 
     /**
-     * Partially consumes a response stream up to the start of the result and
-     * then returns the stream. This can be useful for callers who want to
-     * consume a response
-     *
-     * @param responseStream
-     * @return
-     * @throws DispatchException
+     * Partially consumes a response stream up to the start of the result and then returns the stream.
+     * This can be useful for callers who want to consume a response
      */
     protected static JsonReader extractResultStream(final JsonReader responseStream) throws DispatchException {
         boolean gotNullResult = false;
@@ -440,32 +435,32 @@ public class MiscUtils {
 
     /**
      * Extracts a DispatchException from the error field of a Narwhal response
-     *
-     * @param reader
-     * @throws IOException
      */
     private static DispatchException parseErrorFromResponseStream(JsonReader reader) throws IOException {
-        JsonParser parser = new JsonParser();
-
-        reader.beginObject();
         int code = 0;
         String message = null;
         JsonElement data = null;
         String error_id = null;
+
+        reader.beginObject();
         while (reader.hasNext()) {
             final String fieldName = reader.nextName();
             if (fieldName.equalsIgnoreCase("code")) {
                 code = reader.nextInt();
-                log.debug("code = " + code);
+                if (log.isDebugEnabled())
+                    log.debug("code = " + code);
             } else if (fieldName.equalsIgnoreCase("message")) {
                 message = reader.nextString();
-                log.debug("message = " + message);
+                if (log.isDebugEnabled())
+                    log.debug("message = " + message);
             } else if (fieldName.equalsIgnoreCase("data")) {
-                data = parser.parse(reader);
-                log.debug("data = " + data);
+                data = JsonParser.parseReader(reader);
+                if (log.isDebugEnabled())
+                    log.debug("data = " + data);
             } else if (fieldName.equalsIgnoreCase("error-id")) {
                 error_id = reader.nextString();
-                log.debug("error-id = " + error_id);
+                if (log.isDebugEnabled())
+                    log.debug("error-id = " + error_id);
             } else {
                 // warn but continue to parse, no need to throw exception
                 log.warn("unexpected error field: " + fieldName);
@@ -476,7 +471,3 @@ public class MiscUtils {
     }
 
 }
-
-
-
-

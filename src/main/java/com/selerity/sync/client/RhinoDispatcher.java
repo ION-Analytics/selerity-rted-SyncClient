@@ -21,8 +21,8 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 
 /**
- * A dispatcher which knows how to format Narwhal requests for Selerity's 'Rhino' server implementation and runs on
- * a synchronous transport.
+ * A dispatcher which knows how to format Narwhal requests for Selerity's 'Rhino' server implementation
+ * and runs on a synchronous transport.
  */
 public class RhinoDispatcher implements Dispatcher {
     private static final Log log = LogFactory.getLog(RhinoDispatcher.class);
@@ -35,6 +35,7 @@ public class RhinoDispatcher implements Dispatcher {
 
     public RhinoDispatcher(Transport transport) {
         this.transport = transport;
+
         GsonBuilder builder = new GsonBuilder().serializeNulls();
         builder.registerTypeAdapter(FullRequest.class, new FullRequest.FullRequestDeserializer());
         builder.registerTypeAdapter(FullRequest.class, new FullRequest.FullRequestSerializer());
@@ -43,10 +44,11 @@ public class RhinoDispatcher implements Dispatcher {
         gson = builder.create();
     }
 
-    /** Dispatch the request, returning the result (and throwing an error if one occurs).
-     *  Uses the explicit session parameters given.
+    /**
+     * Dispatch the request, returning the result (and throwing an error if one occurs).
+     * Uses the explicit session parameters given.
      *
-     *  Assumes a single response.
+     * Assumes a single response.
      */
     public JsonElement dispatch(Request request, String user, String token, String client, String mode) throws DispatchException {
         long startTime = System.currentTimeMillis();
@@ -55,9 +57,8 @@ public class RhinoDispatcher implements Dispatcher {
         Response response = transport.syncDispatch(fullRequest);
         long elapsedTime = System.currentTimeMillis() - startTime;
         if (elapsedTime < DISPATCH_WARN_THRESHOLD_MILLIS) {
-            if (log.isDebugEnabled()) {
+            if (log.isDebugEnabled()) 
                 log.debug("DISPATCHTIME: " + elapsedTime + " ms after " + request.getMethod() + "; got response: " + gson.toJson(response, Response.class));
-            }
         } else {
             if (log.isWarnEnabled()) {
                 log.warn("DISPATCHTIME: " + elapsedTime + " ms after " + request.getMethod() + "; got response: " + gson.toJson(response, Response.class));
@@ -70,9 +71,8 @@ public class RhinoDispatcher implements Dispatcher {
         return response.getResult();
     }
 
-
-    /** Dispatches a request using the explicit session information, returning the full response object.
-     *
+    /**
+     * Dispatches a request using the explicit session information, returning the full response object.
      */
     public synchronized Response dispatchWithResponse(Request request, String user, String token, String client, String mode) throws DispatchException {
         String id = getNextID();
@@ -81,21 +81,21 @@ public class RhinoDispatcher implements Dispatcher {
         return response;
     }
 
-
-    /** Dispatch the request, returning the result (and throwing an error if one occurs).  Uses the cached session parameters.
-     *
+    /**
+     * Dispatch the request, returning the result (and throwing an error if one occurs).
+     * Uses the cached session parameters.
      */
     public JsonElement dispatch(Request request, Session session) throws DispatchException {
-        return dispatch(request, session.getHeaderParameter(RhinoSession.USER),
+        return dispatch(request,
+                session.getHeaderParameter(RhinoSession.USER),
                 session.getHeaderParameter(RhinoSession.TOKEN),
                 session.getHeaderParameter(RhinoSession.CLIENT),
                 session.getHeaderParameter(RhinoSession.MODE));
     }
 
-
-    /** Dispatch the array of requests as a boxcar, returning the corresponding array of responses.  Uses the explicit session
-     *  parameters given.
-     *
+    /**
+     * Dispatch the array of requests as a boxcar, returning the corresponding array of responses.
+     * Uses the explicit session parameters given.
      */
     public Response[] boxcarDispatch(Request[] requests, String user, String token, String client, String mode) throws DispatchException {
         int requestCount = requests.length;
@@ -106,9 +106,9 @@ public class RhinoDispatcher implements Dispatcher {
         String baseID = getNextID();
         for (int i = 0; i < requestCount; i++) {
             String id = baseID + "_" + i;
-            if (log.isDebugEnabled()) {
+            if (log.isDebugEnabled())
                 log.debug("setting ID for sub-request " + i + " of " + requestCount + " as " + id);
-            }
+
             fullRequests[i] = new FullRequest(requests[i], user, token, client, mode, id);
         }
 
@@ -116,11 +116,13 @@ public class RhinoDispatcher implements Dispatcher {
         return transport.boxcarDispatch(fullRequests);
     }
 
-    /** Dispatch the array of requests as a boxcar.  Uses the cached session parameters.
-     *
+    /**
+     * Dispatch the array of requests as a boxcar.
+     * Uses the cached session parameters.
      */
     public Response[] boxcarDispatch(Request[] requests, Session session) throws DispatchException {
-        return boxcarDispatch(requests, session.getHeaderParameter(RhinoSession.USER),
+        return boxcarDispatch(requests,
+                session.getHeaderParameter(RhinoSession.USER),
                 session.getHeaderParameter(RhinoSession.TOKEN),
                 session.getHeaderParameter(RhinoSession.CLIENT),
                 session.getHeaderParameter(RhinoSession.MODE));

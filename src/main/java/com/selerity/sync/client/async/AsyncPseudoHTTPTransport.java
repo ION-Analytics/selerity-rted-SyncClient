@@ -13,6 +13,16 @@
  */
 package com.selerity.sync.client.async;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.stream.JsonReader;
+import com.selerity.sync.client.DispatchException;
+import com.selerity.sync.client.FullRequest;
+import com.selerity.sync.client.Response;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -21,17 +31,8 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.stream.JsonReader;
-import com.selerity.sync.client.DispatchException;
-import com.selerity.sync.client.FullRequest;
-import com.selerity.sync.client.Response;
-
-@Deprecated
+//2026 we still use it
+//@Deprecated
 public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
 
     private static final Log log = LogFactory.getLog(AsyncPseudoHTTPTransport.class);
@@ -74,7 +75,8 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
     }
 
     public synchronized void start() throws UnknownHostException, IOException {
-        log.debug("connecting " + name + "...");
+        if (log.isDebugEnabled())
+            log.debug("connecting " + name + "...");
         socket = new Socket(host, port);
         in = socket.getInputStream();
         out = socket.getOutputStream();
@@ -83,7 +85,8 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
         Thread th = new Thread(this, name + "_reader");
         th.setDaemon(true);
         th.start();
-        log.debug("started - " + th);
+        if (log.isDebugEnabled())
+            log.debug("started - " + th);
     }
 
     @Override
@@ -103,7 +106,8 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
     }
 
     public synchronized void close() {
-        log.debug("closing " + name);
+        if (log.isDebugEnabled())
+            log.debug("closing " + name);
         try {
             if (in != null) {
                 in.close();
@@ -122,7 +126,8 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
             out = null;
             notifyAll();
         }
-        log.debug("closed " + name);
+        if (log.isDebugEnabled())
+            log.debug("closed " + name);
     }
 
     public synchronized boolean isConnected() {
@@ -137,14 +142,12 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
 
         String jsonRequestString = gson.toJson(request, FullRequest.class);
 
-        if (log.isDebugEnabled()) {
+        if (log.isDebugEnabled())
             log.debug("preparing to send " + jsonRequestString + " to " + name);
-        }
 
         // record start time of dispatch
-        if (log.isDebugEnabled()) {
+        if (log.isDebugEnabled())
             log.debug("starting dispatch via " + name + " of " + summarize(jsonRequestString, 50));
-        }
 
         final boolean includeHeader;
         synchronized (this) {
@@ -208,9 +211,8 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
                 log.debug("waiting for a response");
                 // read a single response from the socket
                 Response response = gson.fromJson(reader, Response.class);
-                if (log.isDebugEnabled()) {
+                if (log.isDebugEnabled())
                     log.debug("got response to id " + response.getID());
-                }
 
                 if (listener == null) {
                     log.error("no listener for " + name + ", discarding response");
@@ -218,9 +220,8 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
                     listener.onResponse(response);
                 }
 
-                if (log.isDebugEnabled()) {
+                if (log.isDebugEnabled())
                     log.debug("notified listener to response to id " + response.getID());
-                }
             }
         } catch (Exception ex) {
             if (isConnected()) {
@@ -235,16 +236,15 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
      * Leaves the stream pointing at the next byte after the pattern.
      */
     protected boolean stripHeader() throws IOException {
-        if (log.isDebugEnabled()) {
+        if (log.isDebugEnabled())
             log.debug("stripping header...");
-        }
+
         int mode = 0;
         while (true) {
             int c = in.read();
             if (c < 0) {
-                if (log.isDebugEnabled()) {
+                if (log.isDebugEnabled())
                     log.debug("failed to strip header");
-                }
                 return false;
             }
             switch (mode) {
@@ -273,9 +273,8 @@ public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
                     break;
                 case 3:
                     if (c == 10) {
-                        if (log.isDebugEnabled()) {
+                        if (log.isDebugEnabled())
                             log.debug("done stripping header");
-                        }
                         return true;
                     } else if (c == 13) {
                         mode = 1;

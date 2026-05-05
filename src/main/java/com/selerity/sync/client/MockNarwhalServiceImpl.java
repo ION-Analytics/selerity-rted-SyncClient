@@ -116,7 +116,8 @@ public class MockNarwhalServiceImpl implements NarwhalService {
         if (mockResponse == null) {
             throw new NullPointerException("no mock responses left in queue");
         }
-        log.debug("returning mock response: " + mockResponse);
+        if (log.isDebugEnabled())
+            log.debug("returning mock response: " + mockResponse);
         return new JsonReader(new StringReader(mockResponse));
     }
 
@@ -128,7 +129,8 @@ public class MockNarwhalServiceImpl implements NarwhalService {
         if (mockResponse == null) {
             throw new NullPointerException("no mock responses left in queue");
         }
-        log.debug("returning mock response: " + mockResponse);
+        if (log.isDebugEnabled())
+            log.debug("returning mock response: " + mockResponse);
         final JsonReader reader = new JsonReader(new StringReader(mockResponse));
         return MiscUtils.extractResultStream(reader);
     }

@@ -53,15 +53,6 @@ public class AsyncPaginatedResponseIteratorImpl implements PaginatedResponseIter
     protected JsonArray results = null; // the array of the current page
     protected boolean done = false; // set to true when there is no point in asking for another page
 
-    /**
-     * Create a new instance for the given request and pagination option object.
-     *
-     * @param dispatcher
-     * @param session
-     * @param request
-     * @param optionObjectName
-     * @param limit
-     */
     public AsyncPaginatedResponseIteratorImpl(AsyncDispatcher dispatcher, Session session, Request request,
                                               String optionObjectName, int limit) {
         this.dispatcher = dispatcher;
@@ -73,17 +64,6 @@ public class AsyncPaginatedResponseIteratorImpl implements PaginatedResponseIter
         this.limit = limit;
     }
 
-    /**
-     * Create a new instance for the given request, pagination option object name and field names.
-     *
-     * @param dispatcher
-     * @param session
-     * @param request
-     * @param optionObjectName
-     * @param limitFieldName
-     * @param offsetFieldName
-     * @param limit
-     */
     public AsyncPaginatedResponseIteratorImpl(AsyncDispatcher dispatcher, Session session, Request request,
                                               String optionObjectName, String limitFieldName, String offsetFieldName, int limit) {
         this.dispatcher = dispatcher;
@@ -138,10 +118,10 @@ public class AsyncPaginatedResponseIteratorImpl implements PaginatedResponseIter
         if (response.isError()) {
             throw response.getError();
         }
-        JsonElement resultElem = response.getResult();
-        if ((resultElem != null) && (!resultElem.isJsonNull())) {
-            if (resultElem.isJsonArray()) {
-                results = resultElem.getAsJsonArray(); // convert the result into an array
+        JsonElement e = response.getResult();
+        if (e != null && !e.isJsonNull()) {
+            if (e.isJsonArray()) {
+                results = e.getAsJsonArray(); // convert the result into an array
                 log.info("got " + results.size() + " results for " + request.getMethod());
                 if (results.size() > 0) {
                     nextOffset += limit; // compute the new offset for the next request
@@ -162,16 +142,14 @@ public class AsyncPaginatedResponseIteratorImpl implements PaginatedResponseIter
     /**
      * Loads the next page of results, starting from the offset in nextOffset.
      * This drops the existing results so don't call it until you're done iterating over the prior page.
-     *
-     * @throws DispatchException
      */
     protected synchronized void loadNextPage() throws DispatchException {
         log.info("loading next page for " + request.getMethod() + ", from offset " + nextOffset + " with limit " + limit);
         results = null;
         index = 0;
 
-        // find the object that has the limit and offset fields defined, creating it if necessary, and update the offset and
-        // limit fields
+        // find the object that has the limit and offset fields defined, creating it if necessary,
+        // and update the offset and limit fields
         JsonObject options = null; // start at the parameters object
         if (optionObjectName != null) { // the parameters are stored in an object
             options = request.getMethodParameters().getAsJsonObject();
@@ -182,18 +160,16 @@ public class AsyncPaginatedResponseIteratorImpl implements PaginatedResponseIter
                     options.remove(limitFieldName);
                 }
                 options.addProperty(limitFieldName, limit);
-                if (log.isDebugEnabled()) {
-                    log.debug("updated " + request.getMethod() + "." + optionObjectName + "." + limitFieldName + " to "
-                            + limit);
-                }
+                if (log.isDebugEnabled())
+                    log.debug("updated " + request.getMethod() + "." + optionObjectName + "." + limitFieldName + " to " + limit);
+
                 if (options.has(offsetFieldName)) {
                     options.remove(offsetFieldName);
                 }
                 options.addProperty(offsetFieldName, nextOffset);
-                if (log.isDebugEnabled()) {
-                    log.debug("updated " + request.getMethod() + "." + optionObjectName + "." + offsetFieldName + " to "
-                            + nextOffset);
-                }
+                if (log.isDebugEnabled())
+                    log.debug("updated " + request.getMethod() + "." + optionObjectName + "." + offsetFieldName + " to " + nextOffset);
+
             } else {
                 // the object needs to be created
                 options = new JsonObject();
@@ -203,10 +179,8 @@ public class AsyncPaginatedResponseIteratorImpl implements PaginatedResponseIter
                 request.setMethodParameter(optionObjectName, options);
 
                 if (log.isDebugEnabled()) {
-                    log.debug("created " + request.getMethod() + "." + optionObjectName + "." + limitFieldName + ", set to "
-                            + limit);
-                    log.debug("created " + request.getMethod() + "." + optionObjectName + "." + offsetFieldName
-                            + ", set to " + nextOffset);
+                    log.debug("created " + request.getMethod() + "." + optionObjectName + "." + limitFieldName + ", set to " + limit);
+                    log.debug("created " + request.getMethod() + "." + optionObjectName + "." + offsetFieldName + ", set to " + nextOffset);
                 }
             }
         }

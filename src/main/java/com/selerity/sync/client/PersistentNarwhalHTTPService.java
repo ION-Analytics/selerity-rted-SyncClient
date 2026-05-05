@@ -99,9 +99,13 @@ public class PersistentNarwhalHTTPService implements NarwhalService {
             }
 
             try {
-                log.debug("about to call " + pingMethodName + " on service " + service.getName());
+                if (log.isDebugEnabled()) 
+                    log.debug("about to call " + pingMethodName + " on service " + service.getName());
+
                 dispatch(request, sessionFactory.getInstance());
-                log.debug("calling " + pingMethodName + " on service " + service.getName() + " was successful, session and connection are ok");
+
+                if (log.isDebugEnabled()) 
+                    log.debug("calling " + pingMethodName + " on service " + service.getName() + " was successful, session and connection are ok");
             } catch (Exception ex) {
                 log.error("caught " + ex + " while pinging " + pingMethodName + " on service " + service.getName() + "; will log and continue...", ex);
             }

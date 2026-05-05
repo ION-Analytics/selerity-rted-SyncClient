@@ -16,7 +16,8 @@ package com.selerity.sync.client.async;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-@Deprecated
+// 2026 we still use it
+//@Deprecated
 public class AsyncPseudoHTTPTransportPoolFactory implements AsyncTransportFactory {
 
     private static final Log log = LogFactory.getLog(AsyncPseudoHTTPTransportPoolFactory.class);
@@ -86,11 +87,10 @@ public class AsyncPseudoHTTPTransportPoolFactory implements AsyncTransportFactor
                         minPoolSize,
                         activeIntervalMillis, retirementIntervalMillis);
         transportPool.start(checkIntervalMillis, startIntervalMillis);
-        if (log.isDebugEnabled()) {
+        if (log.isDebugEnabled())
             log.debug("started pool to " + host + ":" + port + " with min size " + minPoolSize + ", checking every "
                     + checkIntervalMillis + "ms, retiring transports with active period " + activeIntervalMillis
                     + " ms and with gaps of " + startIntervalMillis + " ms between starts");
-        }
         return transportPool;
     }
 

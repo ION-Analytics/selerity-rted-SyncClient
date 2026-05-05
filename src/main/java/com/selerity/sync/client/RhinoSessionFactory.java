@@ -21,45 +21,17 @@ import com.google.gson.GsonBuilder;
 import com.selerity.sync.client.async.AsyncDispatcher;
 
 /**
- *  A factory class which creates a Session by authenticating a user.
- *  The Session returned will be a RhinoSession, suitable for use with a RhinoDispatcher.
+ * A factory class which creates a Session by authenticating a user.
+ * The Session returned will be a RhinoSession, suitable for use with a RhinoDispatcher.
  */
 public class RhinoSessionFactory {
-
     private static final Log log = LogFactory.getLog(RhinoDispatcher.class);
-
-    private final Gson gson = new GsonBuilder().serializeNulls().create();
 
     public static final String SYNC_USER_PROPERTY_NAME = "com.selerity.sync.user";
     public static final String SYNC_PASSWORD_PROPERTY_NAME = "com.selerity.sync.password";
 
-    /** Gets an instance with the provided user and password.
-     *
-     * @param dispatcher
-     * @param client
-     * @param mode
-     * @param user
-     * @param password
-     * @return
-     * @throws DispatchException
-     */
-    public Session getInstance(Dispatcher dispatcher, String client, String mode, String user, String password) throws DispatchException {
-        Request authRequest = new Request("AuthenticationHandler.authenticate");
-        authRequest.setMethodParameter("user", user);
-        authRequest.setMethodParameter("password", password);
-        String token = gson.fromJson(dispatcher.dispatch(authRequest, user, null, client, mode), String.class);
-        log.debug("got token " + token + " for user " + user);
-        return new RhinoSession(user, client, token, mode);
-    }
+    private final Gson gson = new GsonBuilder().serializeNulls().create();
 
-    /** Gets a session using the user and password set in the system properties.
-     *
-     * @param dispatcher
-     * @param client
-     * @param mode
-     * @return
-     * @throws DispatchException
-     */
     public Session getInstance(Dispatcher dispatcher, String client, String mode) throws DispatchException {
         String user = System.getProperty(SYNC_USER_PROPERTY_NAME);
         String password = System.getProperty(SYNC_PASSWORD_PROPERTY_NAME);
@@ -69,41 +41,19 @@ public class RhinoSessionFactory {
         if (password == null) {
             throw new NullPointerException("password cannot be null, try setting property " + SYNC_PASSWORD_PROPERTY_NAME);
         }
-
         return getInstance(dispatcher, client, mode, user, password);
     }
 
-    /** Gets an instance with the provided user and password.
-     *
-     * @param dispatcher
-     * @param client
-     * @param mode
-     * @param user
-     * @param password
-     * @return
-     * @throws DispatchException
-     */
-    public Session getInstance(AsyncDispatcher dispatcher, String client, String mode, String user, String password) throws DispatchException {
+    public Session getInstance(Dispatcher dispatcher, String client, String mode, String user, String password) throws DispatchException {
         Request authRequest = new Request("AuthenticationHandler.authenticate");
         authRequest.setMethodParameter("user", user);
         authRequest.setMethodParameter("password", password);
-        Response response = dispatcher.syncDispatch(authRequest, user, null, client, mode);
-        if (response.isError()) {
-            throw response.getError();
-        }
-        String token = gson.fromJson(response.getResult(), String.class);
-        log.debug("got token " + token + " for user " + user);
+        String token = gson.fromJson(dispatcher.dispatch(authRequest, user, null, client, mode), String.class);
+        if (log.isDebugEnabled()) 
+            log.debug("got token " + token + " for user " + user);
         return new RhinoSession(user, client, token, mode);
     }
 
-    /** Gets a session using the user and password set in the system properties.
-     *
-     * @param dispatcher
-     * @param client
-     * @param mode
-     * @return
-     * @throws DispatchException
-     */
     public Session getInstance(AsyncDispatcher dispatcher, String client, String mode) throws DispatchException {
         String user = System.getProperty(SYNC_USER_PROPERTY_NAME);
         String password = System.getProperty(SYNC_PASSWORD_PROPERTY_NAME);
@@ -113,8 +63,21 @@ public class RhinoSessionFactory {
         if (password == null) {
             throw new NullPointerException("password cannot be null, try setting property " + SYNC_PASSWORD_PROPERTY_NAME);
         }
-
         return getInstance(dispatcher, client, mode, user, password);
+    }
+
+    public Session getInstance(AsyncDispatcher dispatcher, String client, String mode, String user, String password) throws DispatchException {
+        Request authRequest = new Request("AuthenticationHandler.authenticate");
+        authRequest.setMethodParameter("user", user);
+        authRequest.setMethodParameter("password", password);
+        Response response = dispatcher.syncDispatch(authRequest, user, null, client, mode);
+        if (response.isError()) {
+            throw response.getError();
+        }
+        String token = gson.fromJson(response.getResult(), String.class);
+        if (log.isDebugEnabled()) 
+            log.debug("got token " + token + " for user " + user);
+        return new RhinoSession(user, client, token, mode);
     }
 
 }

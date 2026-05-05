@@ -113,7 +113,8 @@ public class NarwhalPaginatedResponseInteratorImpl implements PaginatedResponseI
      * @throws DispatchException
      */
     protected synchronized void loadNextPage() throws DispatchException {
-        log.debug("loading next page for " + request.getMethod() + ", from offset " + nextOffset + " with limit " + limit);
+        if (log.isDebugEnabled())
+            log.debug("loading next page for " + request.getMethod() + ", from offset " + nextOffset + " with limit " + limit);
         results = null;
         index = 0;
 
@@ -128,12 +129,14 @@ public class NarwhalPaginatedResponseInteratorImpl implements PaginatedResponseI
                     options.remove(limitFieldName);
                 }
                 options.addProperty(limitFieldName, limit);
-                log.debug("updated " + request.getMethod() + "." + optionObjectName + "." + limitFieldName + " to " + limit);
+                if (log.isDebugEnabled())
+                    log.debug("updated " + request.getMethod() + "." + optionObjectName + "." + limitFieldName + " to " + limit);
                 if (options.has(offsetFieldName)) {
                     options.remove(offsetFieldName);
                 }
                 options.addProperty(offsetFieldName, nextOffset);
-                log.debug("updated " + request.getMethod() + "." + optionObjectName + "." + offsetFieldName + " to " + nextOffset);
+                if (log.isDebugEnabled())
+                    log.debug("updated " + request.getMethod() + "." + optionObjectName + "." + offsetFieldName + " to " + nextOffset);
             } else {
                 // the object needs to be created
                 options = new JsonObject();
@@ -141,8 +144,10 @@ public class NarwhalPaginatedResponseInteratorImpl implements PaginatedResponseI
                 options.addProperty(offsetFieldName, nextOffset);
                 // now add it to the parameters
                 request.setMethodParameter(optionObjectName, options);
-                log.debug("created " + request.getMethod() + "." + optionObjectName + "." + limitFieldName + ", set to " + limit);
-                log.debug("created " + request.getMethod() + "." + optionObjectName + "." + offsetFieldName + ", set to " + nextOffset);
+                if (log.isDebugEnabled()) {
+                    log.debug("created " + request.getMethod() + "." + optionObjectName + "." + limitFieldName + ", set to " + limit);
+                    log.debug("created " + request.getMethod() + "." + optionObjectName + "." + offsetFieldName + ", set to " + nextOffset);
+                }
             }
         }
 
@@ -151,13 +156,15 @@ public class NarwhalPaginatedResponseInteratorImpl implements PaginatedResponseI
         if ((resultArray != null) && (!resultArray.isJsonNull())) {
             if (resultArray.isJsonArray()) {
                 results = resultArray.getAsJsonArray();  // convert the result into an array
-                log.debug("got " + results.size() + " results for " + request.getMethod());
+                if (log.isDebugEnabled()) 
+                    log.debug("got " + results.size() + " results for " + request.getMethod());
                 nextOffset += limit;  // compute the new offset for the next request
             } else {
                 throw new DispatchException(DispatchException.PARSE_ERROR, "Response was not an array", "request = " + request.getMethod());
             }
         } else {
-            log.debug("done with " + request.getMethod());
+            if (log.isDebugEnabled()) 
+                log.debug("done with " + request.getMethod());
             done = true;
         }
     }

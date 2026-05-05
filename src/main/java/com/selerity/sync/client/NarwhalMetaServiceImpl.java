@@ -132,7 +132,8 @@ public class NarwhalMetaServiceImpl extends AbstractNarwhalServiceImpl {
 
             methodNames.add(methodName);
         }
-        log.debug("registered service " + service.getName() + " for methods: " + methodNames);
+        if (log.isDebugEnabled())
+            log.debug("registered service " + service.getName() + " for methods: " + methodNames);
 
         if (serviceName == null) {
             serviceName = service.getName();
@@ -160,11 +161,13 @@ public class NarwhalMetaServiceImpl extends AbstractNarwhalServiceImpl {
                 JsonElement result = service.dispatch(request, session);
                 return result;
             } catch (DispatchException dx) {
-                log.debug("failed request " + request.getMethod() + " with service " + service.getName(), dx);
+                if (log.isDebugEnabled())
+                    log.debug("failed request " + request.getMethod() + " with service " + service.getName(), dx);
                 lastException = dx;
             }
         }
-        log.debug("failed request " + request.getMethod() + " with all registered services");
+        if (log.isDebugEnabled())
+            log.debug("failed request " + request.getMethod() + " with all registered services");
         throw lastException;
     }
 
@@ -188,11 +191,13 @@ public class NarwhalMetaServiceImpl extends AbstractNarwhalServiceImpl {
                 }
                 return response;
             } catch (DispatchException dx) {
-                log.debug("failed request " + request.getMethod() + " with service " + service.getName(), dx);
+                if (log.isDebugEnabled())
+                    log.debug("failed request " + request.getMethod() + " with service " + service.getName(), dx);
                 lastException = dx;
             }
         }
-        log.debug("failed request " + request.getMethod() + " with all registered services");
+        if (log.isDebugEnabled())
+            log.debug("failed request " + request.getMethod() + " with all registered services");
         throw lastException;
     }
 
@@ -207,11 +212,13 @@ public class NarwhalMetaServiceImpl extends AbstractNarwhalServiceImpl {
                 JsonReader reader = service.dispatch(request);
                 return reader;
             } catch (DispatchException dx) {
-                log.debug("failed request " + request.getMethod() + " with service " + service.getName(), dx);
+                if (log.isDebugEnabled())
+                    log.debug("failed request " + request.getMethod() + " with service " + service.getName(), dx);
                 lastException = dx;
             }
         }
-        log.debug("failed request " + request.getMethod() + " with all registered services");
+        if (log.isDebugEnabled())
+            log.debug("failed request " + request.getMethod() + " with all registered services");
         throw lastException;
     }
 

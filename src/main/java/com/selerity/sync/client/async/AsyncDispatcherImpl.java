@@ -66,9 +66,8 @@ public class AsyncDispatcherImpl implements AsyncDispatcher, AsyncTransportListe
 
     public Response syncDispatch(Request request, String user, String token, String client, String mode) {
         long startTime = System.currentTimeMillis();
-        if (log.isDebugEnabled()) {
+        if (log.isDebugEnabled())
             log.debug("starting synchronous dispatch for request to " + request.getMethod());
-        }
 
         StreamedResponse sr = asyncDispatch(request, user, token, client, mode);
         Response response = sr.getNextResponse(DEFAULT_SYNCHRONOUS_TIMEOUT_MILLIS);
@@ -78,10 +77,9 @@ public class AsyncDispatcherImpl implements AsyncDispatcher, AsyncTransportListe
                     sr.getID(), "Selerity Streaming API", false);
         }
 
-        if (log.isDebugEnabled()) {
-            long elapsedTime = System.currentTimeMillis() - startTime;
-            log.debug("got synchronous response in " + elapsedTime + " ms for request to " + request.getMethod());
-        }
+        if (log.isDebugEnabled())
+            log.debug("got synchronous response in " + (System.currentTimeMillis() - startTime) + " ms" //
+                    + " for request to " + request.getMethod());
 
         if (response.hasMore()) {
             log.error("response may not have been single - remaining responses will be discarded");
@@ -102,9 +100,9 @@ public class AsyncDispatcherImpl implements AsyncDispatcher, AsyncTransportListe
         if (id == null) {
             log.error("got response with null id, discarding!");
         } else {
-            if (log.isDebugEnabled()) {
+            if (log.isDebugEnabled())
                 log.debug("got response for id \"" + id + "\"");
-            }
+
             SimpleStreamedResponse sr = responses.get(id);
             if (sr != null) {
                 sr.add(response);
@@ -113,23 +111,19 @@ public class AsyncDispatcherImpl implements AsyncDispatcher, AsyncTransportListe
             }
 
             if (!response.hasMore()) {
-                if (log.isDebugEnabled()) {
+                if (log.isDebugEnabled())
                     log.debug("got last response for id \"" + id + "\"; removing streamed response from map");
-                }
+
                 responses.remove(id);
             } else {
-                if (log.isDebugEnabled()) {
+                if (log.isDebugEnabled())
                     log.debug("stream for id \"" + id + "\" still has more");
-                }
             }
         }
     }
 
     /**
      * Returns an ID which is unique for this dispatcher.
-     *
-     * @param user
-     * @param client
      */
     protected synchronized String getNextID(String user, String client) {
         int id = nextID++;

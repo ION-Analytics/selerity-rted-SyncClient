@@ -13,7 +13,8 @@
  */
 package com.selerity.sync.client.async;
 
-@Deprecated
+//2026 we still use it
+//@Deprecated
 public class AsyncPseudoHTTPTransportFactory implements AsyncTransportFactory {
 
     protected final String host;

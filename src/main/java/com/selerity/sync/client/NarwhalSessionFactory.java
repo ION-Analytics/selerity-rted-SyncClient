@@ -28,11 +28,12 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 /**
- * A utility function for constructing session objects for use with Narwhal services. The session is used to hold fields
- * across service calls which are passed in the request header. These may include a security token, an access mode, etc.
+ * A utility function for constructing session objects for use with Narwhal services.
+ * The session is used to hold fields across service calls which are passed in the request header.
+ * These may include a security token, an access mode, etc.
  *
- * Note - the sessions may be cached - calls to getInstance may returned cached instance rather than start new ones and
- * close() does nothing.
+ * Note - the sessions may be cached - calls to getInstance may returned cached instance
+ * rather than start new ones and close() does nothing.
  */
 public class NarwhalSessionFactory {
     private static final Log log = LogFactory.getLog(NarwhalSessionFactory.class);
@@ -130,7 +131,6 @@ public class NarwhalSessionFactory {
         } else {
             this.password = password;
         }
-
     }
 
     /**
@@ -142,8 +142,6 @@ public class NarwhalSessionFactory {
 
     /**
      * Starts a thread to periodically force the session to be refreshed using the given timing parameter
-     *
-     * @param refreshIntervalMillis
      */
     public void startPerpetualRefresh(final long refreshIntervalMillis) {
         final Thread refreshThread = new Thread(() -> {
@@ -171,40 +169,22 @@ public class NarwhalSessionFactory {
                 try {
                     Thread.sleep(refreshIntervalMillis);
                 } catch (Exception ex) {
-
                 }
             }
         }, "perpetualSessionRefreshThread");
         refreshThread.setDaemon(true);
         refreshThread.start();
-        log.info("started session refresh thread: " + refreshThread.getName() + " refreshing every " + refreshIntervalMillis
-                + " ms.");
+        log.info("started session refresh thread: " + refreshThread.getName() + " refreshing every " + refreshIntervalMillis + " ms.");
     }
 
-    /**
-     * Gets an instance with default mode.
-     *
-     * @throws DispatchException
-     */
     public Session getInstance() throws DispatchException {
         return getInstance(null);
     }
 
-    /**
-     * Gets an instance with extension mode.
-     *
-     * @throws DispatchException
-     */
     public Session getInstanceExtensionMode() throws DispatchException {
         return getInstance(EXTENSION_MODE_STRING);
     }
 
-    /**
-     * Gets an instance with the provided mode.
-     *
-     * @param mode
-     * @throws DispatchException
-     */
     public Session getInstance(final String mode) throws DispatchException {
 
         final String sessionCacheKey = SessionData.getKey(user, password, client, mode);
@@ -214,7 +194,8 @@ public class NarwhalSessionFactory {
             SessionData cacheEntry = sessionCache.get(sessionCacheKey);
 
             if (cacheEntry == null) { // there's no entry now, need to try to create one
-                log.debug("there is no cached session for user=" + user + "; client=" + client + "; mode=" + mode
+                if (log.isDebugEnabled()) 
+                    log.debug("there is no cached session for user=" + user + "; client=" + client + "; mode=" + mode
                         + "; password= <not shown>.  Will need to create one.");
                 cacheEntry = startNewSession(mode);
                 sessionCache.put(sessionCacheKey, cacheEntry);
@@ -227,13 +208,15 @@ public class NarwhalSessionFactory {
                 final String token = cacheEntry.getSession().getHeaderParameter("token");
                 if (remainingMillis < SYNC_SESSION_MIN_VALID_TIME_MILLIS) {
                     // need to extend
-                    log.debug("need to extend session for user " + user + " with token " + token + " because it expires in "
+                    if (log.isDebugEnabled()) 
+                        log.debug("need to extend session for user " + user + " with token " + token + " because it expires in "
                             + remainingMillis + "ms");
                     try {
                         extendSessionData(service, cacheEntry); // this updates the expiration
                     } catch (DispatchException dx) {
                         if (dx.getCode() == -1000) {
-                            log.debug("need to start a new session for user " + user + " with old token " + token
+                            if (log.isDebugEnabled()) 
+                                log.debug("need to start a new session for user " + user + " with old token " + token
                                     + " because it is no longer valid (got exception: " + dx + " )");
                         } else {
                             log.error("need to start a new session for user " + user + " with old token " + token
@@ -270,7 +253,8 @@ public class NarwhalSessionFactory {
             final String token = MiscUtils.getString(returnObject, "id", null);
             final long expirationMillis = MiscUtils.getLong(returnObject, "leaseExpiration", 0);
             final Date expiration = new Date(expirationMillis);
-            log.debug("generated new session with token " + token + " for user " + user + " expiring on "
+            if (log.isDebugEnabled()) 
+                log.debug("generated new session with token " + token + " for user " + user + " expiring on "
                     + MiscUtils.formatNanoTime(expirationMillis * MiscUtils.NANOS_PER_MILLISECOND)
                     + " via new entitlements service.");
             return new SessionData(new RhinoSession(user, client, token, mode), expiration);
@@ -292,7 +276,8 @@ public class NarwhalSessionFactory {
                         + " as a timestamp", expirationStr, px);
             }
             final Date expiration = new Date(expirationNanos / MiscUtils.NANOS_PER_MILLISECOND);
-            log.debug("generated new session with token " + token + " for user " + user + " expiring on "
+            if (log.isDebugEnabled()) 
+                log.debug("generated new session with token " + token + " for user " + user + " expiring on "
                     + MiscUtils.formatNanoTime(expiration.getTime() * MiscUtils.NANOS_PER_MILLISECOND)
                     + " via old Rhino authentication service.");
             return new SessionData(new RhinoSession(user, client, token, mode), expiration);
@@ -303,17 +288,20 @@ public class NarwhalSessionFactory {
         final Request extendRequest = new Request("AuthenticationHandler.extend");
         extendRequest.getMethodParametersAsArray(); // HACK to force zero-argument call to use array syntax instead of object
         // syntax
-        log.debug("about to call extend with session: " + sessionData.getSession());
+        if (log.isDebugEnabled()) 
+            log.debug("about to call extend with session: " + sessionData.getSession());
         final JsonElement returnElement = service.dispatch(extendRequest, sessionData.getSession());
 
-        log.debug("got returnElement=" + returnElement);
+        if (log.isDebugEnabled()) 
+            log.debug("got returnElement=" + returnElement);
 
         try {
             // first, try the response as a milliseconds long
             final long expirationMillis = returnElement.getAsLong();
             final Date expiration = new Date(expirationMillis);
             sessionData.setExpiration(expiration);
-            log.debug("extended existing session with token " + sessionData.getSession().getHeaderParameter("token")
+            if (log.isDebugEnabled()) 
+                log.debug("extended existing session with token " + sessionData.getSession().getHeaderParameter("token")
                     + " for user " + sessionData.getSession().getHeaderParameter("user") + " expiring on "
                     + MiscUtils.formatNanoTime(expirationMillis * MiscUtils.NANOS_PER_MILLISECOND)
                     + " via new entitlements service.");
@@ -329,7 +317,8 @@ public class NarwhalSessionFactory {
             final long expirationNanos = MiscUtils.parseNanoTime(expirationStr);
             final Date expiration = new Date(expirationNanos / MiscUtils.NANOS_PER_MILLISECOND);
             sessionData.setExpiration(expiration);
-            log.debug("extended existing session with token " + sessionData.getSession().getHeaderParameter("token")
+            if (log.isDebugEnabled()) 
+                log.debug("extended existing session with token " + sessionData.getSession().getHeaderParameter("token")
                     + " for user " + sessionData.getSession().getHeaderParameter("user") + " expiring on "
                     + MiscUtils.formatNanoTime(expiration.getTime() * MiscUtils.NANOS_PER_MILLISECOND)
                     + " via old Rhino authentication service.");

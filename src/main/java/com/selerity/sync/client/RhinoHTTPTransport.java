@@ -36,39 +36,32 @@ import com.google.gson.JsonParser;
  */
 @Deprecated
 public class RhinoHTTPTransport implements Transport {
-
     private static final Log log = LogFactory.getLog(RhinoHTTPTransport.class);
 
     protected final URL serviceURL;
     protected final boolean enableURLEncoding;
 
     protected final Gson gson;
-    protected final JsonParser jsonParser = new JsonParser();
 
-    /** Creates transport that will POST JSON-RPC requests to the given URL.  Defaults to enableURLEncoding = false;
-     *
-     * @param serviceURLString
-     * @throws MalformedURLException
+    /**
+     * Creates transport that will POST JSON-RPC requests to the given URL.
+     * Defaults to enableURLEncoding = false;
      */
     public RhinoHTTPTransport(String serviceURLString) throws MalformedURLException {
         this(new URL(serviceURLString), false);
     }
 
-    /** Creates transport that will POST JSON-RPC requests to the given URL.  If enableURLEncoding is true then
-     *  the request will be URL encoded, otherwise it will be sent as plain text.
-     *
-     * @param serviceURLString
-     * @param enableURLEncoding
-     * @throws MalformedURLException
+    /**
+     * Creates transport that will POST JSON-RPC requests to the given URL.
+     * If enableURLEncoding is true then the request will be URL encoded, otherwise it will be sent as plain text.
      */
     public RhinoHTTPTransport(String serviceURLString, boolean enableURLEncoding) throws MalformedURLException {
         this(new URL(serviceURLString), enableURLEncoding);
     }
 
-    /** Creates transport that will POST JSON-RPC requests to the given URL. Defaults to enableURLEncoding = false;
-     *
-     * @param serviceURL
-     * @throws MalformedURLException
+    /**
+     * Creates transport that will POST JSON-RPC requests to the given URL.
+     * Defaults to enableURLEncoding = false;
      */
     public RhinoHTTPTransport(URL serviceURL) {
         this(serviceURL, false);
@@ -103,28 +96,27 @@ public class RhinoHTTPTransport implements Transport {
     }
 
     public Response[] boxcarDispatch(FullRequest[] requests) throws DispatchException {
-        StringBuffer requestBuf = new StringBuffer();
-        requestBuf.append('['); // start the array
+        StringBuilder sb = new StringBuilder();
+        sb.append('['); // start the array
         boolean first = true;
         for (int i = 0; i < requests.length; i++) {
             if (first) {
                 first = false;
             } else {
-                requestBuf.append(',');
+                sb.append(',');
             }
             String requestString = gson.toJson(requests[i], FullRequest.class);
-            requestBuf.append(requestString);
+            sb.append(requestString);
         }
-        requestBuf.append(']');
+        sb.append(']');
 
         try {
-            if (log.isDebugEnabled()) {
+            if (log.isDebugEnabled())
                 log.debug("about to dispatch boxcar with " + requests.length + " requests");
-            }
-            String responseString = dispatch(requestBuf.toString());
+            String responseString = dispatch(sb.toString());
             log.debug("got response to boxcar request");
 
-            JsonArray responseArray = jsonParser.parse(responseString).getAsJsonArray();
+            JsonArray responseArray = JsonParser.parseString(responseString).getAsJsonArray();
             if (responseArray.size() != requests.length) {
                 log.error("sent " + requests.length + " requests but got " + responseArray.size() + " responses");
             }
@@ -156,9 +148,8 @@ public class RhinoHTTPTransport implements Transport {
         // record start time of dispatch
         long startTime = System.currentTimeMillis();
 
-        if (log.isDebugEnabled()) {
+        if (log.isDebugEnabled())
             log.debug("preparing to send " + jsonRequest + " to " + serviceURL);
-        }
 
         URLConnection con = serviceURL.openConnection();
         con.addRequestProperty("Accept", "text/plain");
@@ -176,7 +167,6 @@ public class RhinoHTTPTransport implements Transport {
 
         // try to send request to server
         try {
-
             // POST the json request
             con.setDoOutput(true);
             OutputStreamWriter wr = new OutputStreamWriter(con.getOutputStream());
@@ -185,32 +175,29 @@ public class RhinoHTTPTransport implements Transport {
             wr.close();
 
             // now read the response
-            try (BufferedReader in = new BufferedReader(
-                    new InputStreamReader(con.getInputStream()))) {
-
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()))) {
                 //TODO: would be good to have a timeout check here
-                StringBuffer resultBuf = new StringBuffer();
+                StringBuilder sb = new StringBuilder();
                 String line = null;
                 boolean first = true;
                 while ((line = in.readLine()) != null) {
                     if (first) {
                         first = false;
                     } else {
-                        resultBuf.append('\n');
+                        sb.append('\n');
                     }
-                    resultBuf.append(line);
+                    sb.append(line);
                 }
-                result = resultBuf.toString();
+                result = sb.toString();
             }
         } finally {
-
         }
 
         // record end time of dispatch
         long deltaMillis = System.currentTimeMillis() - startTime;
 
         if (log.isTraceEnabled()) {
-            log.debug("took " + deltaMillis + " ms to dispatch " + summarize(jsonRequest, 50) + "... to " + serviceURL + " and get response: " + result);
+            log.trace("took " + deltaMillis + " ms to dispatch " + summarize(jsonRequest, 50) + "... to " + serviceURL + " and get response: " + result);
         } else if (log.isDebugEnabled()) {
             log.debug("took " + deltaMillis + " ms to dispatch " + summarize(jsonRequest, 50) + "... to " + serviceURL);
         }

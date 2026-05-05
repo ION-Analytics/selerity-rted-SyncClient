@@ -22,7 +22,8 @@ import com.selerity.sync.client.DispatchException;
 import com.selerity.sync.client.FullRequest;
 import com.selerity.sync.client.Response;
 
-@Deprecated
+//2026 we still use it
+//@Deprecated
 public class AsyncPseudoHTTPTransportPool implements AsyncTransport, AsyncTransportListener, Runnable {
     private static final Log log = LogFactory.getLog(AsyncPseudoHTTPTransportPool.class);
 
@@ -64,7 +65,8 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, AsyncTransp
         Thread th = new Thread(this, "transportHealthChecker");
         th.setDaemon(true);
         th.start();
-        log.debug("started - " + th);
+        if (log.isDebugEnabled())
+            log.debug("started - " + th);
     }
 
     @Override
@@ -79,14 +81,13 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, AsyncTransp
     public void asyncDispatch(FullRequest request) throws DispatchException {
         log.debug("getting next available transport instance...");
         AsyncPseudoHTTPTransport transport = transports.waitForNextActive(100);
-        while ((transport != null) && (!transport.isConnected())) {
+        while (transport != null && !transport.isConnected()) {
             log.warn("got a disconnected transport " + transport + ", will not put back in pool");
             transport = transports.waitForNextActive(100);
         }
 
-        if (log.isDebugEnabled()) {
+        if (log.isDebugEnabled())
             log.debug("got transport " + transport + " from pool");
-        }
 
         if (transport == null) {
             throw new DispatchException(DispatchException.INTERNAL_ERROR, "no available transports");
@@ -101,9 +102,9 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, AsyncTransp
         }
 
         synchronized (transports) {
-            if (log.isDebugEnabled()) {
+            if (log.isDebugEnabled())
                 log.debug("adding " + transport + " back into the pool");
-            }
+
             transports.returnToActive(transport);
         }
     }
@@ -126,9 +127,8 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, AsyncTransp
             for (AsyncPseudoHTTPTransport transport : retired) {
                 transport.close();
             }
-            if (log.isDebugEnabled()) {
+            if (log.isDebugEnabled())
                 log.debug("retired " + retired.size() + " old transports");
-            }
 
             // now see if we need to start any new transports
             if (transports.getActiveCount() < 1) {
@@ -137,21 +137,19 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, AsyncTransp
             } else if (transports.getActiveCount() < minPoolSize) {
 
                 long elapsedSinceLastStart = System.currentTimeMillis() - lastStartTimeMillis;
-                if (log.isDebugEnabled()) {
+                if (log.isDebugEnabled())
                     log.debug("currently have only " + transports.getActiveCount() + " transports," //
                             + " pool should have " + minPoolSize //
                             + ", " + elapsedSinceLastStart + " ms have passed since last start");
-                }
 
                 if (elapsedSinceLastStart >= startIntervalMillis) {
-                    if (log.isDebugEnabled()) {
+                    if (log.isDebugEnabled())
                         log.debug("enough time has passed, starting another transport");
-                    }
+
                     startNewTransport();
                 } else {
-                    if (log.isTraceEnabled()) {
+                    if (log.isTraceEnabled())
                         log.trace("only " + elapsedSinceLastStart + " ms have passed since last start, need to wait a while");
-                    }
                 }
             }
 
@@ -173,9 +171,8 @@ public class AsyncPseudoHTTPTransportPool implements AsyncTransport, AsyncTransp
             transports.addNew(transport);
             lastStartTimeMillis = System.currentTimeMillis();
 
-            if (log.isDebugEnabled()) {
+            if (log.isDebugEnabled())
                 log.debug("transport " + transport + " started");
-            }
         } catch (Exception ex) {
             log.error("caught " + ex + " while trying to start transport " + transport + "; giving up");
             transport.close();
