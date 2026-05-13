@@ -41,24 +41,20 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
-/**
- * Some misc utility methods that are used elsewhere, mainly as convenience functions to support debugging
- */
 public class MiscUtils {
-
     private static final Log log = LogFactory.getLog(MiscUtils.class);
 
     // used for parsing/formatting in the Selerity Time Format.
-    protected static DateFormat ISO8601_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-    protected static DateFormat ISO8601_FORMAT_WITH_MILLIS = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
-    protected static final int NANOS_PER_SECOND_POWER = 9;
-
+    protected static DateFormat ISO8601_FORMAT;
+    protected static DateFormat ISO8601_FORMAT_WITH_MILLIS;
     protected static final TimeZone UTC = TimeZone.getTimeZone("GMT");
-
     static {
+        ISO8601_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
         ISO8601_FORMAT.setTimeZone(UTC);
+        ISO8601_FORMAT_WITH_MILLIS = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
         ISO8601_FORMAT_WITH_MILLIS.setTimeZone(UTC);
     }
+    protected static final int NANOS_PER_SECOND_POWER = 9;
 
     // useful for converting between the time scale used in java.util.Date (and unix in general)
     // and the Selerity Time Format's numeric version.
@@ -70,7 +66,6 @@ public class MiscUtils {
 
     public static String getString(JsonObject obj, String key, String defaultValueStr) {
         JsonElement value = obj.get(key);
-        //log.debug("got value " + value + " for key " + key);
         if ((value == null) || (value.isJsonNull())) {
             return defaultValueStr;
         }
@@ -79,7 +74,6 @@ public class MiscUtils {
 
     public static int getInt(JsonObject obj, String key, int defaultValue) {
         JsonElement value = obj.get(key);
-        //log.debug("got value " + value + " for key " + key);
         if ((value == null) || (value.isJsonNull())) {
             return defaultValue;
         }
@@ -88,7 +82,6 @@ public class MiscUtils {
 
     public static long getLong(JsonObject obj, String key, long defaultValue) {
         JsonElement value = obj.get(key);
-        //log.debug("got value " + value + " for key " + key);
         if ((value == null) || (value.isJsonNull())) {
             return defaultValue;
         }
@@ -97,7 +90,6 @@ public class MiscUtils {
 
     public static boolean getBoolean(JsonObject obj, String key, boolean defaultValue) {
         JsonElement value = obj.get(key);
-        //log.debug("got value " + value + " for key " + key);
         if ((value == null) || (value.isJsonNull())) {
             return defaultValue;
         }
@@ -177,12 +169,8 @@ public class MiscUtils {
         return map;
     }
 
-
-    /** A convenience function for displaying some elements of a set but with an upper bound
-     *
-     * @param elements
-     * @param maxCount
-     * @return
+    /**
+     * A convenience function for displaying some elements of a set but with an upper bound
      */
     public static String listSomeElements(Set<String> elements, int maxCount) {
         boolean all = false;
@@ -191,24 +179,23 @@ public class MiscUtils {
             maxCount = elements.size();
         }
         int count = 0;
-        StringBuffer buf = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (String s : elements) {
-            buf.append(s);
+            sb.append(s);
             count++;
             if (count >= maxCount) {
                 if (!all) {
-                    buf.append(" ...");
+                    sb.append(" ...");
                 }
-                return buf.toString();
+                return sb.toString();
             }
         }
         // we shouldn't actually be able to get here, but it's not a problem...
-        return buf.toString();
+        return sb.toString();
     }
 
-    /** Convenience method to encode the String as a JSON string (including support for nulls)
-     * @param s
-     * @return
+    /**
+     * Convenience method to encode the String as a JSON string (including support for nulls)
      */
     public static String stringEncode(String s) {
         if (s == null) {
@@ -218,12 +205,9 @@ public class MiscUtils {
         }
     }
 
-    /** Convert a string in the Selerity Time Format into a long which represents the number
-     *  of nanoseconds since midnight January 1, 1970, UTC.
-     *
-     * @param nanoTimeStr
-     * @return
-     * @throws ParseException
+    /**
+     * Convert a string in the Selerity Time Format into a long <br>
+     * which represents the number of nanoseconds since midnight January 1, 1970, UTC.
      */
     public static long parseNanoTime(String nanoTimeStr) throws ParseException {
 
@@ -246,20 +230,17 @@ public class MiscUtils {
         }
     }
 
-    /** Returns the current time in nanoseconds since January 1, 1970, UTC.  Precision is
-     *  limited to the nearest millisecond.
-     *
-     * @return
+    /**
+     * Returns the current time in nanoseconds since January 1, 1970, UTC. <br>
+     * Precision is limited to the nearest millisecond.
      */
     public static long getNanoTime() {
         return System.currentTimeMillis() * NANOS_PER_MILLISECOND;
     }
 
-    /** Converts a timestamp in nanoseconds since midnight January 1, 1970 UTC)
-     *  into the Selerity Time Format.  Truncates any values more precise than milliseconds.
-     *
-     * @param nanos
-     * @return
+    /**
+     * Converts a timestamp in nanoseconds since midnight January 1, 1970 UTC) into the Selerity Time Format. <br>
+     * Truncates any values more precise than milliseconds.
      */
     public static String formatNanoTime(long nanos) {
         long millis = nanos / NANOS_PER_MILLISECOND;
@@ -272,30 +253,24 @@ public class MiscUtils {
         return s + leftPadNumber(nanoRemainder, 6);
     }
 
-    /** Prepends some zeroes to the string parsing of a long.
-     *
-     * @param number
-     * @param length
-     * @return
+    /**
+     * Prepends some zeroes to the string parsing of a long.
      */
     public static String leftPadNumber(long number, int length) {
         String s = Long.toString(number);
-        StringBuffer buf = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         int padLen = length - s.length();
         for (int i = 0; i < padLen; i++) {
-            buf.append('0');
+            sb.append('0');
         }
-        buf.append(s);
-        return buf.toString();
+        sb.append(s);
+        return sb.toString();
     }
 
-    /** Parses a number which may have some number of omitted trailing zeroes.
+    /**
+     * Parses a number which may have some number of omitted trailing zeroes.
      *
-     *  Example: 123 as power 5 should be 12300.
-     *
-     * @param s
-     * @param power
-     * @return
+     * Example: 123 as power 5 should be 12300.
      */
     public static long parseNumber(String s, int power) {
         Long l = Long.parseLong(s);
@@ -306,10 +281,8 @@ public class MiscUtils {
         return l;
     }
 
-    /** Converts a set of strings into a sorted list of comma-separated strings
-     *
-     * @param strings
-     * @return
+    /**
+     * Converts a set of strings into a sorted list of comma-separated strings
      */
     public static String collapseSet(Set<String> strings) {
         if (strings == null || strings.isEmpty()) {
@@ -320,12 +293,9 @@ public class MiscUtils {
                 .collect(Collectors.joining(","));
     }
 
-    /** Merges the two objects into a new object.  The entries of the first object
-     *  are added to the merged object, followed by the entries of the second object.
-     *
-     * @param obj1
-     * @param obj2
-     * @return
+    /**
+     * Merges the two objects into a new object. <br>
+     * The entries of the first object are added to the merged object, followed by the entries of the second object.
      */
     public static JsonObject merge(JsonObject obj1, JsonObject obj2) {
         JsonObject merged = new JsonObject();
