@@ -17,7 +17,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 // 2026 we still use it
-//@Deprecated
+@Deprecated
 public class AsyncPseudoHTTPTransportPoolFactory implements AsyncTransportFactory {
 
     private static final Log log = LogFactory.getLog(AsyncPseudoHTTPTransportPoolFactory.class);

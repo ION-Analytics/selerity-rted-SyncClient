@@ -118,8 +118,7 @@ public class MiscUtilsTest {
     }
 
     private void assertNextElementEquals(final JsonReader reader, final String nextElementToString) {
-        JsonParser parser = new JsonParser();
-        JsonElement elem = parser.parse(reader);
+        JsonElement elem = JsonParser.parseReader(reader);
         assertEquals(nextElementToString, elem.toString());
     }
 

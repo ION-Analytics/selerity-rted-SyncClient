@@ -33,9 +33,7 @@ public class MockTransport implements Transport {
     protected List<String> results = new LinkedList<>();
     protected List<String> errors = new LinkedList<>();
 
-    protected JsonParser parser = new JsonParser();
     protected final Gson gson;
-    protected final JsonParser jsonParser = new JsonParser();
 
     public MockTransport() {
         GsonBuilder builder = new GsonBuilder().serializeNulls();
@@ -84,7 +82,7 @@ public class MockTransport implements Transport {
     public synchronized String dispatch(String jsonRequest) throws DispatchException {
         requests.add(jsonRequest);
 
-        JsonObject requestObj = parser.parse(jsonRequest).getAsJsonObject();
+        JsonObject requestObj = JsonParser.parseString(jsonRequest).getAsJsonObject();
         String id = requestObj.get("id").getAsString();
 
         String result = results.remove(0);

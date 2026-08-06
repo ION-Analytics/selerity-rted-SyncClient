@@ -32,7 +32,7 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 
 //2026 we still use it
-//@Deprecated
+@Deprecated
 public class AsyncPseudoHTTPTransport implements AsyncTransport, Runnable {
 
     private static final Log log = LogFactory.getLog(AsyncPseudoHTTPTransport.class);

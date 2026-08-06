@@ -81,7 +81,6 @@ public class MockNarwhalServiceImpl implements NarwhalService {
     public Response dispatchWithResponse(final Request request, final Session session, final String id) throws DispatchException {
         JsonReader reader = null;
         try {
-            @SuppressWarnings("Duplicates")
             FullRequest fullRequest = new FullRequest(request,
                     session.getHeaderParameter("user"),
                     session.getHeaderParameter("token"),
@@ -109,7 +108,6 @@ public class MockNarwhalServiceImpl implements NarwhalService {
         }
     }
 
-    @SuppressWarnings("RedundantThrows")
     @Override
     public JsonReader dispatch(final FullRequest request) throws Exception {
         final String mockResponse = responses.poll();
@@ -121,7 +119,6 @@ public class MockNarwhalServiceImpl implements NarwhalService {
         return new JsonReader(new StringReader(mockResponse));
     }
 
-    @SuppressWarnings({"DuplicateThrows", "RedundantThrows"})
     @Override
     public JsonReader dispatchForResultStream(final Request request, final Session session) throws DispatchException, IOException,
             Exception {

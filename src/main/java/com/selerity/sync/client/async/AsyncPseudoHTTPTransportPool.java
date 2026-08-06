@@ -23,7 +23,7 @@ import com.selerity.sync.client.FullRequest;
 import com.selerity.sync.client.Response;
 
 //2026 we still use it
-//@Deprecated
+@Deprecated
 public class AsyncPseudoHTTPTransportPool implements AsyncTransport, AsyncTransportListener, Runnable {
     private static final Log log = LogFactory.getLog(AsyncPseudoHTTPTransportPool.class);
 
