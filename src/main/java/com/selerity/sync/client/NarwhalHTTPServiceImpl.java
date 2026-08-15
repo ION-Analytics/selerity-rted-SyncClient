@@ -59,7 +59,7 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
         return default0;
     }
 
-    private static URL URL_PREV;
+    private volatile static String URL_PREV;
 
     // //
 
@@ -72,8 +72,9 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
         super(serviceURL.toString());
         this.serviceURL = serviceURL;
 
-        if (serviceURL != null && !serviceURL.equals(URL_PREV)) {
-            URL_PREV = serviceURL;
+        String currentUrlStr = (serviceURL != null) ? serviceURL.toExternalForm() : null;
+        if (currentUrlStr != null && !currentUrlStr.equals(URL_PREV)) {
+            URL_PREV = currentUrlStr;
             log.info("connecting to URL: " + serviceURL);
         } else {
             if (log.isDebugEnabled())
@@ -91,8 +92,9 @@ public class NarwhalHTTPServiceImpl extends AbstractNarwhalServiceImpl {
         super(serviceURL.toString(), methodStatsLogger);
         this.serviceURL = serviceURL;
 
-        if (serviceURL != null && !serviceURL.equals(URL_PREV)) {
-            URL_PREV = serviceURL;
+        String currentUrlStr = (serviceURL != null) ? serviceURL.toExternalForm() : null;
+        if (currentUrlStr != null && !currentUrlStr.equals(URL_PREV)) {
+            URL_PREV = currentUrlStr;
             log.info("connecting to URL: " + serviceURL);
         } else {
             if (log.isDebugEnabled())
