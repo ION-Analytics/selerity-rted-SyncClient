@@ -1,0 +1,105 @@
+// https://jenkins1.seleritycorp.com/view/all/job/rted-SyncClient/
+
+script {
+    env.jdk = 'OpenJDK11 (hotspot)'
+    env.maven = 'Maven 3.6.0'
+    env.version = "unversioned"
+}
+pipeline {
+    agent {
+        label 'ec2'
+    }
+    triggers {
+        gerrit customUrl: '', gerritProjects: [[branches: [[compareType: 'ANT', pattern: '**']], compareType: 'ANT', disableStrictForbiddenFileVerification: false, pattern: 'rted/SyncClient']], serverName: 'defaultServer', triggerOnEvents: [refUpdated(), changeMerged(), patchsetCreated(excludeDrafts: true, excludeNoCodeChange: true, excludePrivateState: true, excludeTrivialRebase: true, excludeWipState: true)]
+        snapshotDependencies()
+    }
+    parameters {
+        string(name: 'GERRIT_REFSPEC', defaultValue: 'refs/heads/master', description: 'Reference to use (set by gerrit, or master)')
+        string(name: 'GERRIT_BRANCH', defaultValue: 'master', description: 'Branch to use (set by gerrit, or master)')
+    }
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+        timeout(30)
+        buildDiscarder(logRotator(numToKeepStr: '30', artifactNumToKeepStr: '30'))
+        ansiColor('xterm')
+    }
+    stages {
+        stage('Preparation') {
+            steps {
+                gerritCheckout(projectName: 'SyncClient', projectRepo: 'rted/SyncClient')
+                script {
+                    causeShortDesc = currentBuild.getBuildCauses()[0].shortDescription
+                    committer = sh(returnStdout: true, script: 'git log --format="%ae" -1 | grep -o --perl ".*(?=@)"').trim()
+                    shortCommit = sh(returnStdout: true, script: "git log -n 1 --pretty=format:'%h'").trim()
+                    gitBranch = sh(returnStdout: true, script: "git name-rev --name-only HEAD").trim()
+                    isReview = env.GERRIT_CHANGE_NUMBER && env.GERRIT_REFSPEC && env.GERRIT_EVENT_TYPE != "change-merged"
+                    if (isReview) {
+                        currentBuild.displayName = "Review ${GERRIT_CHANGE_NUMBER}/${GERRIT_PATCHSET_NUMBER} Build $BUILD_NUMBER"
+                    } else {
+                        version = readMavenPom().getVersion()
+                        currentBuild.displayName = "Develop ${version}.$BUILD_NUMBER." + shortCommit
+                    }
+                }
+                rtMavenDeployer (id: "MAVEN_DEPLOYER", serverId: "artifactory1", releaseRepo: "libs-releases-local", snapshotRepo: "libs-snapshots-local", includePatterns: ["*.jar", "*.pom", "*.war"], deployEvenIfUnstable: true)
+              }
+        }
+        stage('Build') {
+            steps {
+                mavenCompile()
+            }
+        }
+        stage('Test') {
+            steps {
+                mavenTest()
+            }
+        }
+        stage('Package') {
+            steps {
+                updateDependenciesGraph(isReview: isReview)
+                generateThirdPartyLicenses()
+            }
+        }
+        stage('Validate') {
+            steps {
+                checkVulnerabilities()
+                analyzeDependencies()
+                publishThirdPartyReport()
+                publishTestResultsAndConverage()
+            }
+        }
+        stage('Publish') {
+            when {
+                expression {
+                    version != 'unversioned'
+                }
+            }
+            steps {
+                mavenPackage(buildNumber: "${BUILD_NUMBER}", revision: shortCommit, branch: gitBranch)
+                archiveArtifacts artifacts: 'target/*.jar', onlyIfSuccessful: true
+		//                publishArtifactsS3(buildVersion: "${BUILD_NUMBER}.${shortCommit}")
+                publishArtifactoryBuildInfo()
+            }
+        }
+    }
+    post {
+        always {
+            recordIssues blameDisabled: true, enabledForFailure: true, healthy: 5, minimumSeverity: 'HIGH', tools: [java(), mavenConsole(), spotBugs(reportEncoding: 'UTF-8', useRankAsPriority: true)], unhealthy: 15
+        }
+	//success {
+	//    office365ConnectorSend webhookUrl: "${TEAMS_NOTIFICATION_URL}", color: '#007a00', message: "Build ${env.JOB_BASE_NAME} ${currentBuild.displayName} successful [open](${env.BUILD_URL})",
+	//        factDefinitions: [[name: "Committer", template: "$committer"],
+	//                          [name: "Remarks", template: "$causeShortDesc"]]
+	// }
+	//unstable {
+	//    office365ConnectorSend webhookUrl: "${TEAMS_NOTIFICATION_URL}", color: '#f0d500', message: "Build ${env.JOB_BASE_NAME} ${currentBuild.displayName} [open](${env.BUILD_URL}) unstable: "  + tm('${BUILD_FAILURE_ANALYZER}'),
+	//        factDefinitions: [[name: "Committer", template: "$committer"],
+	//                          [name: "Remarks", template: "$causeShortDesc"]]
+	// }
+	//failure {
+	//    office365ConnectorSend webhookUrl: "${TEAMS_NOTIFICATION_URL}", color: '#f00000', message: "Build ${env.JOB_BASE_NAME} ${currentBuild.displayName} [open](${env.BUILD_URL}) failed: "  + tm('${BUILD_FAILURE_ANALYZER}'),
+	//        factDefinitions: [[name: "Committer", template: "$committer"],
+	//                          [name: "Remarks", template: "$causeShortDesc"]]
+	// }
+    }
+}
