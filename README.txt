@@ -1,0 +1,1 @@
+Cloned from https://selerity.unfuddle.com/svn/selerity_public/SeleritySyncAPI/Java/SyncClient
