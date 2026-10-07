@@ -13,7 +13,7 @@ pipeline {
         // jdk = 'JDK 17 (Corretto, Local)'
         // maven = 'Maven 3.9'
 
-        jdk = 'OpenJDK 1.8'
+        jdk = 'JDK 8 (Corretto, Local)'
         version = "unversioned"
         buildDocker = false
         buildDockerRepo = ''
@@ -62,7 +62,7 @@ pipeline {
                         currentBuild.displayName = "PR #${env.CHANGE_ID} Build $BUILD_NUMBER"
                     } else {
                         version = readMavenPom().getVersion()
-                        currentBuild.displayName = "Build ${version}.$BUILD_NUMBER." + shortCommit
+                        currentBuild.displayName = "Build ${version}.${BUILD_NUMBER}.${shortCommit}"
                     }
                 }
 
@@ -108,7 +108,7 @@ pipeline {
                     checkVulnerabilities()
                     analyzeDependencies()
                     publishThirdPartyReport()
-                    publishTestResultsAndConverage()
+                    publishTestResultsAndCoverage()
                 }
             }
         }
