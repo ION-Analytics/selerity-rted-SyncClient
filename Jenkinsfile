@@ -65,15 +65,6 @@ pipeline {
                         currentBuild.displayName = "Build ${version}.${BUILD_NUMBER}.${shortCommit}"
                     }
                 }
-
-                rtMavenDeployer(
-                    id: "MAVEN_DEPLOYER",
-                    serverId: "artifactory1",
-                    releaseRepo: "libs-releases-local",
-                    snapshotRepo: "libs-snapshots-local",
-                    includePatterns: ["*.jar", "*.pom", "*.war"],
-                    deployEvenIfUnstable: true
-                )
             }
         }
 
