@@ -1,0 +1,200 @@
+# ============================================================================
+# Maven project build + publish workflow using the shared actions
+# ============================================================================
+#
+# Copy to .github/workflows/build.yml in the project repository.
+# (An optional repo-root build.yml config file is still read by java-build for
+# its "build: jdk:" setting.)
+#
+# Two jobs:
+#
+#   build    java-build runs Build -> Test -> SpotBugs -> test/coverage
+#            reports. License and dependency checks are left to Wiz.
+#            Dependencies come from the org's CodeArtifact repository through
+#            the read-only ci-reader role.
+#
+#   publish  Not for pull requests. A separate job, so only it gets the
+#            publisher role.
+#            codeartifact-publish packages with the build properties, deploys
+#            to CodeArtifact as a unique release (revision), and tags the
+#            commit v<version>.
+#
+# Every build is a real release, and that version identifies the build. The
+# version is the pom's major.minor plus an auto-incremented patch (from the
+# v<major>.<minor>.* git tags). Releases are never -SNAPSHOT. The pom
+# needs <version>${revision}</version> and flatten-maven-plugin.
+#
+# Actions used:
+#   - ION-Analytics/iona-central-package-repository/actions/codeartifact-login
+#     (logs in to CodeArtifact, writes settings.xml, sets MAVEN_SETTINGS_FILE)
+#   - ION-Analytics/selerity-cicd-shared-actions: java-build, codeartifact-publish
+#
+# REQUIRED SETUP:
+#   - The ci-reader role (exists) and the ci-publisher role (PROPOSED, not
+#     created yet: needs adding to internal_publisher_role_arns in
+#     iona-central-package-repository).
+#   - The publisher role's trust policy must allow this repo's workflow runs
+#     (no GitHub environment is used).
+#   - An AWS_ROLE_ARN repository secret: the role the "Configure AWS
+#     credentials" steps assume.
+#   - Maven and the AWS CLI on the runner (the login action also needs curl
+#     and python3).
+#   - ION-Analytics/selerity-cicd-shared-actions Settings > Actions > General >
+#     Access must allow this repo to use its actions.
+#
+# CUSTOMIZE: search for "CUSTOMIZE".
+#
+# NOT PORTED (Jenkins-only):
+#   - snapshotDependencies() rebuild trigger and the chained-build branch
+#     search in githubCheckout. Trigger a downstream build explicitly instead
+#     (repository_dispatch / workflow_dispatch from the upstream's workflow).
+#   - recordIssues warnings trend; SpotBugs XML is in the reports artifact.
+#   - C++ and other non-Maven deployables stay on S3 until decided; that is
+#     outside these actions.
+# ============================================================================
+
+name: Build
+
+on:
+  # push:
+  #   branches: [main]            # CUSTOMIZE: also list release branches you publish from
+  # pull_request:
+  workflow_dispatch:
+
+# disableConcurrentBuilds(): one build per ref; a newer push supersedes a
+# running PR build but never cancels a publishing build.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  actions: read
+  contents: read
+  id-token: write
+  security-events: write
+  packages: read
+
+env:
+  # maven-help-plugin version (must exist in CodeArtifact). Used by this
+  # workflow's rev step and by the shared actions' scripts.
+  MAVEN_HELP_PLUGIN_VERSION: 3.4.0
+  AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+
+jobs:
+  build:
+    runs-on: [ eus2-azure-github-runner-linux-x64-ubuntu-latest ]   # CUSTOMIZE: runner labels
+    timeout-minutes: 30                    # CUSTOMIZE: adjust if builds take longer
+    permissions:
+      id-token: write                      # OIDC for the login action
+      contents: read
+    outputs:
+      java-version: ${{ steps.build.outputs.java-version }}
+
+    steps:
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: eu-west-1
+
+      - uses: actions/checkout@v7.0.1
+        with:
+          lfs: true                         # fetch Git LFS files
+
+      # Read-only role. Writes a settings.xml and sets MAVEN_SETTINGS_FILE,
+      # which java-build uses. java-build itself sets up the JDK (with
+      # build.yml's override applied).
+      - uses: ION-Analytics/iona-central-package-repository/actions/codeartifact-login@4ef07d2708dac3c95cf2ecc254641b197fc3615b   # CUSTOMIZE: full commit SHA of main
+        with:
+          role-to-assume: arn:aws:iam::159860816451:role/live-iona-central-package-repository-ci-reader
+          ecosystems: maven
+
+      - id: build
+        uses: ION-Analytics/selerity-cicd-shared-actions/.github/actions/java-build@v0.0.6
+        with:
+          # java-version: '21'              # default 17; or set "build: jdk:" in build.yml
+          # profile: my-profile             # mvn -P
+          # fail-on-test-failure: 'false'   # continue (and still publish) on test failures
+          cache-maven: 'false'              # persistent self-hosted runners keep ~/.m2 themselves
+
+      # OPTIONAL: extra stages go here, e.g. integration tests:
+      # - run: mvn -B -s "$MAVEN_SETTINGS_FILE" verify -P integration-tests
+
+  publish:
+    needs: build
+    if: github.event_name != 'pull_request'   # publish only on pushes / manual runs
+    runs-on: [ eus2-azure-github-runner-linux-x64-ubuntu-latest ]   # CUSTOMIZE: runner labels
+    timeout-minutes: 15
+    permissions:
+      id-token: write
+      contents: write                         # push the v<version> tag
+    steps:
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: eu-west-1
+
+      - uses: actions/checkout@v7.0.1
+        with:
+          lfs: true
+
+      # Same JDK java-build used (build.yml override included).
+      - uses: actions/setup-java@v6.2.0
+        with:
+          distribution: corretto
+          java-version: ${{ needs.build.outputs.java-version }}
+
+      # Publisher role (PROPOSED name). Same action, different role.
+      - uses: ION-Analytics/iona-central-package-repository/actions/codeartifact-login@fadc2f64a0b32beae5ab9beda067f83f76f304eb   # CUSTOMIZE: full commit SHA of main
+        with:
+          role-to-assume: arn:aws:iam::159860816451:role/live-iona-central-package-repository-ci-publisher
+          ecosystems: maven
+
+      # Release version: the pom's major.minor, with the patch auto-incremented
+      # from the existing v<major>.<minor>.* tags (never below the pom's patch).
+      # To start a new line, bump the pom, e.g. 3.1.0 gives 3.1.0, 3.1.1, ...
+      # A duplicate loses the race safely: the tag push / CodeArtifact reject it.
+      - id: rev
+        run: |
+          git fetch --tags --quiet
+          # Maven prints errors on stdout, so show the captured output if it fails.
+          base=$(mvn -B -q -e -N -U -s "$MAVEN_SETTINGS_FILE" -DforceStdout -Dexpression=project.version org.apache.maven.plugins:maven-help-plugin:${MAVEN_HELP_PLUGIN_VERSION:-3.4.0}:evaluate) \
+            || { echo "$base"; echo "::error::could not evaluate project.version"; exit 1; }
+          base=${base%-SNAPSHOT}
+          mm=$(echo "$base" | cut -d. -f1,2)
+          pom_patch=$(echo "$base" | cut -d. -f3)
+          last=$(git tag -l "v$mm.*" | sed 's/^v//' | cut -d. -f3 | sort -n | tail -1)
+          next=$(( ${last:--1} + 1 ))
+          [ "$next" -lt "${pom_patch:-0}" ] && next=${pom_patch:-0}
+          echo "revision=$mm.$next" >> "$GITHUB_OUTPUT"
+
+      - id: publish
+        uses: ION-Analytics/selerity-cicd-shared-actions/.github/actions/codeartifact-publish@v0.0.6
+        with:
+          # A unique, immutable release per build (see the rev step).
+          revision: ${{ steps.rev.outputs.revision }}
+          # profile: my-profile                      # same as java-build's
+          # Files kept as a workflow artifact: jars/wars, plus the pom and the
+          # flattened pom (.flattened-pom.xml is hidden, hence include-hidden-files).
+          archive-pattern: |                         # CUSTOMIZE
+            target/*.[jw]ar
+            *pom.xml
+          include-hidden-files: 'true'
+
+      - name: Summary
+        run: |
+          echo "version=${{ steps.publish.outputs.version }}" \
+               "tag=${{ steps.publish.outputs.tag }}" \
+               "run=${{ steps.publish.outputs.run-url }}"
+
+      # OPTIONAL: Teams notifications. Needs a TEAMS_WEBHOOK_URL secret.
+      # - name: Notify Teams
+      #   if: always()
+      #   uses: ION-Analytics/selerity-cicd-shared-actions/.github/actions/teams-notify@v0.0.1
+      #   with:
+      #     webhook-url: ${{ secrets.TEAMS_WEBHOOK_URL }}
+      #     status: ${{ job.status }}
+      #     message: "Release ${{ steps.publish.outputs.version }} ${{ job.status }}"
